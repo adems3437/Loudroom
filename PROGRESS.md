@@ -8,7 +8,163 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 | -------------------------------- | -------------------------- |
 | Phase 1 — Altyapı                | ✅ Tamamlandı (2026-10-01) |
 | Phase 2 — Oda ve Lobby           | ✅ Tamamlandı (2026-10-01) |
-| Phase 3 — Game Engine + Quiz MVP | ⏸ Onay bekliyor            |
+| Phase 3 — Game Engine + Quiz MVP | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)    | ⏸ Onay bekliyor            |
+
+---
+
+## Phase 3 — Game Engine + Quiz MVP
+
+### Yapılanlar
+
+- **`packages/game-sdk`:**
+  - `GameModule` sözleşmesi, K1 ile güncellendi (SPEC §5):
+    - `onInput` ve görünüm fonksiyonları bağlamı (`ctx`) alıyor.
+    - Host ve oyuncu görünümlerinin zod şemaları var.
+    - `RoundContext` oyuncu istatistiklerini, oyuncuların bağlı olup olmadığını ve faz saatini
+      taşıyor.
+    - `ScoreResult` doğruluğu, cevap süresini ve cevabın kendisini içeriyor.
+  - Seed'li rastgele sayı üreteci (mulberry32).
+  - `./testing`:
+    - Round'u engine gibi oynatan küçük bir test düzeneği.
+    - Her modülün geçmesi gereken ortak sözleşme testleri: görünümler şemaya uyuyor mu,
+      sonuçlar tekrarlanabilir mi, geçersiz cevap reddediliyor mu, sızıntı var mı.
+    - **Sızıntı testi:** Yalnızca doğru cevabı farklı olan içerik varyantlarıyla aynı round
+      oynanır. Round bitene kadar istemcilere giden her şey birebir aynı olmalı. Bilerek
+      sızıntılı bir değişiklik yapıldığında testin kırmızıya döndüğü doğrulandı.
+  - `./client`: Server saatine göre çizilen geri sayım halkası; renk ve şekli birlikte
+    kullanan seçenek simgeleri; oyun ekranı (renderer) tipleri.
+- **Quiz modülü (`packages/games/quiz`):**
+  - Fazlar: INTRO → ANSWERING → REVEAL. Seçenek sırası her round'da seed ile karıştırılıyor.
+  - Puan formülü SPEC §7.1'deki gibi. Seri bonusu: 3. ardışık doğru cevaptan itibaren her
+    adımda +100, en fazla +500.
+  - Bağlı oyuncuların hepsi cevap verince süre beklenmeden REVEAL'e geçiliyor.
+  - Cevap kilitleme ve cevap değiştirme ayarı.
+  - REVEAL'de cevap dağılımı gösteriliyor.
+  - Host ekranında soru, geri sayım halkası, renk+şekil seçenekleri ve dağılım çubukları;
+    telefonda büyük butonlar ve doğru/yanlış sonucu.
+- **Engine (`apps/server/src/game`):**
+  - Durum makinesi: STARTING → PLAYING → ROUND_RESULT → SCOREBOARD → … → FINISHED, ayrıca
+    PAUSED. Bütün adımlar oda kilidi altında çalışıyor.
+  - **Zamanlayıcı:** Her oda için tek bir zamanlayıcı var; eski zamanlayıcılar token ile
+    ayıklanıyor.
+  - **Gecikme toleransı:** Süre bittikten sonraki 250 ms içinde gelen cevaplar kabul ediliyor.
+  - **Host komutları:** devam (`game:next`), atla, bitir, duraklat/devam, yeniden oyna.
+    Host koparsa oyun otomatik duraklıyor; server yeniden başlarsa oyun kalan süresiyle
+    duraklatılmış olarak geri geliyor.
+  - **Sıralama:** Puana göre; eşitlikte toplam cevap süresi kısa olan önde. Cevap verilmeyen
+    round'lar tam süre sayılıyor, böylece eşitliği bozmada avantaj sağlamıyor.
+  - **Paket yükleyici:** Sabit id listesi ya da seed'li rastgele seçim. İçerik modülün şemasıyla
+    doğrulanıp oyun durumuna kopyalanıyor.
+  - **Oyun geçmişi:** `GameSession`, `SessionPlayer`, `SessionRound`, `PlayerAnswer` ve
+    `ScoreEvent` arka planda, oturum başına sırayla yazılıyor. Hata oyunu durdurmuyor;
+    kapanışta bekleyen yazımlar tamamlanıyor.
+  - **Görünümler:** Oyun durumu her oda yayınıyla birlikte gönderiliyor. Oyuncu görünümleri
+    kişiye özel olduğu için oturum kanalına gidiyor. `round:*`, `score:update` ve `game:end`
+    ses ve titreşim için bildirim olarak gönderiliyor.
+  - **Oda:** Oyun durumu `room:{code}:game` anahtarında. Bitmiş oda 30 dakika tutuluyor. Geç
+    katılım ayarı uygulanıyor; oyun sırasında kopan oyuncunun yeri korunuyor (K4).
+- **Seed:** 10 Türkçe soru ve "Genel Kültür Karışık" paketi. Sabit id'ler kullanıldığı için
+  seed tekrar çalıştırılınca kayıtlar çoğalmıyor.
+- **Web:**
+  - Lobby'de "Oyunu başlat" butonu; oda oluştururken geç katılım ayarı.
+  - Host oyun ekranı: başlangıç geri sayımı, soru, sonuç, skor tablosu (sıra değişince satırlar
+    kayıyor), podyum, duraklatma katmanı; kontroller: duraklat/devam, atla, bitir (onaylı),
+    ses aç/kapa, tam ekran.
+  - Telefon: başlangıç geri sayımı, soru, sonuç ve kazanılan puan, sıralama, final sırası,
+    duraklatma.
+  - Ses efektleri WebAudio ile kodla üretiliyor (K6): tik, cevap, yeni soru, sonuç, final.
+  - Oyun registry'si: `gameType` → ekranlar. Oyun metinleri `tr.json` içinde `games.*` altında.
+- **SPEC:** §5 sözleşmesi güncellendi; §8'e `game:next` ve `game:restart` eklendi.
+  §7.9–7.16'ya yeni oyunlar, Phase 10–13 olarak yeni fazlar eklendi.
+
+### Bitti tanımı — son çalıştırma (2026-10-01)
+
+| Kontrol                                                 | Sonuç                                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------- |
+| `pnpm typecheck`                                        | ✅ 8/8 görev                                                |
+| `pnpm lint`                                             | ✅ 8/8 görev                                                |
+| `pnpm test`                                             | ✅ 151 test: shared 40, game-sdk 4, game-quiz 32, server 75 |
+| `pnpm build`                                            | ✅ 5/5 görev                                                |
+| `pnpm test:e2e`                                         | ✅ 16/16 (Chromium + WebKit; Phase 1–2 testleri dahil)      |
+| `pnpm format:check`                                     | ✅                                                          |
+| `docker compose down -v && docker compose up -d --wait` | ✅ Sıfırdan 47 sn                                           |
+
+**Kabul kriterleri:**
+
+- `e2e/game.spec.ts` akışın tamamını doğruluyor: host oda açar, telefonlar QR linkiyle katılır,
+  oyun başlar ve 10 sorunun her birinde:
+  - Telefonlar farklı seçenekler işaretler; son cevapla round erken biter.
+  - REVEAL'de host ekranından doğru seçenek okunur. Her telefonun doğru/yanlış sonucu ve
+    server'ın verdiği puan buna göre kontrol edilir: doğruya en az 500, yanlışa 0.
+  - Skor tablosunun sıralaması kontrol edilir.
+  - 2. soruda bir telefon sayfayı yenileyip aynı soruya geri döner.
+  - Ardından podyum ve telefonlardaki final sırası kontrol edilir, "yeniden oyna" ile lobby'ye
+    dönülür.
+- **Cevap sızıntısı üç seviyede test ediliyor:**
+  - Modül: sözleşme testindeki varyant karşılaştırması.
+  - Server: integration testi; REVEAL öncesinde gönderilen bütün payload'lar taranıyor.
+  - Tarayıcı: e2e testi; tarayıcıların aldığı WebSocket mesajları taranıyor.
+
+### Alınan kararlar (kullanıcı onaylı)
+
+- **K1, modül sözleşmesi:** Bağlam (`ctx`) bütün fonksiyonlara veriliyor, görünüm şemaları var,
+  round'lar arası oyuncu istatistikleri modüle aktarılıyor.
+- **K2, paket seçimi:** `game:start` isteğe bağlı bir `packId` alıyor; verilmezse en son
+  güncellenen paket kullanılıyor. Seçim arayüzü Phase 4'te.
+- **K3, görselli sorular:** Medya yükleme ile birlikte Phase 4'te.
+- **K4, oyun sırasında kopan oyuncu:** Yeri ve puanı korunuyor; 90 saniye sonra çıkarılma
+  kuralı yalnızca lobby'de geçerli.
+- **K5, geçişler:** Ekranlar arası geçişler host "Devam" butonuyla elle; soru içindeki
+  zamanlama (başlangıç geri sayımı, okuma süresi, cevap süresi) otomatik.
+- **K6, ses:** Efektler WebAudio ile kodla üretiliyor; müzik lisanslı dosya gerektirdiği için
+  ertelendi.
+- **K7, yeniden oyna:** Podyumdan sonra oda aynı oyuncularla, puanlar sıfırlanmış olarak
+  lobby'ye dönüyor.
+- **K8, skor tablosu ayarı:** Bölümün her sorusundan sonra `showScoreboardAfter` ayarına göre
+  gösteriliyor; bölümün son sorusunda her durumda gösteriliyor. Son sorudan sonra doğrudan
+  podyuma geçiliyor.
+- **Oyun listesi:** Kim Yapar? (Phase 5), Tombala ve Casus Kim? (Phase 10), UNO ve Pişti
+  (Phase 11), Kızma Birader ve Amiral Battı (Phase 12), Okey (Phase 13). İsimler kullanıcının
+  kararıyla aynen kullanılıyor; marka riski SPEC'e not edildi.
+
+### Varsayımlar ve küçük kararlar
+
+- **Oyun başlatma:** En az bir bağlı oyuncu yeterli; herkesin "hazır" olması zorunlu değil.
+  Başlangıçta puanlar ve hazır durumu sıfırlanıyor.
+- **Atla:** Oynanan soru puan verilmeden kapatılıyor ve geçmişe yazılmıyor.
+- **Bitir:** Oyun her an podyuma geçebiliyor; oturum FINISHED olarak kaydediliyor.
+- **Durum yayın sırası:** Server yeni durumu ack'ten önce yayınlıyor (Nest handler'ı dönmeden
+  emit ediyor). Testler buna göre yazıldı.
+- **Görünüm doğrulaması:** Server görünümleri çalışma anında şemayla doğrulamıyor (sözleşme
+  testi bunu güvence altına alıyor). Web her görünümü ilgili oyunun şemasıyla doğruluyor;
+  doğrulama başarısız olursa "gösterilemiyor" mesajı çıkıyor.
+- **Seçenek renkleri:** Oyuncu renklerinden ayrı, sabit 6 renk + 6 şekil.
+
+### Eklenen paketler
+
+Yeni harici paket eklenmedi. Yeni çalışma alanı içi paketler: `@loudroom/game-sdk` ve
+`@loudroom/game-quiz`. game-sdk'da `react` ve `vitest` isteğe bağlı peer bağımlılık olarak
+tanımlı.
+
+### Ortam notu: iCloud
+
+Proje, iCloud ile senkronize edilen Masaüstü'nde duruyor. iCloud 12 binden fazla dosyayı diskten
+boşaltmıştı; bu dosyalar boş okunduğu için ESLint çöktü. Kullanıcı klasörde "İndirilmiş Olarak
+Tut" seçeneğini açtı. Kaynak dosyalar indirildi ve `git status` ile doğrulandı; `node_modules`
+pnpm'in iCloud dışındaki deposundan yeniden kuruldu. Bu seçeneğin açık kalması gerekiyor.
+Kontrol komutu `CLAUDE.md` içinde.
+
+### Bilinen sınırlar
+
+- **Yarıda kalan oyun kayıtları:** Süresi dolan odanın yarıda kalmış oyunu veritabanında ACTIVE
+  olarak kalıyor. Temizlik ve saklama süresi Phase 9'da (oturum geçmişi) ele alınacak.
+- **Görselli soru ve medya:** Phase 4.
+- **Müzik:** Yok (K6).
+- **Paket seçme arayüzü:** Phase 4.
+- **Çoklu server:** Açılıştaki "oyunu duraklat" kurtarması bütün odaları kapsıyor; çoklu
+  server'da yalnızca sahip olunan odalarla sınırlanmalı.
+- **E2E süresi:** 10 soruluk tam akış tarayıcı başına yaklaşık 50 saniye sürüyor.
 
 ---
 

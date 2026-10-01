@@ -107,30 +107,35 @@ Socket event ve payload tipleri **yalnızca** `packages/shared` içinde tanımla
 Core engine yalnızca bu sözleşmeyi bilir. Modüller **saf ve senkron** fonksiyonlardan oluşur; IO, zamanlayıcı, kalıcılık ve yayını engine yapar. Böylece modüller kolay test edilir ve yeni oyun eklemek core'a dokunmayı gerektirmez.
 
 ```ts
-interface GameModule<Content, Settings, State, Input> {
+interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
   id: string;                     // 'quiz'
   name: string;
   version: number;
   contentSchema: ZodType<Content>;
   settingsSchema: ZodType<Settings>;
+  defaultSettings: Settings;
   inputSchema: ZodType<Input>;
+  hostViewSchema: ZodType<HostView>;      // istemciye giden şeklin tamamı; sızıntı testleri de kullanır
+  playerViewSchema: ZodType<PlayerView>;
   capabilities: { minPlayers: number; maxPlayers: number; usesStream?: boolean };
 
   createRound(ctx: RoundContext<Content, Settings>): Transition<State>;
-  onInput(state: State, input: Input, meta: InputMeta): Transition<State>;
+  onInput(state: State, input: Input, meta: InputMeta, ctx: RoundContext<Content, Settings>): Transition<State>;
   onTimer(state: State, ctx: RoundContext<Content, Settings>): Transition<State>;
-  score(state: State, ctx: RoundContext<Content, Settings>): ScoreResult[]; // { playerId, points, breakdown }
+  score(state: State, ctx: RoundContext<Content, Settings>): ScoreResult[];
+  // ScoreResult: { playerId, points, correct, responseTimeMs, answer, breakdown }
 
-  getHostView(state: State): unknown;
-  getPlayerView(state: State, playerId: string): unknown;
+  getHostView(state: State, ctx: RoundContext<Content, Settings>): HostView;
+  getPlayerView(state: State, playerId: string, ctx: RoundContext<Content, Settings>): PlayerView;
 }
 
 type Transition<S> = { state: S; effects?: Effect[] };
-// Effect örnekleri: { type: 'phase', phase, durationMs } | { type: 'endRound' }
-//                   | { type: 'reject', playerId, code }
+// Effect: { type: 'phase', phase, durationMs | null } | { type: 'endRound' }
+//       | { type: 'reject', playerId, code: 'ROUND_CLOSED' | 'ALREADY_ANSWERED' | 'INVALID_INPUT' }
 ```
 
-- `RoundContext`: oyuncular, round ayarları, içerik, `now`, seed'li rastgelelik (testte deterministik).
+- `RoundContext`: round id/sırası, içerik, ayarlar, puan çarpanı, oyuncular (bağlı olup olmadıkları dahil), engine'in round'lar arası tuttuğu oyuncu istatistikleri (skor, seri, toplam cevap süresi), aktif faz saati (`endsAt` duraklatmada kaydırılır), `now`, round'a özel seed'li rastgelelik (testte deterministik).
+- Bir round'un sabit süresi olmak zorunda değildir; zamanlamayı modül faz efektleriyle yönetir (sıra tabanlı oyunlar dahil).
 - **Stream kanalı:** Çizim gibi yüksek frekanslı veriler için `round:stream` — kalıcılığa yazılmaz, throttle edilir, yine server üzerinden geçer ve doğrulanır.
 - **Client tarafı:** Her oyun paketi `HostRenderer` ve `PlayerRenderer` bileşenlerini (faza göre) export eder. Web'de bir registry `gameType → renderer` eşler. Player UI oyun tipine ve faza göre dinamik render edilir.
 - **Kayıt:** Yeni oyun = yeni paket + server ve web registry'lerine birer satır.
@@ -264,6 +269,7 @@ Client → server:
 room:create  room:join  room:leave  room:kick  room:lock
 player:ready  player:update
 game:start  game:pause  game:resume  game:skip  game:end
+game:next  game:restart
 round:input  round:stream
 time:sync
 ```
@@ -273,6 +279,8 @@ room:state  player:joined  player:left  player:reconnected
 game:state  round:start  round:phase  round:result
 score:update  game:end  error
 ```
+- `game:next`: host sonuç / skor tablosu ekranından ilerler. `game:restart`: oyun bittikten sonra aynı oyuncularla lobby'ye döner.
+- Oyun durumu kaynağı `game:state`'tir (izleyiciye özel); `round:*`, `score:update`, `game:end` efektler (ses, titreşim) için bildirimdir.
 - Hepsinin payload şeması `packages/shared` içinde zod ile tanımlı.
 - Client hiçbir zaman skor veya state değeri göndermez.
 

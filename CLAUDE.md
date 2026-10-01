@@ -44,6 +44,9 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
                    recovery), RoomGateway (handshake token resume + room/player commands)
   src/rate-limit/  Redis token bucket (Lua), hashed client IP
   src/moderation/  profanity filter + TR/EN word lists
+  src/game/        engine (state machine, timers), pack loader, session recorder (history),
+                   game views, game gateway, registry (gameType → module)
+  src/seed/        categories, sample quiz pack (fixed ids → idempotent)
   src/generated/   Prisma client (generated, git-ignored)
   test/            integration tests on real Postgres/Redis (*_test DB, Redis DB 1)
 apps/web           Next.js 16 App Router
@@ -52,10 +55,17 @@ apps/web           Next.js 16 App Router
     play, play/[roomCode]               code entry, join form, phone lobby
   src/realtime/    socket client (handshake token), sendCommand, clock sync,
                    RealtimeProvider (room state + session) / RealtimeRoot
-  src/lib/         session-storage (localStorage + useStoredSession), wake lock, haptics
+  src/lib/         session-storage (localStorage + useStoredSession), wake lock, haptics,
+                   sfx (WebAudio, no audio files)
+  src/games/       registry (gameType → renderers), round renderer wrappers
+  src/app/host/room/[roomCode]/  lobby, game stage, scoreboard, podium
   messages/tr.json all UI text (next-intl)
   e2e/             Playwright (chromium + webkit, multi-context)
 packages/shared    zod schemas, socket event contracts, shared pure logic
+packages/game-sdk  GameModule contract, seeded RNG; ./testing (contract suite + round
+                   harness); ./client (countdown, option shapes, renderer types)
+packages/games/*   one package per game: schema.ts, server.ts (module), host.tsx, player.tsx;
+                   exports ./server and ./client separately
 docker/            dev image, postgres init (creates loudroom_test)
 ```
 
@@ -77,6 +87,12 @@ docker/            dev image, postgres init (creates loudroom_test)
   tokens in `apps/web/src/app/globals.css` (`@theme`).
 - No mocks, TODOs, stubs or placeholder files for features of later phases (SPEC §0.4).
 - Every added package gets a reason in PROGRESS.md. Pin exact versions.
+- New game = new package under `packages/games/` + one line in
+  `apps/server/src/game/registry.ts` and `apps/web/src/games/registry.ts`. It must pass
+  `describeGameModuleContract` (incl. the secret-variant leak test). Game UI text lives in
+  `messages/tr.json` under `games.<gameType>`.
+- Game modules are pure and synchronous; the engine does IO, timers, persistence and
+  broadcasting. Engine steps run under the room lock (`RoomService.transact`).
 
 ## Gotchas
 
@@ -99,5 +115,12 @@ docker/            dev image, postgres init (creates loudroom_test)
 - `react-hooks` forbids setState inside effects: read external state (localStorage,
   fullscreen) with `useSyncExternalStore`.
 - Next's route announcer also has `role="alert"`: e2e tests select by `data-testid`.
+- The server publishes state _before_ acking a command. In tests, start listening for the
+  expected event before sending the command, or the event is missed.
+- The repo lives in an iCloud-synced Desktop. "Keep Downloaded" must stay on for the folder;
+  evicted (dataless) files read as empty and break tools. Check with
+  `find . -flags +dataless -type f | wc -l`; fix by reading the files or reinstalling deps.
+- Game packages build with `tsc` (JSX included); Next uses their `dist`. Tailwind scans their
+  sources via `@source` in `globals.css`.
 - Rate-limit buckets live in Redis. To reset them in the dev stack:
   `docker compose exec redis sh -c "redis-cli --scan --pattern 'rl:*' | xargs -r redis-cli del"`.
