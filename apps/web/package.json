@@ -12,6 +12,8 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@loudroom/game-quiz": "workspace:*",
+    "@loudroom/game-sdk": "workspace:*",
     "@loudroom/shared": "workspace:*",
     "motion": "13.4.6",
     "next": "16.3.8",

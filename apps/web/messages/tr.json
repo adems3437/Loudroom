@@ -60,7 +60,12 @@
     "replaced": "Bu oda başka bir sekmede açıldı.",
     "continueHere": "Burada devam et",
     "newRoom": "Yeni oda oluştur",
-    "loading": "Oda yükleniyor…"
+    "loading": "Oda yükleniyor…",
+    "lateJoin": "Oyun başladıktan sonra katılım",
+    "lateJoinClosed": "Kapalı",
+    "lateJoinZero": "0 puanla açık",
+    "start": "Oyunu başlat",
+    "starting": "Başlatılıyor…"
   },
   "play": {
     "enterCode": "Oda kodunu gir",
@@ -95,6 +100,48 @@
     "invalidCode": "Bu bir oda kodu değil.",
     "resuming": "Odaya dönülüyor…"
   },
+  "game": {
+    "getReady": "Hazır olun!",
+    "getReadyPhone": "Hazır ol!",
+    "roundOf": "Soru {current} / {total}",
+    "next": "Devam",
+    "pause": "Duraklat",
+    "resume": "Devam et",
+    "skip": "Atla",
+    "end": "Oyunu bitir",
+    "endConfirm": "Oyun bitirilsin mi?",
+    "endYes": "Bitir",
+    "cancel": "Vazgeç",
+    "paused": "Oyun duraklatıldı",
+    "pausedHint": "Host devam ettirdiğinde kalınan yerden sürecek.",
+    "scoreboard": "Skor tablosu",
+    "podium": "Kazananlar",
+    "playAgain": "Aynı ekiple yeniden oyna",
+    "soundOn": "Ses açık",
+    "soundOff": "Ses kapalı",
+    "points": "{points} puan",
+    "plusPoints": "+{points}",
+    "rank": "{rank}. sıradasın",
+    "finalRank": "Oyunu {rank}. sırada bitirdin!",
+    "gameOver": "Oyun bitti",
+    "waitingHost": "Host devam ettirecek…",
+    "unsupported": "Bu oyun bu ekranda gösterilemiyor."
+  },
+  "games": {
+    "quiz": {
+      "timeLeft": "Kalan süre",
+      "votes": "{count} oy",
+      "getReady": "Soru geliyor…",
+      "answered": "{count} / {total} oyuncu cevapladı",
+      "lookAtScreen": "Soru ekranda!",
+      "noAnswer": "Cevap vermedin",
+      "correct": "Doğru!",
+      "wrong": "Yanlış",
+      "correctAnswer": "Doğru cevap: {answer}",
+      "answerLocked": "Cevabın alındı",
+      "waitForOthers": "Diğerleri bekleniyor…"
+    }
+  },
   "errors": {
     "VALIDATION_ERROR": "Girdiğin bilgileri kontrol et.",
     "INTERNAL_ERROR": "Bir şeyler ters gitti. Tekrar dene.",
@@ -108,6 +155,14 @@
     "NICKNAME_TAKEN": "Bu takma ad bu odada kullanılıyor.",
     "NICKNAME_REJECTED": "Bu takma ad kullanılamaz.",
     "PLAYER_NOT_FOUND": "Oyuncu bulunamadı.",
+    "GAME_IN_PROGRESS": "Oyun başladı, şu an katılım kapalı.",
+    "NOT_ENOUGH_PLAYERS": "Başlamak için yeterli oyuncu yok.",
+    "INVALID_STATE": "Bu işlem şu an yapılamaz.",
+    "PACK_NOT_FOUND": "Oynanacak soru paketi bulunamadı.",
+    "STALE_ROUND": "Bu soru bitti.",
+    "ROUND_CLOSED": "Süre doldu.",
+    "ALREADY_ANSWERED": "Cevabını zaten verdin.",
+    "INVALID_INPUT": "Geçersiz cevap.",
     "NO_RESPONSE": "Sunucuya ulaşılamadı. Bağlantını kontrol et."
   },
   "avatars": {

@@ -62,7 +62,11 @@ export type QuizInput = z.infer<typeof quizInputSchema>;
 const optionViewSchema = z.strictObject({
   id: optionIdSchema,
   text: z.string(),
-  slot: z.number().int().min(0).max(QUIZ_MAX_OPTIONS - 1),
+  slot: z
+    .number()
+    .int()
+    .min(0)
+    .max(QUIZ_MAX_OPTIONS - 1),
 });
 export type QuizOptionView = z.infer<typeof optionViewSchema>;
 

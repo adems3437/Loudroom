@@ -3,9 +3,11 @@
 import {
   ServerEvent,
   TIME_SYNC_INTERVAL_MS,
+  gameStateSchema,
   roomStateSchema,
   sessionErrorEventSchema,
   type ClockEstimate,
+  type GameState,
   type RoomState,
   type SessionErrorCode,
 } from '@loudroom/shared';
@@ -19,7 +21,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { measureClock } from './measure-clock';
+import { clientNow, measureClock } from './measure-clock';
 import { createSocket, type AppSocket } from './socket';
 
 /** `closed`: the server ended this connection on purpose (session opened elsewhere). */
@@ -32,6 +34,10 @@ export interface RealtimeState {
   clock: ClockEstimate | null;
   /** Latest room snapshot for this connection's session. */
   room: RoomState | null;
+  /** Latest game snapshot while a game runs (null in the lobby). */
+  game: GameState | null;
+  /** Server time now: the local clock corrected by the measured offset (SPEC §3). */
+  serverNow: () => number;
   /** Why the server ended the session, if it did. */
   sessionEnded: SessionErrorCode | null;
   /** Binds a session the server already attached to this connection (create/join). */
@@ -60,6 +66,8 @@ export function RealtimeProvider({
   const [connection, setConnection] = useState<ConnectionState>('connecting');
   const [clock, setClock] = useState<ClockEstimate | null>(null);
   const [room, setRoom] = useState<RoomState | null>(null);
+  const [game, setGame] = useState<GameState | null>(null);
+  const offsetRef = useRef(0);
   const [sessionEnded, setSessionEnded] = useState<SessionErrorCode | null>(null);
 
   useEffect(() => {
@@ -69,7 +77,10 @@ export function RealtimeProvider({
 
     const syncClock = async () => {
       const estimate = await measureClock(created);
-      if (active && estimate) setClock(estimate);
+      if (active && estimate) {
+        offsetRef.current = estimate.offsetMs;
+        setClock(estimate);
+      }
     };
 
     created.on('connect', () => {
@@ -95,12 +106,18 @@ export function RealtimeProvider({
       setRoom((current) =>
         current?.code === next.code && current.version > next.version ? current : next,
       );
+      if (next.status === 'LOBBY') setGame(null);
+    });
+    created.on(ServerEvent.GameState, (payload) => {
+      const parsed = gameStateSchema.safeParse(payload);
+      if (parsed.success) setGame(parsed.data);
     });
     created.on(ServerEvent.Error, (payload) => {
       const parsed = sessionErrorEventSchema.safeParse(payload);
       if (!parsed.success) return;
       tokenRef.current = null;
       setRoom(null);
+      setGame(null);
       setSessionEnded(parsed.data.code);
       if (parsed.data.code === 'KICKED') {
         // Stay connected anonymously so the page keeps working (e.g. to join again).
@@ -134,6 +151,7 @@ export function RealtimeProvider({
       tokenRef.current = token;
       setSessionEnded(null);
       setRoom(null);
+      setGame(null);
       if (!socket) return; // the first connect will carry the token
       setConnection('connecting');
       socket.disconnect().connect();
@@ -145,6 +163,7 @@ export function RealtimeProvider({
     const hadSession = tokenRef.current !== null;
     tokenRef.current = null;
     setRoom(null);
+    setGame(null);
     setSessionEnded(null);
     if (!socket) return;
     // The server still binds this connection to the old session: start a fresh one.
@@ -153,6 +172,7 @@ export function RealtimeProvider({
   }, [socket]);
 
   const hasSession = useCallback(() => tokenRef.current !== null, []);
+  const serverNow = useCallback(() => clientNow() + offsetRef.current, []);
 
   const value = useMemo<RealtimeState>(
     () => ({
@@ -160,6 +180,8 @@ export function RealtimeProvider({
       connection,
       clock,
       room,
+      game,
+      serverNow,
       sessionEnded,
       adoptSession,
       resumeSession,
@@ -171,6 +193,8 @@ export function RealtimeProvider({
       connection,
       clock,
       room,
+      game,
+      serverNow,
       sessionEnded,
       adoptSession,
       resumeSession,

@@ -136,9 +136,9 @@ describe('quiz reveal', () => {
     const { frames } = play([open, answer('p1', 'b'), answer('p2', 'a'), answer('p3', 'b')]);
     const host = frames.at(-1)?.hostView as Extract<QuizHostView, { phase: 'REVEAL' }>;
     expect(host.correctOptionId).toBe('b');
-    expect(Object.fromEntries(host.distribution.map((entry) => [entry.optionId, entry.count]))).toEqual(
-      { a: 1, b: 2, c: 0, d: 0 },
-    );
+    expect(
+      Object.fromEntries(host.distribution.map((entry) => [entry.optionId, entry.count])),
+    ).toEqual({ a: 1, b: 2, c: 0, d: 0 });
     expect(frames.at(-1)?.playerViews.p2).toMatchObject({
       phase: 'REVEAL',
       selectedOptionId: 'a',

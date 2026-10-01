@@ -1,9 +1,4 @@
-import type {
-  GameModule,
-  RoundContext,
-  ScoreResult,
-  Transition,
-} from '@loudroom/game-sdk';
+import type { GameModule, RoundContext, ScoreResult, Transition } from '@loudroom/game-sdk';
 import {
   QUIZ_DEFAULT_SETTINGS,
   QUIZ_GAME_TYPE,
@@ -122,7 +117,11 @@ export const quizModule: GameModule<
       ...state,
       answers: {
         ...state.answers,
-        [meta.playerId]: { optionId: input.optionId, remainingMs, responseTimeMs: total - remainingMs },
+        [meta.playerId]: {
+          optionId: input.optionId,
+          remainingMs,
+          responseTimeMs: total - remainingMs,
+        },
       },
     };
 

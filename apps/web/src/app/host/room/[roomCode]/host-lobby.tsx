@@ -8,15 +8,17 @@ import { useEffect, useState } from 'react';
 import { Avatar } from '@/components/avatar';
 import { buttonClass } from '@/components/button';
 import { FullscreenButton } from '@/components/fullscreen-button';
+import { unlockAudio } from '@/lib/sfx';
 import { QrCode } from '@/components/qr-code';
 import { StageMessage } from '@/components/stage-message';
 import { removeSession, useStoredSession } from '@/lib/session-storage';
 import { sendCommand } from '@/realtime/commands';
 import { useRealtime } from '@/realtime/realtime-provider';
+import { GameStage } from './game-stage';
 
 export function HostLobby({ roomCode }: { roomCode: string }) {
   const t = useTranslations('host');
-  const { room, sessionEnded, resumeSession } = useRealtime();
+  const { room, game, sessionEnded, resumeSession } = useRealtime();
   const stored = useStoredSession('host', roomCode);
 
   useEffect(() => {
@@ -59,12 +61,28 @@ export function HostLobby({ roomCode }: { roomCode: string }) {
   if (room?.role !== 'host' || room.code !== roomCode) {
     return <StageMessage>{t('loading')}</StageMessage>;
   }
-  return <Lobby room={room} />;
+  if (room.status === 'LOBBY') return <Lobby room={room} />;
+  if (game?.role !== 'host') return <StageMessage>{t('loading')}</StageMessage>;
+  return <GameStage room={room} game={game} />;
 }
 
 function Lobby({ room }: { room: HostRoomState }) {
   const t = useTranslations('host');
+  const tErrors = useTranslations('errors');
   const { socket } = useRealtime();
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const connectedPlayers = room.players.filter((player) => player.connected).length;
+
+  const start = async () => {
+    if (!socket) return;
+    unlockAudio(); // a click: browsers allow game sounds from here on
+    setStarting(true);
+    setStartError(null);
+    const result = await sendCommand(socket, ClientCommand.GameStart, {});
+    setStarting(false);
+    if (!result.ok) setStartError(tErrors(result.code));
+  };
   const displayUrl = room.joinUrl.replace(/^https?:\/\//, '');
   const density = densityFor(room.players.length);
 
@@ -143,6 +161,23 @@ function Lobby({ room }: { room: HostRoomState }) {
             </AnimatePresence>
           </ul>
         )}
+
+        <div className="mt-auto flex items-center justify-end gap-8">
+          {startError && (
+            <p role="alert" className="text-danger text-[32px]">
+              {startError}
+            </p>
+          )}
+          <button
+            type="button"
+            data-testid="start-game"
+            disabled={starting || connectedPlayers === 0}
+            className={buttonClass('primary', 'min-h-[110px] px-16 text-[48px]')}
+            onClick={() => void start()}
+          >
+            {starting ? t('starting') : t('start')}
+          </button>
+        </div>
       </section>
     </div>
   );

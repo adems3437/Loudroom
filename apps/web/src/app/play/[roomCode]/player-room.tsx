@@ -15,12 +15,21 @@ import { removeSession, saveSession, useStoredSession } from '@/lib/session-stor
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { sendCommand } from '@/realtime/commands';
 import { useRealtime } from '@/realtime/realtime-provider';
+import { PlayerGame } from './player-game';
 import { ProfileForm } from './profile-form';
 
 export function PlayerRoom({ roomCode }: { roomCode: string }) {
   const t = useTranslations();
-  const { socket, room, sessionEnded, adoptSession, resumeSession, clearSession, hasSession } =
-    useRealtime();
+  const {
+    socket,
+    room,
+    game,
+    sessionEnded,
+    adoptSession,
+    resumeSession,
+    clearSession,
+    hasSession,
+  } = useRealtime();
   const stored = useStoredSession('player', roomCode);
 
   useEffect(() => {
@@ -77,6 +86,13 @@ export function PlayerRoom({ roomCode }: { roomCode: string }) {
         </button>
       </Notice>
     );
+  } else if (inThisRoom && me && inThisRoom.status !== 'LOBBY') {
+    content =
+      game?.role === 'player' ? (
+        <PlayerGame room={inThisRoom} game={game} me={me} />
+      ) : (
+        <p className="text-muted text-center">{t('play.resuming')}</p>
+      );
   } else if (inThisRoom && me) {
     content = <PlayerLobby room={inThisRoom} me={me} />;
   } else if (stored && sessionEnded === null) {

@@ -284,6 +284,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@loudroom/game-quiz':
+        specifier: workspace:*
+        version: link:../../packages/games/quiz
+      '@loudroom/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
       '@loudroom/shared':
         specifier: workspace:*
         version: link:../../packages/shared

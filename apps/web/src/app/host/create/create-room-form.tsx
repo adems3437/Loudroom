@@ -5,6 +5,7 @@ import {
   DEFAULT_MAX_PLAYERS,
   MAX_PLAYERS_LIMIT,
   MIN_PLAYERS_LIMIT,
+  type LateJoin,
 } from '@loudroom/shared';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -20,6 +21,7 @@ export function CreateRoomForm() {
   const router = useRouter();
   const { socket, connection, adoptSession, clearSession } = useRealtime();
   const [maxPlayers, setMaxPlayers] = useState(DEFAULT_MAX_PLAYERS);
+  const [lateJoin, setLateJoin] = useState<LateJoin>('closed');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +35,7 @@ export function CreateRoomForm() {
     setBusy(true);
     setError(null);
     const result = await sendCommand(socket, ClientCommand.RoomCreate, {
-      settings: { maxPlayers },
+      settings: { maxPlayers, lateJoin },
     });
     if (!result.ok) {
       setBusy(false);
@@ -49,11 +51,13 @@ export function CreateRoomForm() {
     'size-[96px] rounded-full border border-line bg-surface text-[56px] leading-none hover:bg-surface-raised disabled:opacity-40';
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-16">
+    <div className="flex h-full flex-col items-center justify-center gap-10">
       <span className="text-[64px]">
         <Brand />
       </span>
-      <h1 className="font-display text-[88px] font-extrabold">{t('host.createTitle')}</h1>
+      <h1 className="font-display text-[80px] leading-none font-extrabold">
+        {t('host.createTitle')}
+      </h1>
       <div className="flex flex-col items-center gap-6">
         <span id="max-players-label" className="text-muted text-[36px]">
           {t('host.maxPlayers')}
@@ -87,6 +91,29 @@ export function CreateRoomForm() {
           >
             +
           </button>
+        </div>
+      </div>
+      <div className="flex flex-col items-center gap-6">
+        <span id="late-join-label" className="text-muted text-[36px]">
+          {t('host.lateJoin')}
+        </span>
+        <div role="radiogroup" aria-labelledby="late-join-label" className="flex gap-4 text-[32px]">
+          {(['closed', 'zeroPoints'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={lateJoin === option}
+              onClick={() => {
+                setLateJoin(option);
+              }}
+              className={`rounded-2xl border-2 px-8 py-4 ${
+                lateJoin === option ? 'border-accent bg-surface-raised' : 'border-line bg-surface'
+              }`}
+            >
+              {option === 'closed' ? t('host.lateJoinClosed') : t('host.lateJoinZero')}
+            </button>
+          ))}
         </div>
       </div>
       <button

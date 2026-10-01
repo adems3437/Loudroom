@@ -33,6 +33,8 @@ export interface PlayerRendererProps<View> extends RendererBase<View> {
   submit: (input: unknown) => Promise<SubmitOutcome>;
   /** Short tap feedback (vibration where supported). */
   haptic: () => void;
+  /** User-facing text for a failed submit's error code. */
+  describeError: (code: string) => string;
 }
 
 /** What the web registry holds per game type (SPEC §5: gameType → renderer). */

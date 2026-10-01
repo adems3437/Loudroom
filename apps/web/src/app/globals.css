@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Game packages ship their own screens; Tailwind must see their class names. */
+@source '../../../../packages/game-sdk/src';
+@source '../../../../packages/games';
+
 /*
  * Design tokens — the single place for colors, typography and spacing (SPEC §12).
  * Tailwind generates utilities from them: bg-canvas, text-muted, font-display, p-safe-x, …

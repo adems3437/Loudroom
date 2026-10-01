@@ -14,6 +14,8 @@ x-app: &app
     - server-node-modules:/app/apps/server/node_modules
     - web-node-modules:/app/apps/web/node_modules
     - shared-node-modules:/app/packages/shared/node_modules
+    - game-sdk-node-modules:/app/packages/game-sdk/node_modules
+    - game-quiz-node-modules:/app/packages/games/quiz/node_modules
     - pnpm-store:/pnpm-store
   environment: &app-env
     NODE_ENV: development
@@ -39,7 +41,7 @@ services:
       - -ec
       - |
         pnpm install --frozen-lockfile --store-dir /pnpm-store
-        pnpm --filter @loudroom/shared build
+        pnpm exec turbo run build --filter='./packages/**' --ui=stream
         pnpm --filter @loudroom/server db:generate
         pnpm --filter @loudroom/server db:deploy
         pnpm --filter @loudroom/server db:seed
@@ -88,4 +90,6 @@ volumes:
   server-node-modules:
   web-node-modules:
   shared-node-modules:
+  game-sdk-node-modules:
+  game-quiz-node-modules:
   pnpm-store:
