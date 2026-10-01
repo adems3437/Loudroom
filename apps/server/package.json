@@ -25,6 +25,8 @@
     "unplugin-swc": "2.0.0"
   },
   "dependencies": {
+    "@loudroom/game-quiz": "workspace:*",
+    "@loudroom/game-sdk": "workspace:*",
     "@loudroom/shared": "workspace:*",
     "@nestjs/common": "12.1.2",
     "@nestjs/core": "12.1.2",

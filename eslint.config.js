@@ -61,6 +61,10 @@ export default defineConfig(
               group: ['@loudroom/web', '**/apps/web/**'],
               message: 'The server must not depend on the web app.',
             },
+            {
+              group: ['@loudroom/game-*/client', '@loudroom/game-sdk/client', 'react', 'react/*'],
+              message: 'The server loads only the server side of game packages (SPEC §5).',
+            },
           ],
         },
       ],
@@ -92,6 +96,50 @@ export default defineConfig(
             {
               group: ['@loudroom/server', '**/apps/server/**'],
               message: 'The web app talks to the server only through @loudroom/shared contracts.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Game packages: React rules for renderers; the server side of a game stays React-free.
+  {
+    files: ['packages/game-sdk/**/*.tsx', 'packages/games/**/*.tsx'],
+    plugins: { 'react-hooks': reactHooks },
+    languageOptions: { globals: globals.browser },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'dangerouslySetInnerHTML is forbidden (SPEC §9).',
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'packages/games/*/src/server.ts',
+      'packages/games/*/src/schema.ts',
+      'packages/games/*/src/scoring.ts',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                'react',
+                'react/*',
+                '@loudroom/game-sdk/client',
+                './client*',
+                './host*',
+                './player*',
+              ],
+              message: 'Server-side game code must not pull in client code.',
             },
           ],
         },

@@ -1,5 +1,15 @@
 import type { z } from 'zod';
 import {
+  gameEndEventSchema,
+  gameStartRequestSchema,
+  gameStateSchema,
+  roundInputRequestSchema,
+  roundPhaseEventSchema,
+  roundResultEventSchema,
+  roundStartEventSchema,
+  scoreUpdateEventSchema,
+} from '../game/game.js';
+import {
   emptyRequestSchema,
   emptyResultSchema,
   playerJoinedEventSchema,
@@ -29,6 +39,16 @@ export const ClientCommand = {
   RoomLock: 'room:lock',
   PlayerReady: 'player:ready',
   PlayerUpdate: 'player:update',
+  GameStart: 'game:start',
+  GamePause: 'game:pause',
+  GameResume: 'game:resume',
+  GameSkip: 'game:skip',
+  GameEnd: 'game:end',
+  /** Host moves on from the result or scoreboard screen. */
+  GameNext: 'game:next',
+  /** Host starts over with the same players: back to the lobby, scores reset. */
+  GameRestart: 'game:restart',
+  RoundInput: 'round:input',
 } as const;
 export type ClientCommand = (typeof ClientCommand)[keyof typeof ClientCommand];
 
@@ -45,6 +65,14 @@ export const clientCommands = {
   [ClientCommand.RoomLock]: { request: roomLockRequestSchema, result: emptyResultSchema },
   [ClientCommand.PlayerReady]: { request: playerReadyRequestSchema, result: emptyResultSchema },
   [ClientCommand.PlayerUpdate]: { request: playerUpdateRequestSchema, result: emptyResultSchema },
+  [ClientCommand.GameStart]: { request: gameStartRequestSchema, result: emptyResultSchema },
+  [ClientCommand.GamePause]: { request: emptyRequestSchema, result: emptyResultSchema },
+  [ClientCommand.GameResume]: { request: emptyRequestSchema, result: emptyResultSchema },
+  [ClientCommand.GameSkip]: { request: emptyRequestSchema, result: emptyResultSchema },
+  [ClientCommand.GameEnd]: { request: emptyRequestSchema, result: emptyResultSchema },
+  [ClientCommand.GameNext]: { request: emptyRequestSchema, result: emptyResultSchema },
+  [ClientCommand.GameRestart]: { request: emptyRequestSchema, result: emptyResultSchema },
+  [ClientCommand.RoundInput]: { request: roundInputRequestSchema, result: emptyResultSchema },
 } as const satisfies Record<ClientCommand, { request: z.ZodType; result: z.ZodType }>;
 
 type Commands = typeof clientCommands;
@@ -67,6 +95,12 @@ export const ServerEvent = {
   PlayerJoined: 'player:joined',
   PlayerLeft: 'player:left',
   PlayerReconnected: 'player:reconnected',
+  GameState: 'game:state',
+  RoundStart: 'round:start',
+  RoundPhase: 'round:phase',
+  RoundResult: 'round:result',
+  ScoreUpdate: 'score:update',
+  GameEnd: 'game:end',
   Error: 'error',
 } as const;
 export type ServerEvent = (typeof ServerEvent)[keyof typeof ServerEvent];
@@ -76,6 +110,12 @@ export const serverEventSchemas = {
   [ServerEvent.PlayerJoined]: playerJoinedEventSchema,
   [ServerEvent.PlayerLeft]: playerLeftEventSchema,
   [ServerEvent.PlayerReconnected]: playerReconnectedEventSchema,
+  [ServerEvent.GameState]: gameStateSchema,
+  [ServerEvent.RoundStart]: roundStartEventSchema,
+  [ServerEvent.RoundPhase]: roundPhaseEventSchema,
+  [ServerEvent.RoundResult]: roundResultEventSchema,
+  [ServerEvent.ScoreUpdate]: scoreUpdateEventSchema,
+  [ServerEvent.GameEnd]: gameEndEventSchema,
   [ServerEvent.Error]: sessionErrorEventSchema,
 } as const satisfies Record<ServerEvent, z.ZodType>;
 

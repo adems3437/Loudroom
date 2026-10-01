@@ -7,10 +7,13 @@ import {
   roomStatusSchema,
 } from '@loudroom/shared';
 import { z } from 'zod';
+import { gameRecordSchema, type GameRecord } from '../game/game.record.js';
 import { RedisService } from '../redis/redis.service.js';
 
 /** Rooms disappear after this long without any change (SPEC §4). */
 export const ROOM_IDLE_TTL_MS = 4 * 60 * 60 * 1000;
+/** A finished game's room is kept this long for the podium and "play again" (SPEC §4). */
+export const FINISHED_ROOM_TTL_MS = 30 * 60 * 1000;
 
 const storedRoomSchema = z.object({
   code: roomCodeSchema,
@@ -45,6 +48,8 @@ export interface RoomSnapshot {
   room: StoredRoom;
   /** In join order. */
   players: StoredPlayer[];
+  /** The running (or finished) game; null in the lobby. */
+  game: GameRecord | null;
 }
 
 export type ResolvedToken =
@@ -55,6 +60,7 @@ const playerTokenValueSchema = z.object({ roomCode: roomCodeSchema, playerId: z.
 const keys = {
   room: (code: string) => `room:${code}`,
   players: (code: string) => `room:${code}:players`,
+  game: (code: string) => `room:${code}:game`,
   playerToken: (hash: string) => `token:player:${hash}`,
   hostToken: (hash: string) => `token:host:${hash}`,
 };
@@ -86,24 +92,29 @@ export class RoomStore {
   }
 
   async load(code: string): Promise<RoomSnapshot | null> {
-    const [roomJson, playerJson] = await Promise.all([
+    const [roomJson, playerJson, gameJson] = await Promise.all([
       this.redis.client.get(keys.room(code)),
       this.redis.client.hvals(keys.players(code)),
+      this.redis.client.get(keys.game(code)),
     ]);
     if (roomJson === null) return null;
     const room = storedRoomSchema.parse(JSON.parse(roomJson));
     const players = playerJson
       .map((json) => storedPlayerSchema.parse(JSON.parse(json)))
       .sort((a, b) => a.joinedAt - b.joinedAt);
-    return { room, players };
+    const game = gameJson === null ? null : gameRecordSchema.parse(JSON.parse(gameJson));
+    return { room, players, game };
   }
 
   /** Writes the whole room atomically; tokens of `removed` players stop working. */
   async save(snapshot: RoomSnapshot, removed: readonly StoredPlayer[] = []): Promise<void> {
-    const { room, players } = snapshot;
+    const { room, players, game } = snapshot;
+    const ttl = room.status === 'FINISHED' ? FINISHED_ROOM_TTL_MS : ROOM_IDLE_TTL_MS;
     const tx = this.redis.client.multi();
-    tx.set(keys.room(room.code), JSON.stringify(room), 'PX', ROOM_IDLE_TTL_MS);
-    tx.set(keys.hostToken(room.hostTokenHash), room.code, 'PX', ROOM_IDLE_TTL_MS);
+    tx.set(keys.room(room.code), JSON.stringify(room), 'PX', ttl);
+    tx.set(keys.hostToken(room.hostTokenHash), room.code, 'PX', ttl);
+    if (game) tx.set(keys.game(room.code), JSON.stringify(game), 'PX', ttl);
+    else tx.del(keys.game(room.code));
     for (const player of removed) {
       tx.hdel(keys.players(room.code), player.id);
       tx.del(keys.playerToken(player.sessionTokenHash));
@@ -114,10 +125,10 @@ export class RoomStore {
         keys.playerToken(player.sessionTokenHash),
         JSON.stringify({ roomCode: room.code, playerId: player.id }),
         'PX',
-        ROOM_IDLE_TTL_MS,
+        ttl,
       );
     }
-    tx.pexpire(keys.players(room.code), ROOM_IDLE_TTL_MS);
+    tx.pexpire(keys.players(room.code), ttl);
     await tx.exec();
   }
 

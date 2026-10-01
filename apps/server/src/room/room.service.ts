@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { PLAYER_COLORS, nicknameKey, type AvatarId, type RoomSettings } from '@loudroom/shared';
 import { KeyedMutex } from '../common/keyed-mutex.js';
 import { ProfanityFilter } from '../moderation/profanity-filter.js';
+import type { GameRecord } from '../game/game.record.js';
 import { CommandError } from '../realtime/command-error.js';
 import { generateRoomCode, generateSessionToken, hashSessionToken } from './room-secrets.js';
 import {
@@ -47,7 +48,9 @@ export class RoomService {
         createdAt: now,
         updatedAt: now,
       };
-      if (await this.store.reserve(room)) return { snapshot: { room, players: [] }, hostToken };
+      if (await this.store.reserve(room)) {
+        return { snapshot: { room, players: [], game: null }, hostToken };
+      }
     }
     throw new Error('Could not find a free room code');
   }
@@ -59,9 +62,15 @@ export class RoomService {
   }): Promise<PlayerChange & { playerToken: string }> {
     // Checked before looking the room up, so this answer reveals nothing about the code.
     this.assertAcceptableNickname(input.nickname);
-    return this.mutate(input.roomCode, (snapshot) => {
+    return this.transact(input.roomCode, (snapshot) => {
       const { room, players } = snapshot;
       if (room.locked) throw new CommandError('ROOM_LOCKED', 'The room is locked');
+      if (
+        room.status !== 'LOBBY' &&
+        (room.status === 'FINISHED' || room.settings.lateJoin === 'closed')
+      ) {
+        throw new CommandError('GAME_IN_PROGRESS', 'A game is in progress');
+      }
       if (players.length >= room.settings.maxPlayers) {
         throw new CommandError('ROOM_FULL', 'The room is full');
       }
@@ -95,7 +104,7 @@ export class RoomService {
   }
 
   setHostConnected(code: string, connected: boolean): Promise<RoomSnapshot> {
-    return this.mutate(code, ({ room, players }) => ({
+    return this.transact(code, ({ room, players }) => ({
       next: { room: { ...room, hostConnected: connected }, players },
       result: {},
     })).then(({ snapshot }) => snapshot);
@@ -148,7 +157,7 @@ export class RoomService {
   }
 
   setLocked(code: string, locked: boolean): Promise<RoomSnapshot> {
-    return this.mutate(code, ({ room, players }) => ({
+    return this.transact(code, ({ room, players }) => ({
       next: { room: { ...room, locked }, players },
       result: {},
     })).then(({ snapshot }) => snapshot);
@@ -156,7 +165,7 @@ export class RoomService {
 
   /** Removes a player (left or kicked) and revokes their token. */
   removePlayer(code: string, playerId: string): Promise<PlayerChange> {
-    return this.mutate(code, ({ room, players }) => {
+    return this.transact(code, ({ room, players }) => {
       const player = players.find((candidate) => candidate.id === playerId);
       if (!player) throw new CommandError('PLAYER_NOT_FOUND', 'No such player in this room');
       return {
@@ -173,7 +182,9 @@ export class RoomService {
    */
   async expireDisconnectedPlayer(code: string, playerId: string): Promise<PlayerChange | null> {
     try {
-      return await this.mutateIfNeeded(code, ({ room, players }) => {
+      return await this.transactIfNeeded(code, ({ room, players }) => {
+        // During a game a player keeps their slot and score until it ends (SPEC §4, K4).
+        if (room.status !== 'LOBBY') return null;
         const player = players.find((candidate) => candidate.id === playerId);
         if (!player || player.connected) return null;
         return {
@@ -196,7 +207,7 @@ export class RoomService {
     try {
       const now = Date.now();
       return (
-        await this.mutate(code, ({ room, players }) => ({
+        await this.transact(code, ({ room, players }) => ({
           next: {
             room: { ...room, hostConnected: false },
             players: players.map((player) => ({ ...player, connected: false, lastSeenAt: now })),
@@ -225,7 +236,7 @@ export class RoomService {
     playerId: string,
     change: (player: StoredPlayer, others: StoredPlayer[]) => StoredPlayer,
   ): Promise<PlayerChange & { before: StoredPlayer }> {
-    return this.mutate(code, ({ room, players }) => {
+    return this.transact(code, ({ room, players }) => {
       const before = players.find((candidate) => candidate.id === playerId);
       if (!before) throw new CommandError('PLAYER_NOT_FOUND', 'No such player in this room');
       const player = change(
@@ -242,18 +253,21 @@ export class RoomService {
     });
   }
 
-  /** Loads the room, applies `change` under the room lock and saves it with a new version. */
-  private async mutate<R extends object>(
+  /**
+   * Loads the room, applies `change` under the room lock and saves it with a new version.
+   * Every change to a room — including the game engine's — goes through here.
+   */
+  async transact<R extends object>(
     code: string,
     change: (snapshot: RoomSnapshot) => Mutation<R>,
   ): Promise<R & { snapshot: RoomSnapshot }> {
-    const outcome = await this.mutateIfNeeded(code, change);
+    const outcome = await this.transactIfNeeded(code, change);
     if (!outcome) throw new Error('mutation unexpectedly skipped');
     return outcome;
   }
 
-  /** Like {@link mutate}, but `change` may return null to leave the room untouched. */
-  private mutateIfNeeded<R extends object>(
+  /** Like {@link transact}, but `change` may return null to leave the room untouched. */
+  transactIfNeeded<R extends object>(
     code: string,
     change: (snapshot: RoomSnapshot) => Mutation<R> | null,
   ): Promise<(R & { snapshot: RoomSnapshot }) | null> {
@@ -269,6 +283,7 @@ export class RoomService {
           updatedAt: Date.now(),
         },
         players: outcome.next.players,
+        game: outcome.next.game === undefined ? current.game : outcome.next.game,
       };
       await this.store.save(snapshot, outcome.removed);
       return { ...outcome.result, snapshot };
@@ -276,8 +291,9 @@ export class RoomService {
   }
 }
 
-interface Mutation<R> {
-  next: RoomSnapshot;
+export interface Mutation<R> {
+  /** The new room; `game` left out keeps the current game record. */
+  next: Omit<RoomSnapshot, 'game'> & { game?: GameRecord | null };
   removed?: StoredPlayer[];
   result: R;
 }

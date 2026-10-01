@@ -20,7 +20,10 @@ import { clientAddress, hashClientAddress } from '../rate-limit/client-address.j
 import { RateLimiterService } from '../rate-limit/rate-limiter.service.js';
 import { CommandError } from '../realtime/command-error.js';
 import { CommandRunner } from '../realtime/command-runner.service.js';
+import { assertNoSession, requireHost, requirePlayer } from '../realtime/session-guards.js';
 import type { AppServer, AppSocket, Session } from '../realtime/socket-types.js';
+import { GameEngine } from '../game/game.engine.js';
+import { SessionRecorder } from '../game/session-recorder.js';
 import { PresenceService } from './presence.service.js';
 import { RoomBroadcaster } from './room.broadcaster.js';
 import { channels } from './room.channels.js';
@@ -51,6 +54,8 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     private readonly rooms: RoomService,
     private readonly broadcaster: RoomBroadcaster,
     private readonly presence: PresenceService,
+    private readonly engine: GameEngine,
+    private readonly recorder: SessionRecorder,
   ) {}
 
   afterInit(server: AppServer): void {
@@ -105,6 +110,8 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       if (await this.broadcaster.hasConnections(channels.session(session))) return;
       if (session.role === 'host') {
         this.broadcaster.state(await this.rooms.setHostConnected(session.roomCode, false));
+        // Without its host a running game would race on unattended (SPEC §4).
+        await this.engine.pauseIfRunning(session.roomCode);
       } else {
         const change = await this.rooms.markPlayerDisconnected(session.roomCode, session.playerId);
         this.broadcaster.state(change.snapshot);
@@ -161,6 +168,8 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       }
 
       const { snapshot, player, playerToken } = joined;
+      // Late join (SPEC §4): the player joins the running game's history with 0 points.
+      if (snapshot.game) this.recorder.addPlayer(snapshot.game.sessionId, player);
       await this.attach(socket, { role: 'player', roomCode: input.roomCode, playerId: player.id });
       this.broadcaster.state(snapshot);
       this.broadcaster.playerJoined(input.roomCode, player);
@@ -282,24 +291,4 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         : channels.players(session.roomCode);
     for (const channel of [roleChannel, channels.session(session)]) await socket.leave(channel);
   }
-}
-
-function assertNoSession(socket: AppSocket): void {
-  if (socket.data.session) {
-    throw new CommandError('ALREADY_IN_ROOM', 'This connection already belongs to a room');
-  }
-}
-
-function requireHost(socket: AppSocket): Extract<Session, { role: 'host' }> {
-  const session = socket.data.session;
-  if (!session) throw new CommandError('NOT_IN_ROOM', 'Not in a room');
-  if (session.role !== 'host') throw new CommandError('FORBIDDEN', 'Only the host can do this');
-  return session;
-}
-
-function requirePlayer(socket: AppSocket): Extract<Session, { role: 'player' }> {
-  const session = socket.data.session;
-  if (!session) throw new CommandError('NOT_IN_ROOM', 'Not in a room');
-  if (session.role !== 'player') throw new CommandError('FORBIDDEN', 'Only players can do this');
-  return session;
 }

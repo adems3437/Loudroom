@@ -6,9 +6,24 @@ export const ROOM_CODE_PATTERN = /^[1-9]\d{5}$/;
 export const roomCodeSchema = z.string().regex(ROOM_CODE_PATTERN);
 export type RoomCode = z.infer<typeof roomCodeSchema>;
 
-/** Room lifecycle states. Game states (STARTING, PLAYING, …) arrive with the game engine. */
-export const roomStatusSchema = z.enum(['LOBBY']);
+/**
+ * Room lifecycle (SPEC §4): LOBBY → STARTING → PLAYING → ROUND_RESULT → SCOREBOARD → … →
+ * FINISHED, plus PAUSED from any in-game state.
+ */
+export const roomStatusSchema = z.enum([
+  'LOBBY',
+  'STARTING',
+  'PLAYING',
+  'ROUND_RESULT',
+  'SCOREBOARD',
+  'FINISHED',
+  'PAUSED',
+]);
 export type RoomStatus = z.infer<typeof roomStatusSchema>;
+
+/** Whether players may join a game already in progress, and how (SPEC §4). */
+export const lateJoinSchema = z.enum(['closed', 'zeroPoints']);
+export type LateJoin = z.infer<typeof lateJoinSchema>;
 
 export const MIN_PLAYERS_LIMIT = 2;
 export const MAX_PLAYERS_LIMIT = 20;
@@ -16,6 +31,7 @@ export const DEFAULT_MAX_PLAYERS = 12;
 
 export const roomSettingsSchema = z.strictObject({
   maxPlayers: z.number().int().min(MIN_PLAYERS_LIMIT).max(MAX_PLAYERS_LIMIT),
+  lateJoin: lateJoinSchema.default('closed'),
 });
 export type RoomSettings = z.infer<typeof roomSettingsSchema>;
 

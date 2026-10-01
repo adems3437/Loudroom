@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ServerEvent, type SessionErrorCode } from '@loudroom/shared';
+import { ServerEvent, type ServerEventPayload, type SessionErrorCode } from '@loudroom/shared';
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
+import { hostGameState, playerGameState } from '../game/game.views.js';
 import type { AppServer } from '../realtime/socket-types.js';
 import { channels } from './room.channels.js';
 import type { RoomSnapshot, StoredPlayer } from './room.store.js';
@@ -12,7 +13,30 @@ const SESSION_ERROR_MESSAGES: Record<SessionErrorCode, string> = {
   SESSION_EXPIRED: 'The session no longer exists',
 };
 
-/** Sends room events. Host and players get different projections of the same state. */
+/** Round/score notifications that accompany a state change (for sounds and haptics). */
+export type GameNotice =
+  | {
+      event: typeof ServerEvent.RoundStart;
+      payload: ServerEventPayload<typeof ServerEvent.RoundStart>;
+    }
+  | {
+      event: typeof ServerEvent.RoundPhase;
+      payload: ServerEventPayload<typeof ServerEvent.RoundPhase>;
+    }
+  | {
+      event: typeof ServerEvent.RoundResult;
+      payload: ServerEventPayload<typeof ServerEvent.RoundResult>;
+    }
+  | {
+      event: typeof ServerEvent.ScoreUpdate;
+      payload: ServerEventPayload<typeof ServerEvent.ScoreUpdate>;
+    }
+  | { event: typeof ServerEvent.GameEnd; payload: ServerEventPayload<typeof ServerEvent.GameEnd> };
+
+/**
+ * Sends room and game events. Host and players get different projections of the same state;
+ * game views are per player (each sees their own answer), so they go to session channels.
+ */
 @Injectable()
 export class RoomBroadcaster {
   private server: AppServer | null = null;
@@ -28,12 +52,30 @@ export class RoomBroadcaster {
     return this.server;
   }
 
+  /** Publishes the room — and the game, if one is running — to everyone in it. */
   state(snapshot: RoomSnapshot): void {
     const { code } = snapshot.room;
     this.io
       .to(channels.host(code))
       .emit(ServerEvent.RoomState, hostView(snapshot, this.config.publicUrl));
     this.io.to(channels.players(code)).emit(ServerEvent.RoomState, playerView(snapshot));
+
+    const { game } = snapshot;
+    if (!game || snapshot.room.status === 'LOBBY') return;
+    this.io.to(channels.host(code)).emit(ServerEvent.GameState, hostGameState(snapshot, game));
+    for (const player of snapshot.players) {
+      this.io
+        .to(channels.session({ role: 'player', roomCode: code, playerId: player.id }))
+        .emit(ServerEvent.GameState, playerGameState(snapshot, game, player.id));
+    }
+  }
+
+  notices(code: string, notices: readonly GameNotice[]): void {
+    const everyone = this.io.to([channels.host(code), channels.players(code)]);
+    for (const notice of notices) {
+      // The union pairs each event with its payload; the emitter cannot see that pairing.
+      (everyone.emit as (event: string, payload: unknown) => boolean)(notice.event, notice.payload);
+    }
   }
 
   playerJoined(code: string, player: StoredPlayer): void {

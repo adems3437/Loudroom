@@ -51,6 +51,13 @@ export interface RateLimitConfig {
   roomCreate: TokenBucketConfig;
 }
 
+export interface GameTimingConfig {
+  /** "Get ready" countdown before the first round. */
+  startingMs: number;
+  /** Inputs arriving this long after a phase ended still count (network latency, SPEC §3). */
+  inputGraceMs: number;
+}
+
 export interface AppConfig {
   nodeEnv: 'development' | 'production' | 'test';
   host: string;
@@ -64,6 +71,7 @@ export interface AppConfig {
   trustProxy: boolean;
   profanityExtraWordsFile: string | null;
   rateLimits: RateLimitConfig;
+  game: GameTimingConfig;
 }
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
@@ -103,5 +111,6 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
     trustProxy: parsed.TRUST_PROXY,
     profanityExtraWordsFile: parsed.PROFANITY_EXTRA_WORDS_FILE ?? null,
     rateLimits: DEFAULT_RATE_LIMITS,
+    game: { startingMs: 3_000, inputGraceMs: 250 },
   };
 }

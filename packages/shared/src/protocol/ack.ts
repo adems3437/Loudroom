@@ -14,6 +14,14 @@ export const errorCodeSchema = z.enum([
   'NICKNAME_TAKEN',
   'NICKNAME_REJECTED',
   'PLAYER_NOT_FOUND',
+  'GAME_IN_PROGRESS',
+  'NOT_ENOUGH_PLAYERS',
+  'INVALID_STATE',
+  'PACK_NOT_FOUND',
+  'STALE_ROUND',
+  'ROUND_CLOSED',
+  'ALREADY_ANSWERED',
+  'INVALID_INPUT',
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 
