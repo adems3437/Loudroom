@@ -76,7 +76,7 @@ export const DEFAULT_RATE_LIMITS: RateLimitConfig = {
   connection: { capacity: 60, refillPerSecond: 1 },
   command: { capacity: 20, refillPerSecond: 10 },
   joinFailure: { capacity: 10, refillPerSecond: 10 / 60 },
-  roomCreate: { capacity: 10, refillPerSecond: 1 / 60 },
+  roomCreate: { capacity: 20, refillPerSecond: 10 / 60 },
 };
 
 /** Parses the environment once at startup; an invalid environment stops the process. */
