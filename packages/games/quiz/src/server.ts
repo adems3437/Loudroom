@@ -68,7 +68,7 @@ export const quizModule: GameModule<
 > = {
   id: QUIZ_GAME_TYPE,
   name: 'Quiz',
-  version: 1,
+  version: 2,
   contentSchema: quizContentSchema,
   settingsSchema: quizSettingsSchema,
   defaultSettings: QUIZ_DEFAULT_SETTINGS,
@@ -78,9 +78,12 @@ export const quizModule: GameModule<
   capabilities: { minPlayers: 1, maxPlayers: 20 },
 
   createRound(ctx) {
-    const options = ctx.random
-      .shuffle(ctx.content.options)
-      .map((option, slot) => ({ id: option.id, text: option.text, slot }));
+    const options = ctx.random.shuffle(ctx.content.options).map((option, slot) => ({
+      id: option.id,
+      text: option.text,
+      mediaId: option.mediaId ?? null,
+      slot,
+    }));
     const state: QuizState = { phase: 'INTRO', options, answers: {} };
     if (ctx.settings.introMs === 0) return answering(state, ctx);
     return {
@@ -173,6 +176,7 @@ export const quizModule: GameModule<
     const answers = countedAnswers(state, ctx);
     const common = {
       question: ctx.content.question,
+      media: ctx.content.media ?? null,
       options: state.options,
       answeredCount: answers.length,
       playerCount: ctx.players.filter((player) => player.connected).length,

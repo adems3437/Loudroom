@@ -1,7 +1,7 @@
 import { playRound, type ScriptStep } from '@loudroom/game-sdk/testing';
 import { describe, expect, it } from 'vitest';
-import { content, players } from './fixtures.test-support.js';
-import { quizModule, type QuizHostView, type QuizPlayerView } from './server.js';
+import { content, contentWithImages, players } from './fixtures.test-support.js';
+import { quizContentSchema, quizModule, type QuizHostView, type QuizPlayerView } from './server.js';
 
 const open: ScriptStep = { type: 'timer' };
 const answer = (playerId: string, optionId: string, afterMs = 0): ScriptStep => ({
@@ -148,5 +148,31 @@ describe('quiz reveal', () => {
     for (const frame of frames.slice(0, -1)) {
       expect(JSON.stringify(frame)).not.toContain('correct');
     }
+  });
+});
+
+describe('quiz images (version 2)', () => {
+  it('keeps version 1 content valid', () => {
+    expect(quizContentSchema.safeParse(content).success).toBe(true);
+    expect(
+      quizContentSchema.safeParse({ ...content, media: { type: 'video', mediaId: 'x' } }).success,
+    ).toBe(false);
+  });
+
+  it('shows the question image on the host and option images everywhere', () => {
+    const { frames } = playRound(quizModule, {
+      content: contentWithImages,
+      players,
+      script: [open],
+    });
+    const host = frames.at(-1)?.hostView as QuizHostView;
+    expect(host.media).toEqual(contentWithImages.media);
+    const withImage = host.options.filter((option) => option.mediaId !== null);
+    expect(withImage.map((option) => option.id).sort()).toEqual(['a', 'b']);
+    const phone = frames.at(-1)?.playerViews.p1 as QuizPlayerView;
+    expect(phone.phase === 'ANSWERING' && phone.options).toEqual(host.options);
+
+    const plain = play([open]).frames.at(-1)?.hostView as QuizHostView;
+    expect(plain.media).toBeNull();
   });
 });

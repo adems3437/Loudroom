@@ -2,6 +2,7 @@ import { ClientCommand, ServerEvent } from '@loudroom/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   connect,
+  connectRefused,
   nextEvent,
   resetRedis,
   sendOk,
@@ -48,8 +49,9 @@ describe('room recovery', () => {
     expect(await left).toEqual({ playerId: joined.playerId, nickname: 'Kaan', reason: 'timeout' });
     expect(Date.now() - started).toBeGreaterThanOrEqual(250);
 
-    const late = await client(testApp.url, joined.playerToken);
-    expect(await nextEvent(late, ServerEvent.Error)).toMatchObject({ code: 'SESSION_EXPIRED' });
+    const late = await connectRefused(testApp.url, joined.playerToken);
+    sockets.push(late.socket);
+    expect(late.error).toMatchObject({ code: 'SESSION_EXPIRED' });
   });
 
   it('continues rooms after a server restart: host and players resume their sessions', async () => {

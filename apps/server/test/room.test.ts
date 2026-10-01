@@ -7,6 +7,7 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   connect,
+  connectRefused,
   disconnected,
   nextEvent,
   resetRedis,
@@ -249,8 +250,9 @@ describe('rooms and lobby', () => {
       reason: 'kicked',
     });
 
-    const retry = await client(mehmet.joined.playerToken);
-    expect(await nextEvent(retry, ServerEvent.Error)).toMatchObject({ code: 'SESSION_EXPIRED' });
+    const { socket: retry, error } = await connectRefused(testApp.url, mehmet.joined.playerToken);
+    sockets.push(retry);
+    expect(error).toMatchObject({ code: 'SESSION_EXPIRED' });
     expect(await send(retry, ClientCommand.PlayerReady, { ready: true })).toMatchObject({
       ok: false,
       code: 'NOT_IN_ROOM',

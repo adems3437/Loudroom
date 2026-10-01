@@ -1,3 +1,6 @@
+export * from './admin/api.js';
+export * from './admin/auth.js';
+export * from './admin/content.js';
 export * from './game/game.js';
 export * from './protocol/ack.js';
 export * from './protocol/events.js';

@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { seedAdminUser } from '../src/seed/admin-user.js';
 import { seedCategories } from '../src/seed/categories.js';
 import { seedQuizPack } from '../src/seed/quiz-pack.js';
 
@@ -10,6 +11,12 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: data
 try {
   await seedCategories(prisma);
   await seedQuizPack(prisma);
+  const email = process.env.ADMIN_SEED_EMAIL;
+  const password = process.env.ADMIN_SEED_PASSWORD;
+  if (email && password) {
+    const result = await seedAdminUser(prisma, { email, password });
+    console.log(`Admin ${email}: ${result === 'created' ? 'created' : 'already exists'}`);
+  }
   console.log('Seed complete');
 } finally {
   await prisma.$disconnect();

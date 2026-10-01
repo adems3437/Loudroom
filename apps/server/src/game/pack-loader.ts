@@ -1,6 +1,7 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { createRandom, seedFromString, type AnyGameModule } from '@loudroom/game-sdk';
+import { contentSelectionSchema, type ContentSelection } from '@loudroom/shared';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CommandError } from '../realtime/command-error.js';
@@ -8,17 +9,6 @@ import type { PlannedRound } from './game.record.js';
 import { findGameModule } from './registry.js';
 
 const logger = new Logger('PackLoader');
-
-/** GamePackRound.contentSelection (SPEC §6): fixed content ids, or a random draw. */
-export const contentSelectionSchema = z.discriminatedUnion('mode', [
-  z.object({ mode: z.literal('fixed'), contentIds: z.array(z.uuid()).min(1) }),
-  z.object({
-    mode: z.literal('random'),
-    categoryId: z.uuid().optional(),
-    difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).optional(),
-  }),
-]);
-export type ContentSelection = z.infer<typeof contentSelectionSchema>;
 
 export interface GamePlan {
   packId: string;
@@ -59,7 +49,8 @@ export class PackLoader {
 
   async plan(packId?: string): Promise<GamePlan> {
     const pack = await this.prisma.gamePack.findFirst({
-      where: packId ? { id: packId } : {},
+      // Hosts only ever get published packs (SPEC §15 Phase 4).
+      where: { status: 'PUBLISHED', ...(packId ? { id: packId } : {}) },
       orderBy: { updatedAt: 'desc' },
       include: { rounds: { orderBy: { order: 'asc' } } },
     });

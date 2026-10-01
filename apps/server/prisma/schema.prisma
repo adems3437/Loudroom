@@ -46,6 +46,7 @@ model User {
   passwordHash String
   displayName  String
   role         UserRole @default(EDITOR)
+  lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -102,6 +103,8 @@ model Media {
   height       Int?
   durationMs   Int?
   altText      String?
+  /// File name as uploaded, shown in the admin media library.
+  originalName String?
   uploadedById String?   @db.Uuid
   createdAt    DateTime  @default(now())
 
@@ -111,18 +114,22 @@ model Media {
   @@index([type, createdAt])
 }
 
+/// Only PUBLISHED packs can be picked by a host.
 model GamePack {
-  id          String   @id @default(uuid(7)) @db.Uuid
+  id          String        @id @default(uuid(7)) @db.Uuid
   name        String
   description String?
-  settings    Json     @default("{}")
-  createdById String?  @db.Uuid
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      ContentStatus @default(DRAFT)
+  settings    Json          @default("{}")
+  createdById String?       @db.Uuid
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   createdBy User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
   rounds    GamePackRound[]
   sessions  GameSession[]
+
+  @@index([status, updatedAt])
 }
 
 model GamePackRound {

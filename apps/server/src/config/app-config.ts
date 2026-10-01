@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { z } from 'zod';
 
 const csv = z
@@ -33,6 +34,14 @@ const envSchema = z.object({
   TRUST_PROXY: booleanFlag,
   /** Optional file with extra blocked words, one per line. */
   PROFANITY_EXTRA_WORDS_FILE: z.string().optional(),
+  /** Where uploaded media files are stored; relative paths start at the working directory. */
+  MEDIA_DIR: z.string().min(1).default('data/media'),
+  /** Largest accepted upload (SPEC §9). */
+  MEDIA_MAX_UPLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10 * 1024 * 1024),
 });
 
 export interface TokenBucketConfig {
@@ -49,6 +58,25 @@ export interface RateLimitConfig {
   joinFailure: TokenBucketConfig;
   /** Rooms created per client IP. */
   roomCreate: TokenBucketConfig;
+  /** REST requests per client IP. */
+  rest: TokenBucketConfig;
+  /** Admin login attempts per client IP. */
+  adminLogin: TokenBucketConfig;
+  /** Failed admin logins per account (password guessing from many addresses). */
+  adminLoginFailure: TokenBucketConfig;
+}
+
+export interface AdminConfig {
+  /** Idle lifetime of an admin session; every authenticated request extends it. */
+  sessionTtlMs: number;
+  /** Secure cookies need HTTPS; true when PUBLIC_URL is https. */
+  secureCookies: boolean;
+}
+
+export interface MediaConfig {
+  /** Absolute directory of stored media files. */
+  dir: string;
+  maxUploadBytes: number;
 }
 
 export interface GameTimingConfig {
@@ -72,6 +100,8 @@ export interface AppConfig {
   profanityExtraWordsFile: string | null;
   rateLimits: RateLimitConfig;
   game: GameTimingConfig;
+  admin: AdminConfig;
+  media: MediaConfig;
 }
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
@@ -85,6 +115,9 @@ export const DEFAULT_RATE_LIMITS: RateLimitConfig = {
   command: { capacity: 20, refillPerSecond: 10 },
   joinFailure: { capacity: 10, refillPerSecond: 10 / 60 },
   roomCreate: { capacity: 20, refillPerSecond: 10 / 60 },
+  rest: { capacity: 120, refillPerSecond: 4 },
+  adminLogin: { capacity: 10, refillPerSecond: 10 / 600 },
+  adminLoginFailure: { capacity: 5, refillPerSecond: 5 / 900 },
 };
 
 /** Parses the environment once at startup; an invalid environment stops the process. */
@@ -112,5 +145,10 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
     profanityExtraWordsFile: parsed.PROFANITY_EXTRA_WORDS_FILE ?? null,
     rateLimits: DEFAULT_RATE_LIMITS,
     game: { startingMs: 3_000, inputGraceMs: 250 },
+    admin: {
+      sessionTtlMs: 12 * 60 * 60 * 1000,
+      secureCookies: new URL(parsed.PUBLIC_URL).protocol === 'https:',
+    },
+    media: { dir: resolve(parsed.MEDIA_DIR), maxUploadBytes: parsed.MEDIA_MAX_UPLOAD_BYTES },
   };
 }

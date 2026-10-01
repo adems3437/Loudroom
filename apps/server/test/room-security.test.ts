@@ -1,9 +1,10 @@
-import { ClientCommand, ServerEvent } from '@loudroom/shared';
+import { ClientCommand } from '@loudroom/shared';
 import type { Socket } from 'socket.io-client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_RATE_LIMITS } from '../src/config/app-config.js';
 import {
   connect,
+  connectRefused,
   resetRedis,
   send,
   sendOk,
@@ -114,10 +115,8 @@ describe('room security', () => {
   it('answers unknown, malformed and expired tokens with SESSION_EXPIRED', async () => {
     const { url } = await start();
     for (const token of ['A'.repeat(43), 'not a token']) {
-      const socket = await client(url, token);
-      const error = await new Promise((resolve) => {
-        socket.once(ServerEvent.Error, resolve);
-      });
+      const { socket, error } = await connectRefused(url, token);
+      sockets.push(socket);
       expect(error).toMatchObject({ code: 'SESSION_EXPIRED' });
     }
   });

@@ -18,7 +18,8 @@
     "infra:up": "docker compose -f compose.yml up -d --wait postgres redis",
     "infra:down": "docker compose -f compose.yml down",
     "db:migrate": "pnpm --filter @loudroom/server db:migrate",
-    "db:seed": "pnpm --filter @loudroom/server db:seed"
+    "db:seed": "pnpm --filter @loudroom/server db:seed",
+    "admin:create": "pnpm --filter @loudroom/server admin:create"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

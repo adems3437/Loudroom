@@ -1,3 +1,4 @@
+import { mediaIdSchema } from '@loudroom/game-sdk';
 import { z } from 'zod';
 
 export const QUIZ_GAME_TYPE = 'quiz';
@@ -6,12 +7,30 @@ export const QUIZ_MAX_OPTIONS = 6;
 
 const optionIdSchema = z.string().min(1).max(64);
 
-/** Content of one question (SPEC §6: stored as ContentItem.data, validated on write and read). */
+/**
+ * An image shown with the question. `type` leaves room for video (SPEC §7.1: the field is
+ * ready, the player comes in a later phase).
+ */
+export const quizMediaSchema = z.strictObject({ type: z.literal('image'), mediaId: mediaIdSchema });
+export type QuizMedia = z.infer<typeof quizMediaSchema>;
+
+/**
+ * Content of one question (SPEC §6: stored as ContentItem.data, validated on write and read).
+ * Version 2 added the optional question image and option images; version 1 content is valid
+ * version 2 content. An option keeps its text even with an image: it is the image's label.
+ */
 export const quizContentSchema = z
   .strictObject({
     question: z.string().trim().min(1).max(300),
+    media: quizMediaSchema.optional(),
     options: z
-      .array(z.strictObject({ id: optionIdSchema, text: z.string().trim().min(1).max(120) }))
+      .array(
+        z.strictObject({
+          id: optionIdSchema,
+          text: z.string().trim().min(1).max(120),
+          mediaId: mediaIdSchema.optional(),
+        }),
+      )
       .min(QUIZ_MIN_OPTIONS)
       .max(QUIZ_MAX_OPTIONS),
     correctOptionId: optionIdSchema,
@@ -62,6 +81,7 @@ export type QuizInput = z.infer<typeof quizInputSchema>;
 const optionViewSchema = z.strictObject({
   id: optionIdSchema,
   text: z.string(),
+  mediaId: mediaIdSchema.nullable(),
   slot: z
     .number()
     .int()
@@ -72,6 +92,7 @@ export type QuizOptionView = z.infer<typeof optionViewSchema>;
 
 const hostCommon = {
   question: z.string(),
+  media: quizMediaSchema.nullable(),
   options: z.array(optionViewSchema),
   answeredCount: z.number().int().nonnegative(),
   /** Connected players who can answer. */

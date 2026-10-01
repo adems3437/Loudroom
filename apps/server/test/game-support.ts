@@ -57,6 +57,7 @@ export async function createQuizPack(
   const pack = await prisma.gamePack.create({
     data: {
       name: `Test ${tag}`,
+      status: 'PUBLISHED',
       settings: { [QUIZ_GAME_TYPE]: { introMs: options.introMs ?? 50 } },
       rounds: {
         create: {

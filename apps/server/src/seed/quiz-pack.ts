@@ -1,6 +1,6 @@
 import { QUIZ_GAME_TYPE, quizContentSchema, type QuizContent } from '@loudroom/game-quiz/server';
+import type { ContentSelection } from '@loudroom/shared';
 import type { PrismaClient } from '../generated/prisma/client.js';
-import type { ContentSelection } from '../game/pack-loader.js';
 
 /** Fixed ids keep the seed idempotent: running it again updates instead of duplicating. */
 export const SAMPLE_PACK_ID = '624505d8-a23a-433d-8e22-fa41ed3770c3';
@@ -148,6 +148,7 @@ export async function seedQuizPack(prisma: PrismaClient): Promise<void> {
   const pack = {
     name: 'Genel Kültür Karışık',
     description: 'Tarihten bilime, spordan sanata 10 soruluk ısınma turu.',
+    status: 'PUBLISHED' as const,
     settings: {},
   };
   await prisma.gamePack.upsert({
