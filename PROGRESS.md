@@ -4,10 +4,165 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                    | Durum                      |
-| ---------------------- | -------------------------- |
-| Phase 1 — Altyapı      | ✅ Tamamlandı (2026-10-01) |
-| Phase 2 — Oda ve Lobby | ⏸ Onay bekliyor            |
+| Faz                              | Durum                      |
+| -------------------------------- | -------------------------- |
+| Phase 1 — Altyapı                | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby           | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP | ⏸ Onay bekliyor            |
+
+---
+
+## Phase 2 — Oda ve Lobby
+
+### Yapılanlar
+
+- **Ortak sözleşmeler (`packages/shared`):**
+  - Oda kodu şeması: 6 hane, baştaki rakam sıfır olamaz (100000–999999).
+  - Oda ayarları (en fazla oyuncu 2–20, varsayılan 12), 12 avatar kimliği ve 12 renklik palet.
+  - Host ve oyuncu görünümlerinin şemaları; oyuncu nesnesi sıkı (strict) şema, yani gizli
+    alan içeremez.
+  - Takma ad normalizasyonu: NFC, kontrol ve görünmez karakterlerin silinmesi, emojiyi tek
+    karakter sayan uzunluk ölçümü, Türkçe büyük/küçük harf kuralına göre benzersizlik.
+  - Tipli komut ve olay sözleşmeleri: `clientCommands`, `serverEventSchemas`.
+- **Server:**
+  - **Oda deposu:** SPEC §11'deki Redis anahtarları kullanılıyor; boşta kalan oda 4 saat sonra
+    siliniyor.
+  - **Oda servisi:** Bir odaya ait bütün işlemler, server içinde oda başına tek sıradan geçiyor.
+  - **Görünümler:** Host'a ve oyunculara ayrı görünümler gidiyor; hiçbiri token veya token
+    özeti içermiyor.
+  - **Komutlar:** `room:create`, `room:join`, `room:leave`, `room:kick`, `room:lock`,
+    `player:ready`, `player:update`.
+  - **Olaylar:** `room:state` (sürüm numaralı tam görüntü), `player:joined`, `player:left`
+    (gerekçesiyle), `player:reconnected`, `error` (KICKED / SESSION_REPLACED / SESSION_EXPIRED).
+  - **Yeniden bağlanma:** Handshake'teki token ile oturum geri yükleniyor.
+    - Oyuncu için 90 sn bekleme süresi var; süre dolarsa yeri boşalıyor ve token iptal ediliyor.
+    - Host, oda yaşadığı sürece geri dönebiliyor.
+    - Aynı oturum ikinci kez açılırsa eski bağlantı kapatılıyor.
+  - **Server yeniden başlarsa:** Açılışta bütün odalar "herkes kopuk" olarak işaretleniyor ve
+    oyuncuların 90 sn sayaçları yeniden başlıyor. Redis kapalıysa server yine açılıyor;
+    kurtarma Redis geri gelince çalışıyor.
+  - **Rate limit:** Redis'te Lua ile çalışan token bucket.
+    - Bağlantı ve oda oluşturma: hash'lenmiş IP başına.
+    - Komutlar: bağlantı başına.
+    - Başarısız katılım denemeleri: IP başına. Başarılı katılımlar ve geri dönüşler sayılmıyor.
+  - **Küfür filtresi:** Türkçe ve İngilizce listeler; rakam/sembol hileleri ve Türkçe harfler
+    sadeleştiriliyor, uzatılmış harfler tek harfe indiriliyor, `=` önekiyle "yalnızca tam
+    kelime" kuralı destekleniyor. Ek kelimeler dosyadan okunabiliyor.
+- **Web:**
+  - **`/host`:** Giriş ekranı.
+  - **`/host/create`:** En fazla oyuncu sayısını seçme ve oda oluşturma.
+  - **`/host/room/[roomCode]`:** Host lobby'si.
+    - QR kodu (kendi çizimimiz, SVG path), katılım linki ve büyük oda kodu.
+    - Avatarlı oyuncu kartları; giriş/çıkış ve dizilim animasyonlu (`motion`).
+    - Kart yoğunluğu oyuncu sayısına göre değişiyor: 2, 3 veya 4 sütun.
+    - Hazır / bekliyor / bağlantı koptu durumları.
+    - Onaylı oyuncu çıkarma, kilit ve tam ekran.
+  - **`/play`:** Oda kodu girişi.
+  - **`/play/[roomCode]`:**
+    - Takma ad ve avatar formu.
+    - Telefon lobby'si: büyük "Hazırım" butonu, diğer oyuncular, profil düzenleme, odadan
+      ayrılma.
+    - "Atıldın", "başka sekmede açıldı" ve "oturum sona erdi" ekranları.
+  - **Ortak:**
+    - "Yeniden bağlanıyor" bandı.
+    - Ekranı açık tutma (Wake Lock), titreşimli geri bildirim; ikisi de cihaz destekliyorsa.
+    - Oturum token'ları `localStorage`'da tutuluyor (`useStoredSession`).
+    - 12 avatarlık kendi SVG setimiz.
+    - Bütün metinler `tr.json` içinde, hata kodu başına bir mesaj var.
+- **Testler:**
+  - shared: 40 unit test.
+  - server: 64 test.
+    - Unit: küfür filtresi.
+    - Integration: akışlar, güvenlik, 90 sn sonunda yerin boşalması, server yeniden başlatma.
+  - e2e: 6 senaryo × 2 tarayıcı.
+
+### Bitti tanımı — son çalıştırma (2026-10-01)
+
+| Kontrol                                                 | Sonuç                                                |
+| ------------------------------------------------------- | ---------------------------------------------------- |
+| `pnpm typecheck`                                        | ✅ 4/4 görev                                         |
+| `pnpm lint`                                             | ✅ 4/4 görev                                         |
+| `pnpm test`                                             | ✅ shared 40/40, server 64/64                        |
+| `pnpm build`                                            | ✅ 3/3 görev                                         |
+| `pnpm test:e2e`                                         | ✅ 12/12 (Chromium + WebKit; Phase 1 testleri dahil) |
+| `pnpm format:check`                                     | ✅                                                   |
+| `docker compose down -v && docker compose up -d --wait` | ✅ Sıfırdan 36 sn'de tüm servisler healthy           |
+
+**Kabul kriteri:** `e2e/lobby.spec.ts` dosyası şu adımları uçtan uca doğruluyor:
+
+1. Host oda açar.
+2. 3 telefon katılım linkiyle katılır ve host ekranında görünür.
+3. Hazır durumu host'a yansır.
+4. Bir telefon sayfayı yeniler: aynı `playerId` ve takma adla döner, kopya kart oluşmaz.
+5. Host bir oyuncuyu atar: oyuncu host listesinden kaybolur, telefonunda "atıldın" ekranı
+   görünür; sayfayı yenilese bile geri gelemez.
+6. Oda kilitlenince yeni oyuncu katılamaz.
+
+### Alınan kararlar (kullanıcı onaylı)
+
+- **K1, yeniden bağlanma:** Token, Socket.IO handshake `auth` alanında gönderiliyor; SPEC'teki
+  event listesi değişmedi.
+- **K2, hata mesajları:** Katılımdaki "oda kilitli" ve "oda dolu" ayrı kodlar. Var olmayan,
+  süresi dolmuş veya bitmiş odaların hepsi tek bir `ROOM_NOT_FOUND` veriyor; brute force
+  sonrasında da yalnızca `RATE_LIMITED`.
+- **K3, oyuncu atma:** Atılan oyuncunun token'ı iptal ediliyor. Oda kilitli değilse yeni bir
+  takma adla tekrar katılabiliyor.
+- **K4, ertelenenler:** `PAUSED` durumu, geç katılım ayarı, ses/müzik ve "host odayı kapatır"
+  özelliği Phase 3'e ve sonrasına bırakıldı.
+- **K5, küfür listeleri:** Türkçe ve İngilizce listeler repoda; ek kelimeler
+  `PROFANITY_EXTRA_WORDS_FILE` ile ekleniyor.
+
+### Varsayımlar ve küçük kararlar
+
+- **Kelime listelerinin biçimi:** Planda düz metin dosyası yazıyordu; build'e dosya kopyalama
+  adımı eklememek için TS dizisi olarak tutuldu (`wordlists.ts`). Ek dosya düz metin.
+- **"amına" listede yok:** Sadeleştirince yaygın bir isim olan "Amina" ile aynı oluyor.
+- **Rate limit varsayılanları:**
+
+  | Kapsam                        | Ani yükleme izni | Yenilenme |
+  | ----------------------------- | ---------------- | --------- |
+  | Bağlantı (IP başına)          | 60               | 1/sn      |
+  | Komut (bağlantı başına)       | 20               | 10/sn     |
+  | Başarısız katılım (IP başına) | 10               | 10/dk     |
+  | Oda oluşturma (IP başına)     | 20               | 10/dk     |
+
+  Redis'e ulaşılamazsa sınırlar uygulanmıyor (fail open): oda zaten kullanılamaz durumda olur,
+  her isteği reddetmek yalnızca yanıltıcı bir "limit aşıldı" mesajı üretirdi.
+
+- **Token'lar:**
+  - 256 bit rastgele değer (base64url).
+  - Redis'te yalnızca SHA-256 özeti tutuluyor.
+  - Tarayıcıda `localStorage` anahtarı `loudroom:{role}:{code}`.
+- **Oyuncu renkleri:** Server atıyor; 12 renk dolunca en az kullanılan renk veriliyor.
+  En fazla oyuncu 20 olduğu için renk tekrarı mümkün.
+- **Socket.IO adapter anahtarı Redis DB numarasını içeriyor:** Pub/sub kanalları bütün DB'lerde
+  ortak olduğu için dev ortamı (DB 0) ile testler (DB 1) aksi halde birbirini duyardı.
+- **Server'ın kapattığı bağlantı:** İstemci kendisi yeniden bağlanmıyor. Atılan oyuncu anonim
+  olarak yeniden bağlanıyor; oturumu başka sekmede açılan ise "Burada devam et" ile geri
+  dönebiliyor.
+- **Bağlantı reddedilirse:** Örneğin rate limit nedeniyle. İstemci 5 sn sonra tekrar deniyor.
+
+### Eklenen paketler
+
+| Paket                       | Nerede | Gerekçe                                                                              |
+| --------------------------- | ------ | ------------------------------------------------------------------------------------ |
+| qrcode 1.5.4, @types/qrcode | web    | SPEC §2; QR matrisini üretmek için. SVG'yi kendimiz çiziyoruz.                       |
+| motion 13.4                 | web    | SPEC'teki Framer Motion'ın yeni adı; lobby'deki dizilim ve giriş/çıkış animasyonları |
+
+Server için yeni paket gerekmedi.
+
+### Bilinen sınırlar
+
+- **Oda başına sıralı çalıştırma tek server'da geçerli.** Birden fazla server'a geçildiğinde
+  odayı hangi server'ın yönettiğini Redis'te bir kilitle belirlemek gerekecek. Açılıştaki
+  kurtarma da şu an bütün odaları kapsıyor; o zaman yalnızca sahip olunan odalarla
+  sınırlanmalı.
+- **"Bağlantı başka bir yerden açıldı" kontrolü** `fetchSockets` kullanıyor. Çoklu server'da
+  bu, Redis üzerinden bir istek/yanıt turu demek.
+- **Küfür listeleri temel düzeyde**; kesin bir filtre değiller.
+- **Düz HTTP üzerinden LAN testinde Wake Lock çalışmaz** (tarayıcı güvenli bağlantı istiyor);
+  iOS Safari titreşimi desteklemiyor.
+- **Host ekranındaki oyuncu kartları** en fazla 20 oyuncu için boyutlandırıldı (4 sütun).
 
 ---
 

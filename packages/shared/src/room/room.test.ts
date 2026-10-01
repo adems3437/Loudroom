@@ -53,8 +53,7 @@ describe('roomStateSchema', () => {
 
   it('only the host view carries the join link', () => {
     expect(
-      roomStateSchema.safeParse({ ...base, role: 'host', joinUrl: 'http://x/play/583921' })
-        .success,
+      roomStateSchema.safeParse({ ...base, role: 'host', joinUrl: 'http://x/play/583921' }).success,
     ).toBe(true);
     expect(
       roomStateSchema.safeParse({ ...base, role: 'player', joinUrl: 'http://x/play/583921' })

@@ -37,12 +37,22 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
   prisma/          schema.prisma, migrations/, seed.ts   (prisma.config.ts next to package.json)
   src/bootstrap.ts createApp(config): shared by main.ts and tests
   src/config/      zod-validated env → AppConfig (APP_CONFIG token)
-  src/realtime/    gateway, runCommand (zod + ack), Redis Socket.IO adapter
+  src/realtime/    CommandRunner (rate limit + zod + ack), CommandError, socket types,
+                   Redis Socket.IO adapter, time:sync gateway
+  src/room/        room store (Redis, SPEC §11 keys), RoomService (per-room lock), views
+                   (host/player projections), broadcaster, presence (90 s grace, restart
+                   recovery), RoomGateway (handshake token resume + room/player commands)
+  src/rate-limit/  Redis token bucket (Lua), hashed client IP
+  src/moderation/  profanity filter + TR/EN word lists
   src/generated/   Prisma client (generated, git-ignored)
   test/            integration tests on real Postgres/Redis (*_test DB, Redis DB 1)
 apps/web           Next.js 16 App Router
   src/app/{host,play,admin}  separate layouts; host = scaled 1920×1080 stage
-  src/realtime/    socket client, clock sync, RealtimeProvider / RealtimeRoot
+    host/create, host/room/[roomCode]   room creation, lobby (QR, code, players, kick, lock)
+    play, play/[roomCode]               code entry, join form, phone lobby
+  src/realtime/    socket client (handshake token), sendCommand, clock sync,
+                   RealtimeProvider (room state + session) / RealtimeRoot
+  src/lib/         session-storage (localStorage + useStoredSession), wake lock, haptics
   messages/tr.json all UI text (next-intl)
   e2e/             Playwright (chromium + webkit, multi-context)
 packages/shared    zod schemas, socket event contracts, shared pure logic
@@ -51,9 +61,14 @@ docker/            dev image, postgres init (creates loudroom_test)
 
 ## Code rules
 
-- Socket event names, payload schemas and types live **only** in `packages/shared`.
-  Every command is zod-validated on the server via `runCommand` and acked with
-  `{ ok: true, data } | { ok: false, code, message }`.
+- Socket event names, payload schemas and types live **only** in `packages/shared`
+  (`clientCommands`, `serverEventSchemas`). Server handlers go through `CommandRunner.run`;
+  expected failures throw `CommandError(code)`; acks are
+  `{ ok: true, data } | { ok: false, code, message }`. Clients send with `sendCommand`.
+- Views sent to clients are built in `room.views.ts` only — never send stored records
+  (they contain token hashes). A test asserts no secrets ever reach a client.
+- All room mutations go through `RoomService` (under the per-room lock), then the gateway or
+  presence service broadcasts the new snapshot.
 - Server-authoritative: clients send intents, never scores or state.
 - ESM everywhere: relative imports in server/shared end in `.js`. Web uses the `@/` alias.
 - TypeScript strict with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`.
@@ -75,3 +90,14 @@ docker/            dev image, postgres init (creates loudroom_test)
 - Server and web read the repo-root `.env` themselves; real environment variables win.
 - Changed `.env`/compose environment → `docker compose up -d --force-recreate <service>`.
 - `turbo` maintains the block in `AGENTS.md`; keep it committed.
+- Redis adapter: `disconnectSockets` is applied asynchronously via pub/sub. Exclude a socket
+  that must survive with `.except(socket.id)`; never rely on ordering.
+- Pub/sub channels are shared across Redis DB indexes; the adapter key includes the DB index
+  so the dev stack (DB 0) and tests (DB 1) do not hear each other.
+- Async server components (e.g. using `getTranslations`) cannot be rendered inside client
+  components — shared UI pieces use the sync `useTranslations`.
+- `react-hooks` forbids setState inside effects: read external state (localStorage,
+  fullscreen) with `useSyncExternalStore`.
+- Next's route announcer also has `role="alert"`: e2e tests select by `data-testid`.
+- Rate-limit buckets live in Redis. To reset them in the dev stack:
+  `docker compose exec redis sh -c "redis-cli --scan --pattern 'rl:*' | xargs -r redis-cli del"`.

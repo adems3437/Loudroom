@@ -39,12 +39,9 @@ describe('nicknameSchema', () => {
     expect(nicknameSchema.parse('  Zeynep​ ')).toBe('Zeynep');
   });
 
-  it.each(['A', ' a ', '​​', 'x'.repeat(17), 'y'.repeat(65)])(
-    'rejects %j',
-    (value) => {
-      expect(nicknameSchema.safeParse(value).success).toBe(false);
-    },
-  );
+  it.each(['A', ' a ', '​​', 'x'.repeat(17), 'y'.repeat(65)])('rejects %j', (value) => {
+    expect(nicknameSchema.safeParse(value).success).toBe(false);
+  });
 
   it('accepts 2 and 16 characters, counting emoji as one', () => {
     expect(nicknameSchema.safeParse('Al').success).toBe(true);
