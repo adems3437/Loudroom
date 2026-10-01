@@ -1,0 +1,236 @@
+// Persistent data only. Live rooms and game state live in Redis (see docs/SPEC.md §10–11).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum GameSessionStatus {
+  ACTIVE
+  FINISHED
+  ABORTED
+}
+
+/// Admin panel account. Players never have accounts.
+model User {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  role         UserRole @default(EDITOR)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  contentItems ContentItem[]
+  media        Media[]
+  gamePacks    GamePack[]
+  hostedGames  GameSession[]
+}
+
+model Category {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  slug        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contentItems ContentItem[]
+}
+
+/// Game-agnostic content. `data` is validated with the game module's contentSchema on write and read.
+model ContentItem {
+  id                 String        @id @default(uuid(7)) @db.Uuid
+  gameType           String
+  data               Json
+  categoryId         String?       @db.Uuid
+  difficulty         Difficulty    @default(MEDIUM)
+  tags               String[]
+  locale             String        @default("tr")
+  status             ContentStatus @default(DRAFT)
+  defaultTimeLimitMs Int?
+  baseScore          Int           @default(1000)
+  createdById        String?       @db.Uuid
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  category  Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  media     Media[]
+  rounds    SessionRound[]
+
+  @@index([gameType, status, locale])
+  @@index([categoryId, difficulty])
+  @@index([tags], type: Gin)
+}
+
+model Media {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  type         MediaType
+  storagePath  String    @unique
+  mimeType     String
+  sizeBytes    Int
+  width        Int?
+  height       Int?
+  durationMs   Int?
+  altText      String?
+  uploadedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+
+  uploadedBy   User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  contentItems ContentItem[]
+
+  @@index([type, createdAt])
+}
+
+model GamePack {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  name        String
+  description String?
+  settings    Json     @default("{}")
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  rounds    GamePackRound[]
+  sessions  GameSession[]
+}
+
+model GamePackRound {
+  id                  String  @id @default(uuid(7)) @db.Uuid
+  gamePackId          String  @db.Uuid
+  order               Int
+  gameType            String
+  /// Either a fixed list of content ids or a random selection by category/difficulty/count.
+  contentSelection    Json
+  questionCount       Int
+  timeLimitMs         Int?
+  scoreMultiplier     Float   @default(1)
+  showScoreboardAfter Boolean @default(true)
+  settings            Json    @default("{}")
+
+  gamePack GamePack @relation(fields: [gamePackId], references: [id], onDelete: Cascade)
+
+  @@unique([gamePackId, order])
+}
+
+model GameSession {
+  id           String            @id @default(uuid(7)) @db.Uuid
+  roomCode     String
+  gamePackId   String?           @db.Uuid
+  hostUserId   String?           @db.Uuid
+  /// Copy of the pack at game start, so later pack edits never change past games.
+  packSnapshot Json
+  status       GameSessionStatus @default(ACTIVE)
+  startedAt    DateTime          @default(now())
+  endedAt      DateTime?
+
+  gamePack GamePack?       @relation(fields: [gamePackId], references: [id], onDelete: SetNull)
+  hostUser User?           @relation(fields: [hostUserId], references: [id], onDelete: SetNull)
+  players  SessionPlayer[]
+  rounds   SessionRound[]
+
+  @@index([roomCode, startedAt])
+  @@index([status, startedAt])
+  @@index([startedAt])
+}
+
+model SessionPlayer {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  sessionId  String   @db.Uuid
+  /// Player id used in the live room (Redis); unique within the session.
+  playerId   String
+  nickname   String
+  avatar     String
+  color      String
+  finalScore Int      @default(0)
+  finalRank  Int?
+  joinedAt   DateTime @default(now())
+
+  session     GameSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  answers     PlayerAnswer[]
+  scoreEvents ScoreEvent[]
+
+  @@unique([sessionId, playerId])
+}
+
+model SessionRound {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  sessionId       String    @db.Uuid
+  roundIndex      Int
+  gameType        String
+  contentItemId   String?   @db.Uuid
+  /// Content as played, kept so history survives later content edits or deletion.
+  contentSnapshot Json
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+
+  session     GameSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contentItem ContentItem?   @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  answers     PlayerAnswer[]
+  scoreEvents ScoreEvent[]
+
+  @@unique([sessionId, roundIndex])
+  @@index([contentItemId])
+}
+
+model PlayerAnswer {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  sessionRoundId  String   @db.Uuid
+  sessionPlayerId String   @db.Uuid
+  input           Json
+  isCorrect       Boolean?
+  responseTimeMs  Int?
+  submittedAt     DateTime @default(now())
+
+  sessionRound  SessionRound  @relation(fields: [sessionRoundId], references: [id], onDelete: Cascade)
+  sessionPlayer SessionPlayer @relation(fields: [sessionPlayerId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionRoundId, sessionPlayerId])
+  @@index([sessionPlayerId])
+}
+
+model ScoreEvent {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  sessionRoundId  String?  @db.Uuid
+  sessionPlayerId String   @db.Uuid
+  points          Int
+  reason          String
+  breakdown       Json     @default("{}")
+  createdAt       DateTime @default(now())
+
+  sessionRound  SessionRound? @relation(fields: [sessionRoundId], references: [id], onDelete: Cascade)
+  sessionPlayer SessionPlayer @relation(fields: [sessionPlayerId], references: [id], onDelete: Cascade)
+
+  @@index([sessionPlayerId])
+  @@index([sessionRoundId])
+}

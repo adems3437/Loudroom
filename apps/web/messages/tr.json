@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "title": "Loudroom",
+    "description": "Telefonla oynanan, gerçek zamanlı parti oyunları"
+  },
+  "brand": {
+    "name": "Loudroom",
+    "tagline": "Ekranı aç, telefonları kap, oyun başlasın."
+  },
+  "home": {
+    "host": "Oda aç",
+    "hostHint": "TV veya bilgisayar ekranından",
+    "play": "Oyuna katıl",
+    "playHint": "Telefonundan"
+  },
+  "admin": {
+    "title": "Yönetim paneli"
+  },
+  "connection": {
+    "title": "Sunucu bağlantısı",
+    "state": {
+      "connecting": "Bağlanıyor…",
+      "connected": "Bağlı",
+      "reconnecting": "Yeniden bağlanıyor…"
+    },
+    "rtt": "Gecikme (RTT)",
+    "offset": "Saat farkı",
+    "measuring": "ölçülüyor…",
+    "ms": "{value} ms"
+  }
+}

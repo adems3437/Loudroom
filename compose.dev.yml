@@ -1,0 +1,87 @@
+# Development stack: hot reload for server and web, source bind-mounted from the host.
+# Started by a plain `docker compose up` through COMPOSE_FILE in .env.
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/dev.Dockerfile
+  image: loudroom-dev:latest
+  init: true
+  volumes:
+    - .:/app
+    # Linux dependencies live in volumes so they never mix with the host's macOS node_modules.
+    - node-modules:/app/node_modules
+    - server-node-modules:/app/apps/server/node_modules
+    - web-node-modules:/app/apps/web/node_modules
+    - shared-node-modules:/app/packages/shared/node_modules
+    - pnpm-store:/pnpm-store
+  environment: &app-env
+    NODE_ENV: development
+    DATABASE_URL: postgresql://${POSTGRES_USER:-loudroom}:${POSTGRES_PASSWORD:-loudroom}@postgres:5432/${POSTGRES_DB:-loudroom}
+    REDIS_URL: redis://redis:6379/0
+    PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+    CORS_ORIGINS: ${CORS_ORIGINS:-}
+    SERVER_HOST: 0.0.0.0
+    SERVER_PORT: '4000'
+    WEB_PORT: '3000'
+    SOCKET_PORT: ${SOCKET_PORT:-4000}
+
+services:
+  # One-shot: installs dependencies, builds shared, applies migrations and seeds.
+  setup:
+    <<: *app
+    command:
+      - sh
+      - -ec
+      - |
+        pnpm install --frozen-lockfile --store-dir /pnpm-store
+        pnpm --filter @loudroom/shared build
+        pnpm --filter @loudroom/server db:generate
+        pnpm --filter @loudroom/server db:deploy
+        pnpm --filter @loudroom/server db:seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: 'no'
+
+  server:
+    <<: *app
+    # Rebuilds shared on change and restarts Nest on change.
+    command: pnpm exec turbo run dev --filter=@loudroom/server... --ui=stream
+    ports:
+      - '${SERVER_PORT:-4000}:4000'
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    command: pnpm --filter @loudroom/web dev
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://localhost:3000/admin']
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+
+volumes:
+  node-modules:
+  server-node-modules:
+  web-node-modules:
+  shared-node-modules:
+  pnpm-store:

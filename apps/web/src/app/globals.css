@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens — the single place for colors, typography and spacing (SPEC §12).
+ * Tailwind generates utilities from them: bg-canvas, text-muted, font-display, p-safe-x, …
+ */
+@theme {
+  --color-canvas: #0a0a12;
+  --color-surface: #14142a;
+  --color-surface-raised: #1d1d3a;
+  --color-line: #2e2e56;
+  --color-ink: #f6f5ff;
+  --color-muted: #a5a3c9;
+
+  --color-brand: #7b5cff;
+  --color-brand-strong: #9b82ff;
+  --color-accent: #ffc83d;
+  --color-success: #2ed27d;
+  --color-warning: #ffad1f;
+  --color-danger: #ff4d6d;
+
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-heading), var(--font-body), ui-sans-serif, system-ui, sans-serif;
+
+  /* Host stage: designed at 1920×1080, then scaled to fit the screen. */
+  --spacing-stage-w: 1920px;
+  --spacing-stage-h: 1080px;
+  /* Margin kept clear of projector overscan on the host stage. */
+  --spacing-safe-x: 96px;
+  --spacing-safe-y: 64px;
+  /* Minimum touch target on phones. */
+  --spacing-touch: 56px;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  body {
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Phones: no pull-to-refresh or scroll chaining while the player surface is open. */
+  html:has([data-surface='player']),
+  html:has([data-surface='player']) body {
+    overscroll-behavior: none;
+  }
+}
