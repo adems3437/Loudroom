@@ -132,7 +132,7 @@ describe('admin auth', () => {
     expect((await client.login(other.email, TEST_PASSWORD)).status).toBe(200);
   });
 
-  it('limits login attempts per address', async () => {
+  it('limits failed logins per address, across accounts, not successful ones', async () => {
     const limited = await startTestApp({
       config: {
         rateLimits: { ...DEFAULT_RATE_LIMITS, adminLogin: { capacity: 2, refillPerSecond: 0.001 } },
@@ -141,8 +141,11 @@ describe('admin auth', () => {
     try {
       const client = new AdminClient(limited.url);
       const user = await createUser(prisma, 'EDITOR');
-      expect((await client.login(user.email, 'wrong')).status).toBe(401);
-      expect((await client.login(user.email, 'wrong')).status).toBe(401);
+      for (let i = 0; i < 3; i++) {
+        expect((await client.login(user.email, TEST_PASSWORD)).status).toBe(200);
+      }
+      expect((await client.login('a@test.local', 'wrong')).status).toBe(401);
+      expect((await client.login('b@test.local', 'wrong')).status).toBe(401);
       expect((await client.login(user.email, TEST_PASSWORD)).status).toBe(429);
     } finally {
       await limited.app.close();

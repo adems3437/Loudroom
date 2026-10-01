@@ -41,8 +41,10 @@ export class AuthController {
   }
 
   /**
-   * Strict limits (SPEC §9): attempts per IP, and failed attempts per account so a password
-   * cannot be guessed from many addresses either. Both answer with the same RATE_LIMITED.
+   * Strict limits (SPEC §9) on failed attempts only, per address and per account, so a password
+   * cannot be guessed from one address or from many. Successful logins never count: behind one
+   * NAT (or the web app's proxy) a whole team shares an address. Both limits answer with the
+   * same RATE_LIMITED.
    */
   @Post('login')
   @HttpCode(200)
@@ -54,13 +56,10 @@ export class AuthController {
     assertSameOrigin(request, this.config);
     const { email, password } = parseRequest(loginRequestSchema, body);
     const limits = this.config.rateLimits;
+    const addressKey = requestAddressKey(request, this.config);
     const accountKey = hashClientAddress(email, this.config.ipHashSecret);
     const allowed =
-      (await this.rateLimiter.consume(
-        'admin-login',
-        requestAddressKey(request, this.config),
-        limits.adminLogin,
-      )) &&
+      (await this.rateLimiter.hasCapacity('admin-login-fail-ip', addressKey, limits.adminLogin)) &&
       (await this.rateLimiter.hasCapacity(
         'admin-login-fail',
         accountKey,
@@ -73,6 +72,7 @@ export class AuthController {
       ? await verifyPassword(user.passwordHash, password)
       : await verifyNothing(password);
     if (!user || !valid) {
+      await this.rateLimiter.consume('admin-login-fail-ip', addressKey, limits.adminLogin);
       await this.rateLimiter.consume('admin-login-fail', accountKey, limits.adminLoginFailure);
       throw new ApiException(401, 'INVALID_CREDENTIALS', 'Wrong email or password');
     }

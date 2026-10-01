@@ -60,7 +60,7 @@ export interface RateLimitConfig {
   roomCreate: TokenBucketConfig;
   /** REST requests per client IP. */
   rest: TokenBucketConfig;
-  /** Admin login attempts per client IP. */
+  /** Failed admin logins per client IP. */
   adminLogin: TokenBucketConfig;
   /** Failed admin logins per account (password guessing from many addresses). */
   adminLoginFailure: TokenBucketConfig;
