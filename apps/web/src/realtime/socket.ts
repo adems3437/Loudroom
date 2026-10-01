@@ -12,9 +12,23 @@ export function socketUrl(socketPort: string | null, location: Location): string
   return socketPort ? `${location.protocol}//${location.hostname}:${socketPort}` : null;
 }
 
-export function createSocket(socketPort: string | null): AppSocket {
+/**
+ * `sessionToken` is read on every (re)connect: the server resumes that session from the
+ * handshake, so reconnects and reloads land in the same room slot.
+ */
+export function createSocket(
+  socketPort: string | null,
+  sessionToken: () => string | null,
+): AppSocket {
   const url = socketUrl(socketPort, window.location);
-  // WebSocket only: no long-polling, so no sticky sessions are needed when scaling out.
-  const options = { transports: ['websocket'], autoConnect: false };
+  const options = {
+    // WebSocket only: no long-polling, so no sticky sessions are needed when scaling out.
+    transports: ['websocket'],
+    autoConnect: false,
+    auth: (callback: (data: object) => void) => {
+      const token = sessionToken();
+      callback(token ? { token } : {});
+    },
+  };
   return url ? io(url, options) : io(options);
 }

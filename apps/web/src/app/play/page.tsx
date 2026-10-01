@@ -1,15 +1,5 @@
-import { Brand } from '@/components/brand';
-import { ConnectionStatus } from '@/components/connection-status';
+import { JoinCodeForm } from './join-code-form';
 
 export default function PlayHomePage() {
-  return (
-    <main className="flex flex-1 flex-col gap-6">
-      <header className="flex items-center justify-between">
-        <span className="text-2xl">
-          <Brand />
-        </span>
-        <ConnectionStatus variant="compact" />
-      </header>
-    </main>
-  );
+  return <JoinCodeForm />;
 }

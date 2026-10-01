@@ -1,19 +1,52 @@
 'use client';
 
-import { TIME_SYNC_INTERVAL_MS, type ClockEstimate } from '@loudroom/shared';
-import { createContext, use, useEffect, useState, type ReactNode } from 'react';
+import {
+  ServerEvent,
+  TIME_SYNC_INTERVAL_MS,
+  roomStateSchema,
+  sessionErrorEventSchema,
+  type ClockEstimate,
+  type RoomState,
+  type SessionErrorCode,
+} from '@loudroom/shared';
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { measureClock } from './measure-clock';
-import { createSocket } from './socket';
+import { createSocket, type AppSocket } from './socket';
 
-export type ConnectionState = 'connecting' | 'connected' | 'reconnecting';
+/** `closed`: the server ended this connection on purpose (session opened elsewhere). */
+export type ConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'closed';
 
 export interface RealtimeState {
+  socket: AppSocket | null;
   connection: ConnectionState;
   /** Latest clock estimate; null until the first measurement after connecting. */
   clock: ClockEstimate | null;
+  /** Latest room snapshot for this connection's session. */
+  room: RoomState | null;
+  /** Why the server ended the session, if it did. */
+  sessionEnded: SessionErrorCode | null;
+  /** Binds a session the server already attached to this connection (create/join). */
+  adoptSession: (token: string) => void;
+  /** Resumes a stored session: reconnects so the server picks the token up from the handshake. */
+  resumeSession: (token: string) => void;
+  /** Forgets the session and continues anonymously. */
+  clearSession: () => void;
+  /** Whether this connection currently carries a session token. */
+  hasSession: () => boolean;
 }
 
 const RealtimeContext = createContext<RealtimeState | null>(null);
+
+const RATE_LIMITED_RETRY_MS = 5000;
 
 export function RealtimeProvider({
   socketPort,
@@ -22,43 +55,131 @@ export function RealtimeProvider({
   socketPort: string | null;
   children: ReactNode;
 }) {
-  const [state, setState] = useState<RealtimeState>({ connection: 'connecting', clock: null });
+  const tokenRef = useRef<string | null>(null);
+  const [socket, setSocket] = useState<AppSocket | null>(null);
+  const [connection, setConnection] = useState<ConnectionState>('connecting');
+  const [clock, setClock] = useState<ClockEstimate | null>(null);
+  const [room, setRoom] = useState<RoomState | null>(null);
+  const [sessionEnded, setSessionEnded] = useState<SessionErrorCode | null>(null);
 
   useEffect(() => {
-    const socket = createSocket(socketPort);
+    const created = createSocket(socketPort, () => tokenRef.current);
     let active = true;
+    let retry: ReturnType<typeof setTimeout> | undefined;
 
     const syncClock = async () => {
-      const clock = await measureClock(socket);
-      if (active && clock) setState((current) => ({ ...current, clock }));
+      const estimate = await measureClock(created);
+      if (active && estimate) setClock(estimate);
     };
 
-    socket.on('connect', () => {
-      setState((current) => ({ ...current, connection: 'connected' }));
+    created.on('connect', () => {
+      setConnection('connected');
       void syncClock();
     });
-    socket.on('disconnect', () => {
-      setState((current) => ({ ...current, connection: 'reconnecting' }));
+    created.on('disconnect', (reason) => {
+      // The server only disconnects on purpose (kicked / session replaced): do not fight it.
+      setConnection(reason === 'io server disconnect' ? 'closed' : 'reconnecting');
     });
-    socket.on('connect_error', () => {
-      setState((current) =>
-        current.connection === 'connecting' ? current : { ...current, connection: 'reconnecting' },
+    created.on('connect_error', () => {
+      setConnection((current) => (current === 'connecting' ? current : 'reconnecting'));
+      // Refused by the server (e.g. rate limited): socket.io will not retry by itself.
+      if (!created.active) {
+        clearTimeout(retry);
+        retry = setTimeout(() => created.connect(), RATE_LIMITED_RETRY_MS);
+      }
+    });
+    created.on(ServerEvent.RoomState, (payload) => {
+      const parsed = roomStateSchema.safeParse(payload);
+      if (!parsed.success) return;
+      const next = parsed.data;
+      setRoom((current) =>
+        current?.code === next.code && current.version > next.version ? current : next,
       );
+    });
+    created.on(ServerEvent.Error, (payload) => {
+      const parsed = sessionErrorEventSchema.safeParse(payload);
+      if (!parsed.success) return;
+      tokenRef.current = null;
+      setRoom(null);
+      setSessionEnded(parsed.data.code);
+      if (parsed.data.code === 'KICKED') {
+        // Stay connected anonymously so the page keeps working (e.g. to join again).
+        created.once('disconnect', () => created.connect());
+      }
     });
 
     const resync = setInterval(() => {
-      if (socket.connected) void syncClock();
+      if (created.connected) void syncClock();
     }, TIME_SYNC_INTERVAL_MS);
 
-    socket.connect();
+    setSocket(created);
+    created.connect();
     return () => {
       active = false;
       clearInterval(resync);
-      socket.close();
+      clearTimeout(retry);
+      created.close();
     };
   }, [socketPort]);
 
-  return <RealtimeContext value={state}>{children}</RealtimeContext>;
+  const adoptSession = useCallback((token: string) => {
+    tokenRef.current = token;
+    setSessionEnded(null);
+  }, []);
+
+  const resumeSession = useCallback(
+    (token: string) => {
+      // Already carried by the current (or upcoming) connection.
+      if (tokenRef.current === token && (!socket || socket.active)) return;
+      tokenRef.current = token;
+      setSessionEnded(null);
+      setRoom(null);
+      if (!socket) return; // the first connect will carry the token
+      setConnection('connecting');
+      socket.disconnect().connect();
+    },
+    [socket],
+  );
+
+  const clearSession = useCallback(() => {
+    const hadSession = tokenRef.current !== null;
+    tokenRef.current = null;
+    setRoom(null);
+    setSessionEnded(null);
+    if (!socket) return;
+    // The server still binds this connection to the old session: start a fresh one.
+    if (hadSession) socket.disconnect().connect();
+    else if (!socket.active) socket.connect();
+  }, [socket]);
+
+  const hasSession = useCallback(() => tokenRef.current !== null, []);
+
+  const value = useMemo<RealtimeState>(
+    () => ({
+      socket,
+      connection,
+      clock,
+      room,
+      sessionEnded,
+      adoptSession,
+      resumeSession,
+      clearSession,
+      hasSession,
+    }),
+    [
+      socket,
+      connection,
+      clock,
+      room,
+      sessionEnded,
+      adoptSession,
+      resumeSession,
+      clearSession,
+      hasSession,
+    ],
+  );
+
+  return <RealtimeContext value={value}>{children}</RealtimeContext>;
 }
 
 export function useRealtime(): RealtimeState {

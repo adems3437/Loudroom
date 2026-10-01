@@ -1,7 +1,8 @@
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
 
-export async function Brand({ className = '' }: { className?: string }) {
-  const t = await getTranslations('brand');
+/** Wordmark. Synchronous, so it works in server and client components alike. */
+export function Brand({ className = '' }: { className?: string }) {
+  const t = useTranslations('brand');
   return (
     <span className={`font-display font-extrabold tracking-tight ${className}`}>
       {t('name')}

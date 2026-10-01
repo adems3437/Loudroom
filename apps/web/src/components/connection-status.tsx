@@ -7,6 +7,7 @@ const dotColor: Record<ConnectionState, string> = {
   connecting: 'bg-warning',
   connected: 'bg-success',
   reconnecting: 'bg-danger',
+  closed: 'bg-muted',
 };
 
 export function ConnectionStatus({ variant = 'detailed' }: { variant?: 'detailed' | 'compact' }) {
