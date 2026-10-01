@@ -4,12 +4,225 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                              | Durum                      |
-| -------------------------------- | -------------------------- |
-| Phase 1 — Altyapı                | ✅ Tamamlandı (2026-10-01) |
-| Phase 2 — Oda ve Lobby           | ✅ Tamamlandı (2026-10-01) |
-| Phase 3 — Game Engine + Quiz MVP | ✅ Tamamlandı (2026-10-01) |
-| Phase 4 — Admin Panel (temel)    | ⏸ Onay bekliyor            |
+| Faz                              | Durum                                                |
+| -------------------------------- | ---------------------------------------------------- |
+| Phase 1 — Altyapı                | ✅ Tamamlandı (2026-10-01)                           |
+| Phase 2 — Oda ve Lobby           | ✅ Tamamlandı (2026-10-01)                           |
+| Phase 3 — Game Engine + Quiz MVP | ✅ Tamamlandı (2026-10-01)                           |
+| Phase 4 — Admin Panel (temel)    | 🟡 Kodlandı; Mac'te iki doğrulama bekliyor (aşağıda) |
+
+---
+
+## Phase 4 — Admin Panel (temel)
+
+### Yapılanlar
+
+- **Kimlik doğrulama (A1, A2):**
+  - Parolalar argon2id ile saklanıyor (`@node-rs/argon2`, OWASP'ın önerdiği varsayılanlar).
+  - Oturum Redis'te tutuluyor: `admin:session:{hash}`, ayrıca kullanıcı başına bir oturum
+    listesi. Çerezde 256 bit rastgele bir token var; Redis'te yalnızca SHA-256 özeti duruyor.
+    Oturum 12 saat işlem yapılmazsa kapanıyor; her istek süreyi uzatıyor.
+  - Çerez: httpOnly, `SameSite=Strict`. `PUBLIC_URL` https ise Secure bayrağı da ekleniyor.
+  - CSRF koruması: Her oturumun bir CSRF token'ı var. Güvenli olmayan isteklerde bu token'ın
+    `X-CSRF-Token` başlığında gelmesi ve `Origin` (yoksa `Referer`) adresinin izin verilen bir
+    adres olması gerekiyor. Giriş isteğinde de Origin kontrol ediliyor.
+  - Roller: EDITOR içerik, kategori, medya ve paketleri yönetiyor. Kullanıcı yönetimi yalnızca
+    ADMIN'de (A6). Kimse kendi rolünü değiştiremiyor, kendini silemiyor; son yönetici
+    silinemiyor ve rolü düşürülemiyor.
+  - Rol değişikliği, şifre sıfırlama ve silme, o kullanıcının bütün oturumlarını kapatıyor.
+    Kendi şifresini değiştiren kullanıcının diğer cihazlardaki oturumları kapanıyor.
+  - Giriş limiti (SPEC §9, ayrı ve sıkı):
+    - IP başına başarısız giriş: 10, ardından 10 dakikada 10 hak.
+    - Hesap başına başarısız giriş: 5, ardından 15 dakikada 5 hak.
+    - Başarılı girişler sayılmıyor (bkz. kararlar).
+  - Kayıtlı olmayan bir e-posta da gerçek bir şifre kontrolü kadar sürüyor. Böylece yanıt
+    süresinden hangi e-postaların kayıtlı olduğu anlaşılamıyor.
+  - `pnpm admin:create --email … [--name …]` ilk yöneticiyi oluşturuyor. `--reset` şifre
+    sıfırlıyor. Şifre ekrana yazılmadan iki kez soruluyor ya da `ADMIN_PASSWORD` ile veriliyor.
+    Geliştirme ortamında `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` tanımlıysa seed bir yönetici
+    oluşturuyor. Hesap zaten varsa şifresine dokunulmuyor.
+- **REST API (`/api/admin/*`):**
+  - Kategoriler, içerik, medya, paketler, kullanıcılar ve genel bakış uç noktaları.
+  - Hosta açık uç nokta: `GET /api/packs`. Yalnızca yayındaki paketleri listeliyor (A5).
+  - Bütün istek gövdeleri ve sorgular `packages/shared` içindeki zod şemalarıyla doğrulanıyor.
+  - Hatalar tek biçimde dönüyor: `{ code, message, issues? }`.
+  - IP başına REST limiti: 120 istek, saniyede 4 yenileniyor. `/health` bu limitin dışında.
+- **İçerik:**
+  - `data` alanı oyun modülünün şemasıyla doğrulanıyor.
+  - İçeriğin referans verdiği görsellerin var olması gerekiyor. İçerik ile medya ilişkisi her
+    kayıtta güncelleniyor.
+  - Metin araması, durum, kategori ve zorluk filtreleri, sayfalama var.
+  - İçeriğin oyun tipi sonradan değiştirilemiyor.
+- **Kullanımdaki kayıtlar korunuyor (A4):**
+  - Bir pakette (taslak dahil) kullanılan içerik silinemiyor.
+  - Yayındaki bir pakette kullanılan içerik taslağa alınamıyor.
+  - İçerikte kullanılan görsel silinemiyor.
+  - İçeriği olan ya da bir paketin rastgele seçiminde kullanılan kategori silinemiyor.
+  - Bu durumlarda `IN_USE` hatası dönüyor.
+- **Medya:**
+  - Dosyanın türü adına veya MIME başlığına göre değil, içeriğine bakılarak tespit ediliyor.
+    JPEG, PNG, WebP ve GIF kabul ediliyor.
+  - Bütün görseller `sharp` ile WebP'ye yeniden kodlanıyor ve uzun kenarı en fazla 2560 px
+    oluyor. Bu sırada EXIF (GPS dahil), ICC ve XMP bilgileri siliniyor; fotoğrafın yönü
+    korunuyor.
+  - 40 megapikselden büyük görseller açılmadan reddediliyor (dekompresyon bombası koruması).
+  - Boyut sınırı `MEDIA_MAX_UPLOAD_BYTES` ile ayarlanıyor; varsayılan 10 MB.
+  - Dosyalar `MEDIA_DIR` klasörüne `{uuid}.webp` adıyla yazılıyor ve `/media/…` adresinden
+    süresiz önbellekle sunuluyor. Depolama `MediaStorage` arayüzünün arkasında; ileride
+    S3/MinIO'ya geçilebilir (SPEC §13).
+- **Paketler (A5):**
+  - `GamePack.status` alanı eklendi (DRAFT/PUBLISHED). Migration, mevcut paketleri yayında
+    bıraktı.
+  - Taslak paket eksik olabilir. Yayınlarken şunlar kontrol ediliyor:
+    - En az bir bölüm var mı?
+    - Oyun biliniyor mu?
+    - Sabit listedeki içerikler var ve yayında mı?
+    - Rastgele seçim için yeterli yayında içerik var mı?
+  - Sabit listede soru sayısı listedeki içerik sayısından hesaplanıyor; tekrarlar atılıyor.
+  - Host ve `game:start` yalnızca yayındaki paketleri görüyor.
+- **Quiz modülü sürüm 2 (A3):**
+  - İçeriğe isteğe bağlı soru görseli (`media: { type: 'image', mediaId }`) ve seçenek
+    görselleri (`mediaId`) eklendi. Sürüm 1 içerik, sürüm 2'de de geçerli.
+  - TV'de soru görseli ve seçenek küçük resimleri gösteriliyor; telefonda seçenek görselleri
+    var.
+  - Görselli içerikle de sözleşme testleri çalıştırılıyor, sızıntı testi dahil.
+  - Paket kendi içerik editörünü getiriyor (`editor.tsx`). Web registry'si bu editörü
+    `gameType`'a göre buluyor.
+- **Web:**
+  - Next `/api` ve `/media` adreslerini server'a yönlendiriyor (A2: tek adres).
+  - Sayfalar: `/admin/login`, genel bakış, içerik listesi (filtre ve arama), içerik editörü
+    (oyunun editörü, görsel seçici ve yükleme, ortak alanlar), kategoriler, medya kütüphanesi
+    (açıklama düzenleme, silme), paket editörü (bölümler, sabit/rastgele seçim, sıralama,
+    yayın hataları), kullanıcılar (yalnızca ADMIN), hesabım (şifre değiştirme).
+  - Oturum yoksa panel giriş sayfasına yönlendiriyor. Girişten sonra yalnızca `/admin`
+    altındaki adreslere dönülüyor.
+  - Host lobby'si yayındaki paketleri listeliyor. Host seçmezse en son güncellenen paket
+    seçili oluyor; yayında paket yoksa başlatma butonu kapalı ve uyarı gösteriliyor.
+  - Bütün metinler `tr.json` içinde: `admin.*`, `games.quiz.editor.*`, `host.pack*`.
+- **Docker:** `media-data` volume'u, server için `MEDIA_DIR`, web için `API_INTERNAL_URL`,
+  setup için `ADMIN_SEED_*` eklendi.
+- **SPEC:** Admin route'ları (§2), GamePack durumu ve `mediaId` kuralı (§6), admin oturum
+  anahtarları (§11) güncellendi.
+- **Önceki testlerde düzeltme:** Bu ortam daha hızlı olduğu için iki integration testi her
+  seferinde kırmızıya döndü. Server'ın `SESSION_EXPIRED` hatası, test dinlemeye başlamadan
+  önce geliyordu. `connectRefused` yardımcı fonksiyonu dinleyiciyi bağlantıdan önce kuruyor.
+
+### Bitti tanımı — son çalıştırma (2026-10-01, bulut ortamı)
+
+| Kontrol                                                 | Sonuç                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------ |
+| `pnpm typecheck`                                        | ✅ 8/8 görev                                                       |
+| `pnpm lint`                                             | ✅ 8/8 görev                                                       |
+| `pnpm test`                                             | ✅ 186 test: shared 44, game-sdk 6, game-quiz 41, server 95        |
+| `pnpm build`                                            | ✅ 5/5 görev                                                       |
+| `pnpm test:e2e`                                         | 🟡 Chromium'da 10/10 (Phase 1–3 dahil). **WebKit çalıştırılamadı** |
+| `pnpm format:check`                                     | ✅                                                                 |
+| `docker compose down -v && docker compose up -d --wait` | ❌ **Doğrulanamadı:** dev imajı derlenemedi                        |
+
+**Doğrulanamayanlar ve nedenleri:**
+
+- **WebKit:** Bulut ortamında yalnızca daha eski bir Chromium sürümü kurulu, WebKit yok.
+  E2e'ler commit'lenmemiş yerel bir config ile bu Chromium'da çalıştırıldı.
+- **`docker compose up`:** Ağ politikası `deb.debian.org` adresini engelliyor (403). Bu yüzden
+  dev imajındaki `apt-get` adımı çalışmadı. E2e'ler aynı servislerle host modunda koşturuldu:
+  `pnpm infra:up` ile sıfır veritabanı, migration, seed ve `pnpm dev`.
+- Bu iki adım Mac'te çalıştırılmalı:
+
+  ```bash
+  docker compose down -v && docker compose up -d --build --wait
+  pnpm test:e2e
+  ```
+
+  `--build` gerekli: dev imajına `/media-data` bağlama noktası eklendi.
+
+**Kabul kriteri (SPEC §15 Phase 4):** `e2e/admin.spec.ts` şu adımları doğruluyor:
+
+1. Oturum açılmadan panele girilmeye çalışılır, giriş sayfasına yönlendirilir.
+2. Giriş yapılır, kategori oluşturulur.
+3. Görsel seçicinin içinden PNG yüklenip soruya eklenir; 4 seçenekli, yayında bir soru
+   kaydedilir.
+4. Paket oluşturulur, soru eklenip yayınlanır.
+5. Pakette kullanılan içeriği silme denemesi `IN_USE` ile reddedilir.
+6. Host lobby'de yeni paketi seçip oyunu başlatır. TV'de görsel `/media/{id}.webp` adresinden
+   gerçekten yüklenir; telefon cevaplar, sonuç ekranı gelir.
+7. Paket, içerik, görsel ve kategori panelden silinir.
+
+İkinci senaryo: hatalı giriş mesajı, yönetici yeni bir editör ekler, editör kullanıcılar
+menüsünü görmez, çıkış yapınca oturum kapanır.
+
+Server integration testleri ayrıca şunları kapsıyor:
+
+- Çerez bayrakları; CSRF, Origin ve giriş limitleri; REST limiti; roller.
+- Kendi rolünü değiştirme ve kendini silme yasakları; oturumların kapatılması.
+- Modül şeması ve medya referansları.
+- EXIF'in silindiği; sahte dosya (415) ve fazla büyük dosya (413) reddi.
+- Kullanımdaki kayıtların korunması.
+- Yayın kontrolleri; taslak paketle `game:start` reddi; görselin soru görünümüne ulaşması.
+
+### Alınan kararlar (kullanıcı onaylı)
+
+- **A1:** İlk yönetici `pnpm admin:create` ile, geliştirmede seed ile oluşturuluyor.
+- **A2:** Panel ve API aynı adreste (Next yönlendirmesi). Oturum Redis'te; çerez httpOnly ve
+  `SameSite=Strict`; CSRF token'ı ve Origin kontrolü var.
+- **A3:** Quiz'e soru ve seçenek görselleri eklendi (modül sürüm 2).
+- **A4:** Kullanımdaki içerik ve medya silinemiyor.
+- **A5:** Paketlerin DRAFT/PUBLISHED durumu var; host paketi lobby'de seçiyor; açık uç nokta
+  `GET /api/packs`.
+- **A6:** Kullanıcı yönetimi yalnızca ADMIN'de.
+
+### Varsayımlar ve küçük kararlar
+
+- **Giriş limiti yalnızca başarısız denemeleri sayıyor:** Admin istekleri Next üzerinden
+  geldiği için server'a hepsi aynı adresten (web uygulamasından) ulaşıyor. Başarılı girişler
+  de sayılsaydı, birkaç girişten sonra herkes kilitlenirdi. Odaya katılımda da aynı kural
+  uygulanıyor.
+- **Bilinen sınır:** IP başına sayaç bu yüzden şu an fiilen tek bir ortak sayaç. Hesap başına
+  limit her durumda geçerli. Gerçek istemci IP'si Phase 9'da Nginx ve `TRUST_PROXY` ile
+  gelecek.
+- **Medya id'si UUIDv4:** Görsel adresleri herkese açık. Zamana dayalı UUIDv7 yerine tahmin
+  edilemeyen v4 kullanıldı. Görseller yetki gerektirmiyor; taslak bir sorunun görseli de
+  adresini bilen biri tarafından açılabilir.
+- **Seçenek metni zorunlu:** Görselli seçeneklerde de metin isteniyor. Hem TV'de etiket hem
+  erişilebilirlik için gerekli.
+- **Video:** Şema `media.type` alanını taşıyor ama şimdilik yalnızca `image` kabul ediyor.
+  Oynatıcı Phase 9'da (SPEC §7.1).
+- **Paket ayarları:** Panelde bölüm başına süre, puan çarpanı ve skor tablosu ayarlanabiliyor.
+  Modülün diğer ayarları (giriş süresi, cevap değiştirme) varsayılanlarda kalıyor; şema hazır.
+- **Panel istemci tarafında render ediliyor:** Oturum kontrolü `/api/admin/auth/me` ile
+  yapılıyor. Asıl yetki kontrolü her istekte server'da.
+- **Admin kullanıcılarının e-postaları** küçük harfe çevrilip kırpılarak saklanıyor.
+- **`/admin/sessions` ve `/admin/settings`** SPEC'teki route listesinde var ama Phase 9'un
+  (oturum geçmişi) konusu. Oluşturulmadı.
+
+### Eklenen paketler
+
+| Paket                                               | Nerede      | Gerekçe                                                                                |
+| --------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------- |
+| @node-rs/argon2 2.2.1                               | server      | SPEC §9 argon2. Hazır binary'lerle geliyor, kurulum script'i ve node-gyp gerektirmiyor |
+| sharp 0.35.5                                        | server      | SPEC §9: görselleri yeniden kodlamak ve metadata'yı silmek için                        |
+| cookie-parser 1.4.7                                 | server      | Oturum çerezini okumak için                                                            |
+| @types/cookie-parser, @types/multer, @types/express | server, dev | Tipler. Multer Nest'in kendi bağımlılığı olarak zaten kurulu                           |
+
+`sharp` ve `@node-rs/argon2` platforma uygun binary'yi isteğe bağlı paketlerden alıyor;
+`allowBuilds`'e eklemek gerekmedi.
+
+### Ortam notları (bulut oturumu)
+
+- Bulut ortamında Node 22 kuruluydu. Node 24 `/opt` altına indirildi ve pnpm 12.8.1 onunla
+  kuruldu. Önceden kurulu pnpm, turbo'nun alt süreçlerinde çalışmıyordu
+  ("Exec format error").
+- Docker daemon elle başlatıldı. Postgres ve Redis imajları sorunsuz indi.
+
+### Bilinen sınırlar
+
+- **Bu ortamda doğrulanamayanlar:** WebKit e2e ve sıfırdan `docker compose up`.
+- **Next yönlendirme adresi:** `API_INTERNAL_URL`, `next build` sırasında okunuyor. Prod
+  ortamında Nginx `/api` ve `/media` adreslerini doğrudan server'a yönlendirecek (Phase 9).
+- **Eşzamanlı işlemler:** Görsel silinirken aynı anda o görsel bir içeriğe eklenirse, içerik
+  silinmiş bir görsele referans verebilir. Bu kontrol tek bir transaction içinde değil; panel
+  kullanımında olasılığı çok düşük.
+- **Medya kütüphanesinde arama yok:** Sayfalama var.
+- **Tek dil:** Panel yalnızca Türkçe.
 
 ---
 

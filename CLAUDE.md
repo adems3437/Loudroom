@@ -26,7 +26,8 @@ Database (Prisma 7, run from the repo root):
 
 ```bash
 pnpm db:migrate                              # prisma migrate dev (create/apply migrations)
-pnpm db:seed                                 # idempotent seed
+pnpm db:seed                                 # idempotent seed (+ dev admin from ADMIN_SEED_*)
+pnpm admin:create --email a@b.c [--name N]   # first admin / --reset a password (prompts, or ADMIN_PASSWORD)
 pnpm --filter @loudroom/server db:generate   # regenerate the client after schema edits
 ```
 
@@ -46,17 +47,26 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
   src/moderation/  profanity filter + TR/EN word lists
   src/game/        engine (state machine, timers), pack loader, session recorder (history),
                    game views, game gateway, registry (gameType → module)
-  src/seed/        categories, sample quiz pack (fixed ids → idempotent)
+  src/admin/       admin REST API: session store + AdminGuard (cookie, CSRF, Origin, roles),
+                   auth, categories, content, media, packs (+ public GET /api/packs), users
+  src/http/        ApiException + parseRequest (zod), ApiError filter, REST rate-limit guard
+  src/media/       image processing (sniff, sharp → WebP, metadata stripped), MediaStorage
+  src/seed/        categories, sample quiz pack, dev admin (fixed ids → idempotent)
+  scripts/         admin-create.ts (`pnpm admin:create`)
   src/generated/   Prisma client (generated, git-ignored)
   test/            integration tests on real Postgres/Redis (*_test DB, Redis DB 1)
-apps/web           Next.js 16 App Router
+apps/web           Next.js 16 App Router; next.config rewrites /api and /media to the server
   src/app/{host,play,admin}  separate layouts; host = scaled 1920×1080 stage
+    admin/login, admin/(panel)/…        login; panel shell (nav) + content, categories, media,
+                                        game-packs, users, account (client pages)
     host/create, host/room/[roomCode]   room creation, lobby (QR, code, players, kick, lock)
     play, play/[roomCode]               code entry, join form, phone lobby
   src/realtime/    socket client (handshake token), sendCommand, clock sync,
                    RealtimeProvider (room state + session) / RealtimeRoot
   src/lib/         session-storage (localStorage + useStoredSession), wake lock, haptics,
-                   sfx (WebAudio, no audio files)
+                   sfx (WebAudio, no audio files), api (same-origin REST client)
+  src/admin/       admin session provider (CSRF token), UI pieces, media picker, content and
+                   pack forms
   src/games/       registry (gameType → renderers), round renderer wrappers
   src/app/host/room/[roomCode]/  lobby, game stage, scoreboard, podium
   messages/tr.json all UI text (next-intl)
@@ -64,8 +74,8 @@ apps/web           Next.js 16 App Router
 packages/shared    zod schemas, socket event contracts, shared pure logic
 packages/game-sdk  GameModule contract, seeded RNG; ./testing (contract suite + round
                    harness); ./client (countdown, option shapes, renderer types)
-packages/games/*   one package per game: schema.ts, server.ts (module), host.tsx, player.tsx;
-                   exports ./server and ./client separately
+packages/games/*   one package per game: schema.ts, server.ts (module), host.tsx, player.tsx,
+                   editor.tsx (admin content form); exports ./server and ./client separately
 docker/            dev image, postgres init (creates loudroom_test)
 ```
 
@@ -80,6 +90,13 @@ docker/            dev image, postgres init (creates loudroom_test)
 - All room mutations go through `RoomService` (under the per-room lock), then the gateway or
   presence service broadcasts the new snapshot.
 - Server-authoritative: clients send intents, never scores or state.
+- REST: bodies and queries go through `parseRequest(schema, value)`; expected failures throw
+  `ApiException(status, code)`; every error body is `ApiError` (`{ code, message, issues? }`).
+  REST schemas live in `packages/shared/src/admin`. Admin controllers use `@UseGuards(AdminGuard)`
+  (`@AdminOnly()` for ADMIN); users go to clients only through `toAdminUser`.
+- Content that refers to an uploaded file uses a string field named `mediaId` (any depth): the
+  server checks it exists and keeps files in use from being deleted (`collectMediaIds`).
+- Content, media and categories in use cannot be deleted; only PUBLISHED packs reach hosts.
 - ESM everywhere: relative imports in server/shared end in `.js`. Web uses the `@/` alias.
 - TypeScript strict with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`.
 - No `dangerouslySetInnerHTML` (lint-enforced). Web must not import server code (lint-enforced).
@@ -89,8 +106,9 @@ docker/            dev image, postgres init (creates loudroom_test)
 - Every added package gets a reason in PROGRESS.md. Pin exact versions.
 - New game = new package under `packages/games/` + one line in
   `apps/server/src/game/registry.ts` and `apps/web/src/games/registry.ts`. It must pass
-  `describeGameModuleContract` (incl. the secret-variant leak test). Game UI text lives in
-  `messages/tr.json` under `games.<gameType>`.
+  `describeGameModuleContract` (incl. the secret-variant leak test). Its renderer includes an
+  `editor` (admin content form). Game UI text lives in `messages/tr.json` under
+  `games.<gameType>` (editor texts under `games.<gameType>.editor`).
 - Game modules are pure and synchronous; the engine does IO, timers, persistence and
   broadcasting. Engine steps run under the room lock (`RoomService.transact`).
 
@@ -122,5 +140,12 @@ docker/            dev image, postgres init (creates loudroom_test)
   `find . -flags +dataless -type f | wc -l`; fix by reading the files or reinstalling deps.
 - Game packages build with `tsc` (JSX included); Next uses their `dist`. Tailwind scans their
   sources via `@source` in `globals.css`.
+- The admin API is same-origin: Next rewrites `/api/*` and `/media/*` to `API_INTERNAL_URL`
+  (read when the config loads: `next dev` start / `next build`). The server sees the web app's
+  address for these requests, so admin login limits count failed attempts only.
+- Forms cannot be nested: dialogs opened from inside a form (media picker) render through a
+  portal and stop submit propagation (React bubbles events through portals).
+- The media volume needs the dev image's `/media-data` mount point: after pulling, run
+  `docker compose up -d --build` once.
 - Rate-limit buckets live in Redis. To reset them in the dev stack:
   `docker compose exec redis sh -c "redis-cli --scan --pattern 'rl:*' | xargs -r redis-cli del"`.

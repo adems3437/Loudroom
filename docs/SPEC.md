@@ -61,7 +61,8 @@ Route'lar:
 ```
 /host  /host/create  /host/room/[roomCode]
 /play  /play/[roomCode]
-/admin /admin/content /admin/game-packs /admin/media /admin/sessions /admin/users /admin/settings
+/admin /admin/login /admin/content /admin/content/categories /admin/game-packs /admin/media
+/admin/users /admin/account /admin/sessions /admin/settings
 ```
 
 Socket event ve payload tipleri **yalnızca** `packages/shared` içinde tanımlanır; hem web hem server buradan import eder.
@@ -149,10 +150,11 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
 
 - `ContentItem { id, gameType, data (JSONB), categoryId, difficulty, tags[], locale, status (DRAFT|PUBLISHED), mediaIds[], defaultTimeLimit, baseScore, createdBy, timestamps }`
 - `data`, ilgili modülün `contentSchema`'sı ile hem kayıt hem okuma sırasında doğrulanır.
-  - Quiz: `{ question, options: [{ id, text, mediaId? }], correctOptionId, media? }` (2–6 seçenek)
+  - Quiz: `{ question, options: [{ id, text, mediaId? }], correctOptionId, media?: { type: 'image', mediaId } }` (2–6 seçenek)
+  - Yüklenen dosyaya referans veren her alan `mediaId` adını taşır; server varlığını kontrol eder ve kullanımdaki dosyanın silinmesini engeller.
   - Closest Number: `{ question, answer, unit?, displayFormat? }`
   - Sorting, Image Location vb. kendi şemalarıyla.
-- **GamePack:** `id, name, description, settings, rounds[]`
+- **GamePack:** `id, name, description, status (DRAFT|PUBLISHED), settings, rounds[]` — host yalnızca yayındaki paketleri görür; yayınlarken her bölümün oynanabilir olduğu kontrol edilir.
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`
 - Oyun başlarken pack'in o anki hali `GameSession.packSnapshot`'a kopyalanır (sonradan düzenleme geçmiş oyunları bozmaz).
 
@@ -328,6 +330,8 @@ room:{code}:game          # serileştirilmiş engine/modül durumu
 room:{code}:stream        # çizim stroke geçmişi (round bitince silinir)
 token:player:{hash}       # token → oyuncu/oda
 token:host:{hash}
+admin:session:{hash}      # admin oturumu (çerezdeki token'ın SHA-256'sı → kullanıcı, CSRF token'ı)
+admin:user-sessions:{id}  # kullanıcının oturumları (şifre/rol değişince hepsi kapanır)
 rl:{scope}:{key}          # rate limit
 ```
 
