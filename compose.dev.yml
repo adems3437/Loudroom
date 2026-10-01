@@ -17,6 +17,8 @@ x-app: &app
     - game-sdk-node-modules:/app/packages/game-sdk/node_modules
     - game-quiz-node-modules:/app/packages/games/quiz/node_modules
     - pnpm-store:/pnpm-store
+    # Uploaded media (SPEC §13: a Docker volume in the MVP).
+    - media-data:/media-data
   environment: &app-env
     NODE_ENV: development
     DATABASE_URL: postgresql://${POSTGRES_USER:-loudroom}:${POSTGRES_PASSWORD:-loudroom}@postgres:5432/${POSTGRES_DB:-loudroom}
@@ -31,11 +33,20 @@ x-app: &app
     IP_HASH_SECRET: ${IP_HASH_SECRET:?set IP_HASH_SECRET in .env}
     TRUST_PROXY: ${TRUST_PROXY:-false}
     PROFANITY_EXTRA_WORDS_FILE: ${PROFANITY_EXTRA_WORDS_FILE:-}
+    MEDIA_DIR: /media-data
+    MEDIA_MAX_UPLOAD_BYTES: ${MEDIA_MAX_UPLOAD_BYTES:-10485760}
+    # The web container reaches the server by its service name.
+    API_INTERNAL_URL: http://server:4000
 
 services:
   # One-shot: installs dependencies, builds shared, applies migrations and seeds.
   setup:
     <<: *app
+    environment:
+      <<: *app-env
+      # Development admin (see .env.example); left out when unset.
+      ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:-}
     command:
       - sh
       - -ec
@@ -86,6 +97,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  media-data:
   node-modules:
   server-node-modules:
   web-node-modules:

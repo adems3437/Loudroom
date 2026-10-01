@@ -138,6 +138,7 @@ export default defineConfig(
                 './client*',
                 './host*',
                 './player*',
+                './editor*',
               ],
               message: 'Server-side game code must not pull in client code.',
             },

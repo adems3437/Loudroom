@@ -4,10 +4,13 @@ import { QUIZ_GAME_TYPE, quizRenderer } from '@loudroom/game-quiz/client';
 type AnyRenderer = GameRenderer<unknown, unknown>;
 
 /**
- * Erases a renderer's view types for the registry. Safe because a view is always parsed with
- * the same renderer's schema before it reaches that renderer (see round-renderer.tsx).
+ * Erases a renderer's view and content types for the registry. Safe because views are parsed
+ * with the same renderer's schema before they reach it (round-renderer.tsx), and an editor only
+ * gets content the server validated with that game's schema or the game's own empty content.
  */
-function erase<HostView, PlayerView>(renderer: GameRenderer<HostView, PlayerView>): AnyRenderer {
+function erase<HostView, PlayerView, Content>(
+  renderer: GameRenderer<HostView, PlayerView, Content>,
+): AnyRenderer {
   return renderer as unknown as AnyRenderer;
 }
 
@@ -19,3 +22,6 @@ const RENDERERS: Record<string, AnyRenderer> = {
 export function findRenderer(gameType: string): AnyRenderer | undefined {
   return RENDERERS[gameType];
 }
+
+/** Game types the admin panel can create content and pack rounds for. */
+export const GAME_TYPES = Object.keys(RENDERERS);

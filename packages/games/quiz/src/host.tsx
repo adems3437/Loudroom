@@ -2,6 +2,7 @@
 
 import {
   Countdown,
+  mediaUrl,
   OptionShape,
   optionStyle,
   type HostRendererProps,
@@ -36,8 +37,21 @@ export function QuizHost({ view, phase, serverNow, t }: HostRendererProps<QuizHo
         )}
       </div>
 
+      {view.media && (
+        <div className="flex min-h-0 flex-1 justify-center">
+          <img
+            data-testid="quiz-question-image"
+            src={mediaUrl(view.media.mediaId)}
+            alt={t('questionImage')}
+            className={`h-full min-h-0 w-auto rounded-[32px] object-contain ${
+              view.phase === 'INTRO' ? 'max-h-[620px]' : 'max-h-[360px]'
+            }`}
+          />
+        </div>
+      )}
+
       {view.phase !== 'INTRO' && (
-        <ul className="grid flex-1 grid-cols-2 content-end gap-6">
+        <ul className={`grid grid-cols-2 content-end gap-6 ${view.media ? 'shrink-0' : 'flex-1'}`}>
           {view.options.map((option) => {
             const style = optionStyle(option.slot);
             const isCorrect = reveal?.correctOptionId === option.id;
@@ -48,12 +62,21 @@ export function QuizHost({ view, phase, serverNow, t }: HostRendererProps<QuizHo
                 data-testid="quiz-option"
                 data-option-id={option.id}
                 data-correct={reveal ? isCorrect : undefined}
-                className={`relative flex min-h-[150px] items-center gap-6 overflow-hidden rounded-[32px] px-8 py-6 transition-[opacity,transform] duration-500 ${
+                className={`relative flex items-center gap-6 overflow-hidden rounded-[32px] px-8 transition-[opacity,transform] duration-500 ${
+                  view.media ? 'min-h-[120px] py-3' : 'min-h-[150px] py-6'
+                } ${
                   reveal && !isCorrect ? 'scale-[0.97] opacity-35' : ''
                 } ${isCorrect ? 'ring-ink ring-8' : ''}`}
                 style={{ backgroundColor: style.color }}
               >
                 <OptionShape slot={option.slot} size={64} />
+                {option.mediaId && (
+                  <img
+                    src={mediaUrl(option.mediaId)}
+                    alt=""
+                    className="h-[110px] w-[150px] shrink-0 rounded-2xl bg-black/20 object-cover"
+                  />
+                )}
                 <span className="flex-1 text-[44px] leading-tight font-bold text-white">
                   {option.text}
                 </span>

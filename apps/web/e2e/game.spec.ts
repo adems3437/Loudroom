@@ -2,6 +2,14 @@ import { devices, expect, test, type Browser, type Page } from '@playwright/test
 
 const PHONE = devices['iPhone 15'];
 
+/** The seeded "Genel Kültür Karışık" pack (apps/server/src/seed/quiz-pack.ts). */
+const SAMPLE_PACK_ID = '624505d8-a23a-433d-8e22-fa41ed3770c3';
+
+async function startSamplePack(host: Page) {
+  await host.locator(`[data-testid="pack-option"][data-pack-id="${SAMPLE_PACK_ID}"]`).click();
+  await host.getByTestId('start-game').click();
+}
+
 /** Every WebSocket frame a page receives, so the test can check what reached the browser. */
 function recordFrames(page: Page): string[] {
   const frames: string[] = [];
@@ -50,7 +58,7 @@ test('a full quiz: start, answer on phones, server scores, results, scoreboard, 
   ];
   await expect(host.getByTestId('player-card')).toHaveCount(3);
 
-  await host.getByTestId('start-game').click();
+  await startSamplePack(host);
   await expect(host.getByTestId('game-starting')).toBeVisible();
   for (const { page } of phones) await expect(page.getByTestId('phone-starting')).toBeVisible();
 
@@ -152,7 +160,7 @@ test('the host can pause and resume; phones see the pause', async ({ browser }) 
   const joinUrl = (await host.getByTestId('join-url').getAttribute('data-url')) ?? '';
   const phone = await joinAs(browser, new URL(joinUrl).pathname, 'Deniz');
 
-  await host.getByTestId('start-game').click();
+  await startSamplePack(host);
   await expect(host.locator('[data-testid="quiz-host"][data-phase="ANSWERING"]')).toBeVisible();
   await host.getByTestId('pause-game').click();
   await expect(host.getByTestId('paused-overlay')).toBeVisible();

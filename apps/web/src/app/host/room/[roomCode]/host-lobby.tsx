@@ -15,6 +15,7 @@ import { removeSession, useStoredSession } from '@/lib/session-storage';
 import { sendCommand } from '@/realtime/commands';
 import { useRealtime } from '@/realtime/realtime-provider';
 import { GameStage } from './game-stage';
+import { PackPicker, usePublishedPacks } from './pack-picker';
 
 export function HostLobby({ roomCode }: { roomCode: string }) {
   const t = useTranslations('host');
@@ -72,6 +73,13 @@ function Lobby({ room }: { room: HostRoomState }) {
   const { socket } = useRealtime();
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const packs = usePublishedPacks();
+  const [chosenPack, setChosenPack] = useState<string | null>(null);
+  // The newest published pack until the host picks one.
+  const packId =
+    packs.status === 'ready'
+      ? ((packs.packs.find((pack) => pack.id === chosenPack) ?? packs.packs[0])?.id ?? null)
+      : null;
   const connectedPlayers = room.players.filter((player) => player.connected).length;
 
   const start = async () => {
@@ -79,7 +87,7 @@ function Lobby({ room }: { room: HostRoomState }) {
     unlockAudio(); // a click: browsers allow game sounds from here on
     setStarting(true);
     setStartError(null);
-    const result = await sendCommand(socket, ClientCommand.GameStart, {});
+    const result = await sendCommand(socket, ClientCommand.GameStart, packId ? { packId } : {});
     setStarting(false);
     if (!result.ok) setStartError(tErrors(result.code));
   };
@@ -162,7 +170,8 @@ function Lobby({ room }: { room: HostRoomState }) {
           </ul>
         )}
 
-        <div className="mt-auto flex items-center justify-end gap-8">
+        <div className="mt-auto flex items-end justify-between gap-8">
+          <PackPicker packs={packs} selected={packId} onSelect={setChosenPack} />
           {startError && (
             <p role="alert" className="text-danger text-[32px]">
               {startError}
@@ -171,8 +180,8 @@ function Lobby({ room }: { room: HostRoomState }) {
           <button
             type="button"
             data-testid="start-game"
-            disabled={starting || connectedPlayers === 0}
-            className={buttonClass('primary', 'min-h-[110px] px-16 text-[48px]')}
+            disabled={starting || connectedPlayers === 0 || packId === null}
+            className={buttonClass('primary', 'min-h-[110px] shrink-0 px-16 text-[48px]')}
             onClick={() => void start()}
           >
             {starting ? t('starting') : t('start')}

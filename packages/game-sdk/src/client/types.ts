@@ -37,10 +37,45 @@ export interface PlayerRendererProps<View> extends RendererBase<View> {
   describeError: (code: string) => string;
 }
 
+/** Picks an uploaded image (or none). Provided by the admin panel. */
+export interface MediaFieldProps {
+  value: string | null;
+  onChange: (mediaId: string | null) => void;
+  label: string;
+  testId?: string;
+}
+
+/** A problem the server found in the content; `path` is relative to the content. */
+export interface ContentIssue {
+  path: readonly (string | number)[];
+  message: string;
+}
+
+export interface ContentEditorProps<Content> {
+  /** The draft; may not satisfy the content schema yet. */
+  value: Content;
+  onChange: (value: Content) => void;
+  /** Keys under `games.<id>.editor.*`. */
+  t: Translate;
+  MediaField: ComponentType<MediaFieldProps>;
+  issues: readonly ContentIssue[];
+}
+
+/** The admin panel's form for one game's content (SPEC §6: content per game type). */
+export interface GameContentEditor<Content> {
+  contentSchema: z.ZodType<Content>;
+  /** Starting point of a new item. */
+  emptyContent: () => Content;
+  /** One line describing an item in content lists. */
+  summarize: (content: Content) => string;
+  Editor: ComponentType<ContentEditorProps<Content>>;
+}
+
 /** What the web registry holds per game type (SPEC §5: gameType → renderer). */
-export interface GameRenderer<HostView, PlayerView> {
+export interface GameRenderer<HostView, PlayerView, Content = unknown> {
   hostViewSchema: z.ZodType<HostView>;
   playerViewSchema: z.ZodType<PlayerView>;
   Host: ComponentType<HostRendererProps<HostView>>;
   Player: ComponentType<PlayerRendererProps<PlayerView>>;
+  editor: GameContentEditor<Content>;
 }

@@ -1,5 +1,12 @@
 import { defineConfig } from '@playwright/test';
 
+// The admin tests log in with ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD from the repo-root .env.
+try {
+  process.loadEnvFile(new URL('../../.env', import.meta.url));
+} catch {
+  // no .env file — rely on the process environment
+}
+
 /**
  * E2E tests run against an already running stack — `docker compose up` or `pnpm dev`.
  * Each test drives several browser contexts (host screen + phones) inside one browser.

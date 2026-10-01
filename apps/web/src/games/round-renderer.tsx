@@ -1,6 +1,6 @@
 'use client';
 
-import type { RendererPlayer, Translate } from '@loudroom/game-sdk/client';
+import type { RendererPlayer } from '@loudroom/game-sdk/client';
 import { ClientCommand, type GameState } from '@loudroom/shared';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
@@ -8,18 +8,9 @@ import { tapFeedback } from '@/lib/haptics';
 import { sendCommand } from '@/realtime/commands';
 import { useRealtime } from '@/realtime/realtime-provider';
 import { findRenderer } from './registry';
+import { useGameTranslator } from './translator';
 
 type Round = NonNullable<GameState['round']>;
-
-function useGameTranslator(gameType: string): Translate {
-  const t = useTranslations('games');
-  return useCallback(
-    (key, values) =>
-      // Keys live under games.<gameType>; next-intl cannot type a runtime namespace.
-      t(`${gameType}.${key}` as Parameters<typeof t>[0], values),
-    [t, gameType],
-  );
-}
 
 function UnknownView() {
   const t = useTranslations('game');

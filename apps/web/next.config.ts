@@ -14,10 +14,20 @@ try {
 // hosts that are not listed here.
 const publicHost = process.env.PUBLIC_URL ? new URL(process.env.PUBLIC_URL).hostname : undefined;
 
+// The admin API and uploaded media are served on the page's own origin, so the admin session
+// cookie can be SameSite=Strict and httpOnly (SPEC §9). Read when the config loads: `next dev`
+// on start, `next build` at build time.
+const apiUrl = (process.env.API_INTERNAL_URL || 'http://localhost:4000').replace(/\/$/, '');
+
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   ...(publicHost ? { allowedDevOrigins: [publicHost] } : {}),
+  rewrites: () =>
+    Promise.resolve([
+      { source: '/api/:path*', destination: `${apiUrl}/api/:path*` },
+      { source: '/media/:path*', destination: `${apiUrl}/media/:path*` },
+    ]),
 };
 
 export default withNextIntl(config);

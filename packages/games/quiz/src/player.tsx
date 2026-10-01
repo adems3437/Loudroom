@@ -1,6 +1,11 @@
 'use client';
 
-import { OptionShape, optionStyle, type PlayerRendererProps } from '@loudroom/game-sdk/client';
+import {
+  mediaUrl,
+  OptionShape,
+  optionStyle,
+  type PlayerRendererProps,
+} from '@loudroom/game-sdk/client';
 import { useState } from 'react';
 import type { QuizPlayerView } from './schema.js';
 
@@ -114,7 +119,15 @@ export function QuizPlayer({
                 }`}
                 style={{ backgroundColor: style.color }}
               >
-                <OptionShape slot={option.slot} size={44} />
+                {option.mediaId ? (
+                  <img
+                    src={mediaUrl(option.mediaId)}
+                    alt=""
+                    className="h-20 w-full rounded-2xl bg-black/20 object-cover"
+                  />
+                ) : (
+                  <OptionShape slot={option.slot} size={44} />
+                )}
                 <span className="text-base leading-tight font-semibold">{option.text}</span>
               </button>
             </li>

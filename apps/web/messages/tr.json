@@ -14,7 +14,201 @@
     "playHint": "Telefonundan"
   },
   "admin": {
-    "title": "Yönetim paneli"
+    "title": "Yönetim paneli",
+    "nav": {
+      "overview": "Genel bakış",
+      "content": "İçerik",
+      "categories": "Kategoriler",
+      "media": "Medya",
+      "packs": "Oyun paketleri",
+      "users": "Kullanıcılar",
+      "account": "Hesabım",
+      "logout": "Çıkış yap",
+      "menu": "Yönetim menüsü"
+    },
+    "login": {
+      "title": "Yönetim paneline giriş",
+      "email": "E-posta",
+      "password": "Şifre",
+      "submit": "Giriş yap",
+      "submitting": "Giriş yapılıyor…"
+    },
+    "common": {
+      "save": "Kaydet",
+      "saving": "Kaydediliyor…",
+      "saved": "Kaydedildi.",
+      "cancel": "Vazgeç",
+      "delete": "Sil",
+      "deleteConfirm": "Silinsin mi?",
+      "confirmDelete": "Evet, sil",
+      "edit": "Düzenle",
+      "new": "Yeni",
+      "back": "Geri",
+      "loading": "Yükleniyor…",
+      "empty": "Henüz kayıt yok.",
+      "search": "Ara",
+      "all": "Tümü",
+      "previous": "Önceki",
+      "next": "Sonraki",
+      "pageOf": "Sayfa {page} / {pages}",
+      "none": "—",
+      "status": "Durum",
+      "actions": "İşlemler",
+      "loadFailed": "Veriler yüklenemedi.",
+      "close": "Kapat",
+      "total": "{count} kayıt"
+    },
+    "status": {
+      "DRAFT": "Taslak",
+      "PUBLISHED": "Yayında"
+    },
+    "difficulty": {
+      "EASY": "Kolay",
+      "MEDIUM": "Orta",
+      "HARD": "Zor"
+    },
+    "roles": {
+      "ADMIN": "Yönetici",
+      "EDITOR": "Editör"
+    },
+    "gameTypes": {
+      "quiz": "Quiz"
+    },
+    "overview": {
+      "title": "Genel bakış",
+      "content": "İçerik",
+      "categories": "Kategori",
+      "media": "Görsel",
+      "packs": "Oyun paketi",
+      "users": "Kullanıcı",
+      "published": "{count} yayında"
+    },
+    "content": {
+      "title": "İçerik",
+      "new": "Yeni içerik",
+      "edit": "İçeriği düzenle",
+      "item": "İçerik",
+      "gameType": "Oyun",
+      "category": "Kategori",
+      "noCategory": "Kategorisiz",
+      "difficulty": "Zorluk",
+      "status": "Durum",
+      "tags": "Etiketler",
+      "tagsHint": "Virgülle ayır, en fazla 20",
+      "timeLimit": "Varsayılan süre (sn)",
+      "timeLimitHint": "Boş bırakılırsa paket veya oyun ayarı kullanılır (3–120)",
+      "baseScore": "Taban puan",
+      "updatedAt": "Güncelleme",
+      "searchPlaceholder": "Metinde ara",
+      "createdBy": "Ekleyen: {name}"
+    },
+    "categories": {
+      "title": "Kategoriler",
+      "new": "Yeni kategori",
+      "slug": "Kısa ad",
+      "slugHint": "Küçük harf, rakam ve tire (ör. genel-kultur)",
+      "name": "Ad",
+      "description": "Açıklama",
+      "contentCount": "İçerik sayısı"
+    },
+    "media": {
+      "title": "Medya",
+      "upload": "Görsel yükle",
+      "uploading": "Yükleniyor…",
+      "uploadHint": "JPEG, PNG, WebP veya GIF; en fazla 10 MB. Görseller WebP'ye çevrilir, konum gibi bilgiler silinir.",
+      "altText": "Açıklama (alt metin)",
+      "dimensions": "{width}×{height}",
+      "usage": "{count} içerikte kullanılıyor",
+      "unused": "Kullanılmıyor",
+      "choose": "Görsel seç",
+      "change": "Değiştir",
+      "remove": "Kaldır",
+      "pickerTitle": "Görsel seç",
+      "noImage": "Görsel yok",
+      "file": "Dosya",
+      "saveAlt": "Açıklamayı kaydet"
+    },
+    "packs": {
+      "title": "Oyun paketleri",
+      "new": "Yeni paket",
+      "edit": "Paketi düzenle",
+      "name": "Paket adı",
+      "description": "Açıklama",
+      "rounds": "Bölümler",
+      "roundCount": "{count} bölüm",
+      "questions": "{count} soru",
+      "addRound": "Bölüm ekle",
+      "removeRound": "Bölümü kaldır",
+      "round": "Bölüm {number}",
+      "gameType": "Oyun",
+      "selection": "İçerik seçimi",
+      "fixed": "Belirli içerikler",
+      "random": "Rastgele",
+      "anyCategory": "Tüm kategoriler",
+      "anyDifficulty": "Tüm zorluklar",
+      "questionCount": "Soru sayısı",
+      "timeLimit": "Soru süresi (sn)",
+      "timeLimitHint": "Boş: oyunun varsayılanı",
+      "multiplier": "Puan çarpanı",
+      "scoreboardAfter": "Her sorudan sonra skor tablosu",
+      "moveUp": "Yukarı taşı",
+      "moveDown": "Aşağı taşı",
+      "selected": "Seçilenler ({count})",
+      "available": "Eklenebilecek içerik",
+      "add": "Ekle",
+      "remove": "Çıkar",
+      "publishHint": "Yayındaki paketleri host'lar lobby'de seçebilir. Yayınlarken bütün bölümler kontrol edilir.",
+      "issues": {
+        "title": "Paket yayınlanamadı:",
+        "NO_ROUNDS": "Pakette en az bir bölüm olmalı.",
+        "UNKNOWN_GAME": "{round}. bölüm: bilinmeyen oyun.",
+        "CONTENT_MISSING": "{round}. bölüm: seçilen bir içerik bulunamadı.",
+        "CONTENT_NOT_PUBLISHED": "{round}. bölüm: seçilen bir içerik taslak durumda.",
+        "NOT_ENOUGH_CONTENT": "{round}. bölüm: yeterli yayında içerik yok (mevcut: {available})."
+      }
+    },
+    "users": {
+      "title": "Kullanıcılar",
+      "new": "Yeni kullanıcı",
+      "email": "E-posta",
+      "displayName": "Ad",
+      "role": "Rol",
+      "password": "Şifre",
+      "passwordHint": "En az 10 karakter",
+      "newPassword": "Yeni şifre (boş: değişmez)",
+      "lastLogin": "Son giriş",
+      "never": "Hiç",
+      "you": "sen",
+      "create": "Kullanıcıyı ekle"
+    },
+    "account": {
+      "title": "Hesabım",
+      "changePassword": "Şifre değiştir",
+      "currentPassword": "Mevcut şifre",
+      "newPassword": "Yeni şifre",
+      "passwordHint": "En az 10 karakter. Diğer cihazlardaki oturumların kapanır.",
+      "changed": "Şifren değişti."
+    },
+    "errors": {
+      "VALIDATION_ERROR": "Girdiğin bilgileri kontrol et.",
+      "UNAUTHENTICATED": "Oturumun kapandı, yeniden giriş yap.",
+      "FORBIDDEN": "Bu işlem için yetkin yok.",
+      "CSRF_FAILED": "Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar dene.",
+      "INVALID_CREDENTIALS": "E-posta veya şifre hatalı.",
+      "RATE_LIMITED": "Çok fazla deneme yapıldı. Biraz bekleyip tekrar dene.",
+      "NOT_FOUND": "Kayıt bulunamadı.",
+      "IN_USE": "Bu kayıt kullanımda olduğu için silinemez veya taslağa alınamaz.",
+      "EMAIL_TAKEN": "Bu e-posta ile bir kullanıcı zaten var.",
+      "SLUG_TAKEN": "Bu kısa ad kullanılıyor.",
+      "CONTENT_INVALID": "İçerikte eksik veya hatalı alanlar var.",
+      "PACK_INVALID": "Paket yayınlanamadı.",
+      "MEDIA_UNSUPPORTED": "Bu dosya desteklenen bir görsel değil.",
+      "MEDIA_TOO_LARGE": "Dosya çok büyük.",
+      "LAST_ADMIN": "En az bir yönetici kalmalı.",
+      "SELF_CHANGE": "Kendi rolünü değiştiremez, kendini silemezsin.",
+      "WRONG_PASSWORD": "Mevcut şifre hatalı.",
+      "INTERNAL_ERROR": "Bir şeyler ters gitti. Tekrar dene."
+    }
   },
   "connection": {
     "title": "Sunucu bağlantısı",
@@ -65,7 +259,11 @@
     "lateJoinClosed": "Kapalı",
     "lateJoinZero": "0 puanla açık",
     "start": "Oyunu başlat",
-    "starting": "Başlatılıyor…"
+    "starting": "Başlatılıyor…",
+    "packHeading": "Soru paketi",
+    "packQuestions": "{count} soru",
+    "noPacks": "Yayında soru paketi yok. Yönetim panelinden bir paket yayınla.",
+    "packsFailed": "Paketler yüklenemedi."
   },
   "play": {
     "enterCode": "Oda kodunu gir",
@@ -139,7 +337,20 @@
       "wrong": "Yanlış",
       "correctAnswer": "Doğru cevap: {answer}",
       "answerLocked": "Cevabın alındı",
-      "waitForOthers": "Diğerleri bekleniyor…"
+      "waitForOthers": "Diğerleri bekleniyor…",
+      "questionImage": "Soru görseli",
+      "editor": {
+        "question": "Soru",
+        "questionImage": "Soru görseli (isteğe bağlı)",
+        "options": "Seçenekler",
+        "correctHint": "Doğru cevabı işaretle. Seçeneğin metni, görseli olsa da gerekli.",
+        "correct": "Doğru",
+        "optionPlaceholder": "{number}. seçenek",
+        "optionImage": "Seçenek görseli",
+        "removeOption": "Kaldır",
+        "addOption": "Seçenek ekle",
+        "invalid": "Bu alanı kontrol et."
+      }
     }
   },
   "errors": {

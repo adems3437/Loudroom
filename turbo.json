@@ -4,7 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["API_INTERNAL_URL"]
     },
     "typecheck": {
       "dependsOn": ["^build"]
@@ -33,7 +34,10 @@
         "PLAYER_RECONNECT_GRACE_MS",
         "IP_HASH_SECRET",
         "TRUST_PROXY",
-        "PROFANITY_EXTRA_WORDS_FILE"
+        "PROFANITY_EXTRA_WORDS_FILE",
+        "MEDIA_DIR",
+        "MEDIA_MAX_UPLOAD_BYTES",
+        "API_INTERNAL_URL"
       ]
     }
   }
