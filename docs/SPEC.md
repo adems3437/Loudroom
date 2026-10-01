@@ -203,6 +203,56 @@ Genel: tüm skor formülleri modül ayarlarından yapılandırılabilir; eşitli
 - Host ekranında N saniye nesne/kart gösterimi, ardından telefonda sorular: hangisi yoktu, hangisi vardı, kaç tane vardı.
 - Sorular içerik setinden server'da üretilir.
 
+### 7.9 Kim Yapar?
+- Soru bir ifadedir ("Kim en çok geç kalır?"); seçenekler odadaki oyunculardır. İçerik yalnızca soru metnini tutar, seçenekleri server round başında aktif oyunculardan üretir.
+- Oyuncu kendine oy verebilir (ayar, varsayılan açık).
+- Puan: en çok oy alan kişiyi (eşitlikte en çok oy alanlardan birini) seçenler puan alır; ayarlanabilir.
+- Oylar anonimdir; REVEAL'de yalnızca oy dağılımı avatarlarla gösterilir, en çok oy alana o soruya özel bir "unvan" verilir.
+- En az 3 oyuncu.
+
+### 7.10 Tombala
+- Her oyuncuya server'ın ürettiği bir kart düşer (3 satır × 9 sütun, satır başına 5 sayı, 1–90); kart telefonda.
+- Host ekranında torbadan çekilen sayı ve çekilmiş sayılar tablosu; çekiliş aralığı ayarlanabilir, host elle de çekebilir.
+- Oyuncu sayıyı telefonda işaretler; server doğrular (çekilmemiş sayı işaretlenemez). Otomatik işaretleme ayarı.
+- Ödüller: 1. çinko, 2. çinko, tombala. Oyuncu "Çinko!" / "Tombala!" bastığında server kartı doğrular; hatalı iddia cezası ayarlanabilir.
+- Herkes aynı anda oynar; oyuncu sınırı oda sınırıdır.
+
+### 7.11 Casus Kim?
+- Herkese aynı mekân gösterilir; casus (büyük gruplarda iki casus, ayar) mekânı görmez.
+- Sorular sözlü sorulur; telefonda sıranın kimde olduğu ve kalan süre gösterilir.
+- Süre bitince ya da çoğunluk isteyince oylama yapılır. Casus, yakalanmadan önce mekânı tahmin ederek de kazanabilir.
+- Puan: casus yakalanırsa diğer oyuncular, kaçarsa ya da mekânı bilirse casus kazanır.
+- En az 4 oyuncu. Mekân listesi içerik olarak yönetilir.
+
+### Kart ve masa oyunları — ortak kurallar (7.12–7.16)
+- Bir maç tek uzun round olarak çalışır; sıra zamanlayıcıları modülün faz efektleriyle kurulur; kazanan belli olunca round biter, skor ve podyum ekranları aynen kullanılır.
+- **Koltuk sistemi:** Oyunun koltuk sayısından fazla oyuncu varsa fazlası izleyici olur ya da takım kurulur (oyuna göre).
+- **Sıra zaman aşımı:** Süresi dolan oyuncu için otomatik hamle veya sıra atlama (ayar); kopan oyuncunun yerine bot geçebilir.
+- Gizli bilgi (el, ıstaka, gemi yerleşimi) yalnızca sahibinin telefonuna gider; masa/tahta TV'de. Her hamle server'da doğrulanır.
+- **İsimler ve görseller:** Oyun adları ürün sahibinin kararıyla aynen kullanılır. "UNO" ve "Kızma Birader" tescilli markalardır (yayına almadan önce hukuki değerlendirme gerekir). Kart, taş ve tahta tasarımları tamamen özgün olmalıdır; orijinal ürünlerin görselleri kullanılmaz.
+
+### 7.12 Okey
+- 4 koltuk, klasik okey: 106 taş, gösterge ve okey taşı.
+- Istaka telefonda, taşlar sürükle-bırak ile dizilir (`@dnd-kit`); orta deste ve atılan taşlar TV'de.
+- Bitiş (per/seri ve çift) server'da doğrulanır; puanlama ayarlanabilir.
+
+### 7.13 Pişti
+- 2–4 oyuncu (4 kişide eşli oyun seçeneği), 52 kart; el telefonda, yerdeki kartlar TV'de.
+- Pişti ve kart puanları klasik kurallarla; oyun belirlenen puana ya da el sayısına göre biter.
+
+### 7.14 UNO
+- 2–10 oyuncu; renk ve sayı eşleştirme, özel kartlar (atla, yön değiştir, +2, renk seç, +4).
+- Son kart kalınca telefondan "UNO!" denir; unutan oyuncu yakalanırsa ceza kartı çeker.
+- El telefonda, deste ve yer TV'de.
+
+### 7.15 Kızma Birader
+- 2–4 koltuk (6 kişilik varyant ayarı); zar ve piyon seçimi telefonda, tahta TV'de.
+- Klasik kurallar: 6 ile çıkış, 6 gelince tekrar atış, rakip piyonu yeme; bitiriş sırasına göre sıralama.
+
+### 7.16 Amiral Battı
+- Temelde 2 kişilik: gemiler telefonda gizlice yerleştirilir, atışlar telefondan yapılır; TV iki tarafın atış haritasını gemileri göstermeden gösterir.
+- Parti için iki mod: iki takım (takım üyeleri sırayla atış yapar) veya eşleşmeli düello turnuvası.
+
 ---
 
 ## 8. Realtime event sözleşmesi
@@ -337,10 +387,15 @@ Oda oluşturma, kod, QR, katılım linki, nickname/avatar, gerçek zamanlı lobb
 **Phase 4 — Admin Panel (temel)**
 Auth, rol, Quiz içerik CRUD, kategoriler, medya yükleme, GamePack oluşturma; host oyuna başlarken pack seçer.
 
-**Phase 5 —** Closest Number + Sorting
+**Phase 5 —** Closest Number + Sorting + Kim Yapar?
 **Phase 6 —** Image Location + Bluff
 **Phase 7 —** Drawing (stream kanalı)
 **Phase 8 —** Reaction + Memory
 **Phase 9 —** CSV/XLSX import (önizleme + doğrulama), oturum geçmişi ve istatistikler, video desteği, prod sertleştirme, yedekleme.
+
+**Phase 10 —** Tombala + Casus Kim?
+**Phase 11 —** Kart/masa altyapısı (koltuk/izleyici, sıra zaman aşımı, bot) + UNO + Pişti
+**Phase 12 —** Kızma Birader + Amiral Battı
+**Phase 13 —** Okey
 
 MVP (Phase 3) tamamen çalışmadan Phase 5+ oyunlarına geçilmez.
