@@ -55,12 +55,23 @@ describe('realtime gateway', () => {
     expect(result).toMatchObject({ ok: false, code: 'VALIDATION_ERROR' });
   });
 
-  it('routes Socket.IO through the Redis adapter', async () => {
+  it('routes Socket.IO through the Redis adapter and unsubscribes on shutdown', async () => {
+    // Pub/sub channels are global across Redis DB indexes, so other running instances (e.g. the
+    // dev stack) may already subscribe. Compare subscriber counts instead of mere presence.
     const redis = new Redis(inject('redisUrl'));
+    const subscribers = async (): Promise<number> => {
+      const [, count] = (await redis.pubsub('NUMSUB', 'socket.io-request#/#')) as [string, number];
+      return count;
+    };
     try {
-      // The adapter subscribes to its request channel for the default namespace.
-      const channels = await redis.pubsub('CHANNELS', 'socket.io-request#*');
-      expect(channels).toContain('socket.io-request#/#');
+      const before = await subscribers();
+      const another = await startTestApp();
+      try {
+        await expect.poll(subscribers).toBe(before + 1);
+      } finally {
+        await another.app.close();
+      }
+      await expect.poll(subscribers).toBe(before);
     } finally {
       await redis.quit();
     }

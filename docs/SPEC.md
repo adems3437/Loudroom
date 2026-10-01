@@ -34,7 +34,7 @@ Sony PlayLink / Jackbox / Kahoot benzeri, özgün, web tabanlı gerçek zamanlı
 
 ## 2. Teknoloji ve repo yapısı
 
-- **Monorepo:** pnpm workspaces + Turborepo, Node 22 LTS, TypeScript `strict`.
+- **Monorepo:** pnpm workspaces + Turborepo, Node 24 LTS, TypeScript `strict`.
 - **Frontend:** Next.js (App Router), React, Tailwind CSS, Framer Motion, `@dnd-kit` (sürükle-bırak), `qrcode`.
 - **Backend:** NestJS, Socket.IO, REST, `zod` ile doğrulama.
 - **DB:** PostgreSQL 16 + Prisma (JSONB uygun yerlerde).
