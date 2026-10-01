@@ -1,7 +1,20 @@
 import { z } from 'zod';
 
-/** Error codes a command ack can carry. Extended as new commands are added. */
-export const errorCodeSchema = z.enum(['VALIDATION_ERROR', 'INTERNAL_ERROR']);
+/** Error codes a command ack can carry. */
+export const errorCodeSchema = z.enum([
+  'VALIDATION_ERROR',
+  'INTERNAL_ERROR',
+  'RATE_LIMITED',
+  'FORBIDDEN',
+  'NOT_IN_ROOM',
+  'ALREADY_IN_ROOM',
+  'ROOM_NOT_FOUND',
+  'ROOM_LOCKED',
+  'ROOM_FULL',
+  'NICKNAME_TAKEN',
+  'NICKNAME_REJECTED',
+  'PLAYER_NOT_FOUND',
+]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 
 export const ackErrorSchema = z.object({

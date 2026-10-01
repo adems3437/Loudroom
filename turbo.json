@@ -29,7 +29,11 @@
         "SERVER_HOST",
         "SERVER_PORT",
         "WEB_PORT",
-        "SOCKET_PORT"
+        "SOCKET_PORT",
+        "PLAYER_RECONNECT_GRACE_MS",
+        "IP_HASH_SECRET",
+        "TRUST_PROXY",
+        "PROFANITY_EXTRA_WORDS_FILE"
       ]
     }
   }

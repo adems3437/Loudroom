@@ -23,7 +23,7 @@ describe('GET /health', () => {
   });
 
   it('answers 503 and names Redis when Redis is unreachable', async () => {
-    testApp = await startTestApp({ REDIS_URL: unreachable('redis') });
+    testApp = await startTestApp({ env: { REDIS_URL: unreachable('redis') } });
     const response = await fetch(`${testApp.url}/health`);
 
     expect(response.status).toBe(503);
@@ -34,7 +34,7 @@ describe('GET /health', () => {
   });
 
   it('answers 503 and names the database when PostgreSQL is unreachable', async () => {
-    testApp = await startTestApp({ DATABASE_URL: unreachable('postgresql') });
+    testApp = await startTestApp({ env: { DATABASE_URL: unreachable('postgresql') } });
     const response = await fetch(`${testApp.url}/health`);
 
     expect(response.status).toBe(503);

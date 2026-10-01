@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { ackError, ackOk, ackSchema } from './ack.js';
-import { ClientCommand, clientCommandSchemas } from './events.js';
+import { ClientCommand, clientCommands } from './events.js';
 import { timeSyncRequestSchema, timeSyncResponseSchema } from './time-sync.js';
 
 describe('ack envelope', () => {
@@ -24,7 +24,7 @@ describe('ack envelope', () => {
 
 describe('time:sync schemas', () => {
   it('is the registered schema for the time:sync command', () => {
-    expect(clientCommandSchemas[ClientCommand.TimeSync]).toBe(timeSyncRequestSchema);
+    expect(clientCommands[ClientCommand.TimeSync].request).toBe(timeSyncRequestSchema);
   });
 
   it('accepts a valid request', () => {

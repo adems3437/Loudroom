@@ -25,6 +25,10 @@ x-app: &app
     SERVER_PORT: '4000'
     WEB_PORT: '3000'
     SOCKET_PORT: ${SOCKET_PORT:-4000}
+    PLAYER_RECONNECT_GRACE_MS: ${PLAYER_RECONNECT_GRACE_MS:-90000}
+    IP_HASH_SECRET: ${IP_HASH_SECRET:?set IP_HASH_SECRET in .env}
+    TRUST_PROXY: ${TRUST_PROXY:-false}
+    PROFANITY_EXTRA_WORDS_FILE: ${PROFANITY_EXTRA_WORDS_FILE:-}
 
 services:
   # One-shot: installs dependencies, builds shared, applies migrations and seeds.

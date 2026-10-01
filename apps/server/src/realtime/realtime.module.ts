@@ -1,7 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
+import { CommandRunner } from './command-runner.service.js';
 import { RealtimeGateway } from './realtime.gateway.js';
 
+@Global()
 @Module({
-  providers: [RealtimeGateway],
+  providers: [CommandRunner, RealtimeGateway],
+  exports: [CommandRunner],
 })
 export class RealtimeModule {}

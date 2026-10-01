@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [swc.vite({ module: { type: 'es6' } })],
   oxc: false,
   test: {
-    include: ['test/**/*.test.ts'],
+    include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
     globalSetup: ['test/global-setup.ts'],
     // Files share the test database and Redis, so they run one at a time.
     fileParallelism: false,

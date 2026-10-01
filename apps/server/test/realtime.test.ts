@@ -8,6 +8,7 @@ import {
 import { Redis } from 'ioredis';
 import { io, type Socket } from 'socket.io-client';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { socketAdapterKey } from '../src/realtime/redis-io.adapter.js';
 import { startTestApp, type TestApp } from './support.js';
 
 type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -60,7 +61,9 @@ describe('realtime gateway', () => {
     // dev stack) may already subscribe. Compare subscriber counts instead of mere presence.
     const redis = new Redis(inject('redisUrl'));
     const subscribers = async (): Promise<number> => {
-      const [, count] = (await redis.pubsub('NUMSUB', 'socket.io-request#/#')) as [string, number];
+      // Channel prefix includes the Redis DB index (see socketAdapterKey).
+      const channel = `${socketAdapterKey(inject('redisUrl'))}-request#/#`;
+      const [, count] = (await redis.pubsub('NUMSUB', channel)) as [string, number];
       return count;
     };
     try {
