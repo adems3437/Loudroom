@@ -5,6 +5,7 @@ import {
   TIME_SYNC_INTERVAL_MS,
   gameStateSchema,
   roomStateSchema,
+  roundStreamEventSchema,
   sessionErrorEventSchema,
   type ClockEstimate,
   type GameState,
@@ -23,6 +24,7 @@ import {
 } from 'react';
 import { clientNow, measureClock } from './measure-clock';
 import { createSocket, type AppSocket } from './socket';
+import { StreamHub } from './stream-hub';
 
 /** `closed`: the server ended this connection on purpose (session opened elsewhere). */
 export type ConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'closed';
@@ -48,6 +50,8 @@ export interface RealtimeState {
   clearSession: () => void;
   /** Whether this connection currently carries a session token. */
   hasSession: () => boolean;
+  /** The current round's `round:stream` chunks (drawing), kept outside React state. */
+  streams: StreamHub;
 }
 
 const RealtimeContext = createContext<RealtimeState | null>(null);
@@ -69,6 +73,7 @@ export function RealtimeProvider({
   const [game, setGame] = useState<GameState | null>(null);
   const offsetRef = useRef(0);
   const [sessionEnded, setSessionEnded] = useState<SessionErrorCode | null>(null);
+  const [streams] = useState(() => new StreamHub());
 
   useEffect(() => {
     const created = createSocket(socketPort, () => tokenRef.current);
@@ -112,6 +117,10 @@ export function RealtimeProvider({
       const parsed = gameStateSchema.safeParse(payload);
       if (parsed.success) setGame(parsed.data);
     });
+    created.on(ServerEvent.RoundStream, (payload) => {
+      const parsed = roundStreamEventSchema.safeParse(payload);
+      if (parsed.success) streams.receive(parsed.data);
+    });
     created.on(ServerEvent.Error, (payload) => {
       const parsed = sessionErrorEventSchema.safeParse(payload);
       if (!parsed.success) return;
@@ -137,7 +146,7 @@ export function RealtimeProvider({
       clearTimeout(retry);
       created.close();
     };
-  }, [socketPort]);
+  }, [socketPort, streams]);
 
   const adoptSession = useCallback((token: string) => {
     tokenRef.current = token;
@@ -187,6 +196,7 @@ export function RealtimeProvider({
       resumeSession,
       clearSession,
       hasSession,
+      streams,
     }),
     [
       socket,
@@ -200,6 +210,7 @@ export function RealtimeProvider({
       resumeSession,
       clearSession,
       hasSession,
+      streams,
     ],
   );
 

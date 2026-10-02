@@ -104,11 +104,33 @@ export interface ScoreResult {
 }
 
 /**
+ * A high-frequency channel next to the inputs (SPEC §5 `round:stream`), e.g. drawing strokes.
+ * The engine moves, validates, rate-limits and keeps the history; chunks never enter the
+ * module state, so a module only says what a chunk looks like and who may send one when.
+ */
+export interface StreamSpec<State, Chunk, Content, Settings> {
+  schema: z.ZodType<Chunk>;
+  /** Whether this player may stream now (e.g. the drawer while drawing). */
+  accepts(state: State, playerId: string, ctx: RoundContext<Content, Settings>): boolean;
+  /** What a chunk counts toward the round's limit (e.g. its points). */
+  cost(chunk: Chunk): number;
+  limits: { maxChunks: number; maxCost: number };
+}
+
+/**
  * A game. Functions are pure and synchronous: IO, timers, persistence and broadcasting are
  * the engine's job (SPEC §5), which keeps modules easy to test and adding a game free of core
  * changes.
  */
-export interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
+export interface GameModule<
+  Content,
+  Settings,
+  State,
+  Input,
+  HostView,
+  PlayerView,
+  StreamChunk = never,
+> {
   id: string;
   name: string;
   version: number;
@@ -139,8 +161,10 @@ export interface GameModule<Content, Settings, State, Input, HostView, PlayerVie
 
   getHostView(state: State, ctx: RoundContext<Content, Settings>): HostView;
   getPlayerView(state: State, playerId: string, ctx: RoundContext<Content, Settings>): PlayerView;
+
+  stream?: StreamSpec<State, StreamChunk, Content, Settings>;
 }
 
 /** A module with its type parameters erased, as registries hold them. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyGameModule = GameModule<any, any, any, any, any, any>;
+export type AnyGameModule = GameModule<any, any, any, any, any, any, any>;

@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { GameTimers } from '../game/game-timers.js';
 import { GameEngine } from '../game/game.engine.js';
+import { GameStreamService } from '../game/game-stream.service.js';
 import { GameGateway } from '../game/game.gateway.js';
+import { StreamStore } from '../game/stream.store.js';
 import { PackLoader } from '../game/pack-loader.js';
 import { SessionRecorder } from '../game/session-recorder.js';
 import { PresenceService } from './presence.service.js';
@@ -23,6 +25,8 @@ import { RoomStore } from './room.store.js';
     GameTimers,
     GameEngine,
     GameGateway,
+    StreamStore,
+    GameStreamService,
   ],
 })
 export class RoomModule {}

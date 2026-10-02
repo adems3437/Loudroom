@@ -54,6 +54,8 @@ export interface RateLimitConfig {
   connection: TokenBucketConfig;
   /** Commands per socket connection. */
   command: TokenBucketConfig;
+  /** `round:stream` chunks per socket connection (~20 per second while drawing). */
+  stream: TokenBucketConfig;
   /** Failed join attempts per client IP (room code brute force). */
   joinFailure: TokenBucketConfig;
   /** Rooms created per client IP. */
@@ -113,6 +115,7 @@ export const APP_CONFIG = Symbol('APP_CONFIG');
 export const DEFAULT_RATE_LIMITS: RateLimitConfig = {
   connection: { capacity: 60, refillPerSecond: 1 },
   command: { capacity: 20, refillPerSecond: 10 },
+  stream: { capacity: 60, refillPerSecond: 30 },
   joinFailure: { capacity: 10, refillPerSecond: 10 / 60 },
   roomCreate: { capacity: 20, refillPerSecond: 10 / 60 },
   rest: { capacity: 120, refillPerSecond: 4 },

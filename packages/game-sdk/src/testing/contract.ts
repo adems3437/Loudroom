@@ -28,6 +28,11 @@ export interface ContractFixture extends RoundFixture {
    * the round ends (Bluff). Without it, secrets must hold until the round ends.
    */
   revealPhase?: string;
+  /**
+   * Players allowed to know the secret content (e.g. the drawer and the word). Their views are
+   * left out of the `secretVariants` comparison; everyone else and the host are not.
+   */
+  secretHolders?: string[];
   /** Inputs the module must refuse, either by schema or with a reject effect. */
   invalidInputs: unknown[];
 }
@@ -106,8 +111,14 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
     it.runIf(fixture.secretVariants?.length)(
       'leaks no secret content to any client before the round ends',
       () => {
+        const others = fixture.players
+          .map((player) => player.id)
+          .filter((id) => !(fixture.secretHolders ?? []).includes(id));
         const beforeEnd = (content: unknown) =>
-          hidden(playRound(module, { ...fixture, content }).frames, fixture.revealPhase);
+          seenBy(
+            hidden(playRound(module, { ...fixture, content }).frames, fixture.revealPhase),
+            others,
+          );
         const reference = beforeEnd(fixture.content);
         expect(reference.length).toBeGreaterThan(0);
         for (const variant of fixture.secretVariants ?? []) {

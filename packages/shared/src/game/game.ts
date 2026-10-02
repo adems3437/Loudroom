@@ -77,7 +77,32 @@ export const roundInputRequestSchema = z.strictObject({
   input: z.unknown(),
 });
 
+/**
+ * `round:stream` from a player: one chunk of high-frequency data (e.g. strokes). Not
+ * acknowledged; the server checks it with the game's stream schema and drops what it refuses.
+ */
+export const roundStreamRequestSchema = z.strictObject({
+  roundId: roundIdSchema,
+  chunk: z.unknown(),
+});
+export type RoundStreamRequest = z.infer<typeof roundStreamRequestSchema>;
+
+/** Most chunks one `round:stream` event may carry (a full history is sent at once). */
+export const ROUND_STREAM_MAX_CHUNKS = 5_000;
+
 // ── Events (notifications for effects; game:state is the source of truth) ──
+
+/**
+ * `round:stream` to a client: new chunks, or (`reset`) the round's whole history after a
+ * (re)connect. `full`: the round's stream limit is reached; further chunks are dropped.
+ */
+export const roundStreamEventSchema = z.strictObject({
+  roundId: roundIdSchema,
+  reset: z.boolean(),
+  chunks: z.array(z.unknown()).max(ROUND_STREAM_MAX_CHUNKS),
+  full: z.boolean(),
+});
+export type RoundStreamEvent = z.infer<typeof roundStreamEventSchema>;
 
 export const roundStartEventSchema = z.strictObject({
   roundId: roundIdSchema,

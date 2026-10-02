@@ -4,6 +4,7 @@ import {
   CLOSEST_NUMBER_GAME_TYPE,
   closestNumberRenderer,
 } from '@loudroom/game-closest-number/client';
+import { DRAWING_GAME_TYPE, drawingRenderer } from '@loudroom/game-drawing/client';
 import {
   IMAGE_LOCATION_GAME_TYPE,
   imageLocationRenderer,
@@ -34,6 +35,7 @@ const RENDERERS: Record<string, AnyRenderer> = {
   [WHO_WOULD_GAME_TYPE]: erase(whoWouldRenderer),
   [IMAGE_LOCATION_GAME_TYPE]: erase(imageLocationRenderer),
   [BLUFF_GAME_TYPE]: erase(bluffRenderer),
+  [DRAWING_GAME_TYPE]: erase(drawingRenderer),
 };
 
 export function findRenderer(gameType: string): AnyRenderer | undefined {

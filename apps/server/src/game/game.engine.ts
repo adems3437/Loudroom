@@ -15,6 +15,7 @@ import { standingsOf } from './game.views.js';
 import { GameTimers } from './game-timers.js';
 import { PackLoader, type GamePlan } from './pack-loader.js';
 import { SessionRecorder } from './session-recorder.js';
+import { StreamStore } from './stream.store.js';
 
 const logger = new Logger('GameEngine');
 
@@ -57,7 +58,20 @@ export class GameEngine implements OnApplicationBootstrap {
     private readonly broadcaster: RoomBroadcaster,
     private readonly presence: PresenceService,
     private readonly profanity: ProfanityFilter,
+    private readonly streams: StreamStore,
   ) {}
+
+  /** A round's stream history ends with it: cleared when the next round starts or the game ends. */
+  private clearStream(draft: Draft): void {
+    const code = draft.room.code;
+    draft.after.push(() => {
+      this.streams.clear(code).catch((error: unknown) => {
+        logger.warn(
+          `stream not cleared: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+    });
+  }
 
   /** Player text goes through the same blocked-word lists as nicknames (SPEC §7.6, §9). */
   private readonly moderation = { isBlocked: (text: string) => this.profanity.isProfane(text) };
@@ -295,6 +309,7 @@ export class GameEngine implements OnApplicationBootstrap {
     game.lastResults = [];
     game.roundStartedAt = draft.now;
     draft.room.status = 'PLAYING';
+    this.clearStream(draft);
 
     const module = moduleFor(round);
     const transition = module.createRound(this.context(game, round, draft));
@@ -416,6 +431,7 @@ export class GameEngine implements OnApplicationBootstrap {
 
   private finishGame(draft: Draft, game: GameRecord): void {
     draft.room.status = 'FINISHED';
+    this.clearStream(draft);
     game.timer = null;
     game.countdown = null;
     game.paused = null;

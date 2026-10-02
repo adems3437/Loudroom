@@ -16,6 +16,7 @@ import {
   seedPartyPack,
 } from '../src/seed/party-pack.js';
 import { seedQuizPack } from '../src/seed/quiz-pack.js';
+import { DRAWING_PACK_ID, SAMPLE_WORDS, seedDrawingPack } from '../src/seed/drawing-pack.js';
 import {
   MAP_PACK_ID,
   SAMPLE_BLUFF,
@@ -137,6 +138,28 @@ describe('seedCategories', () => {
     } finally {
       rmSync(mediaDir, { recursive: true, force: true });
     }
+  });
+
+  it('seeds the drawing words and the "Çiz Bil" pack idempotently', async () => {
+    await seedDrawingPack(prisma);
+    await seedDrawingPack(prisma);
+    expect(SAMPLE_WORDS.length).toBeGreaterThanOrEqual(40);
+    const rows = await prisma.contentItem.findMany({
+      where: { id: { in: SAMPLE_WORDS.map((item) => item.id) } },
+    });
+    expect(rows).toHaveLength(SAMPLE_WORDS.length);
+    for (const row of rows) {
+      expect(row).toMatchObject({ gameType: 'drawing', status: 'PUBLISHED' });
+      expect(findGameModule('drawing')?.contentSchema.safeParse(row.data).success).toBe(true);
+    }
+    const pack = await prisma.gamePack.findUniqueOrThrow({
+      where: { id: DRAWING_PACK_ID },
+      include: { rounds: true },
+    });
+    expect(pack).toMatchObject({ name: 'Çiz Bil', status: 'PUBLISHED' });
+    expect(pack.rounds.map((round) => [round.gameType, round.questionCount])).toEqual([
+      ['drawing', 6],
+    ]);
   });
 
   it('creates the development admin once and never overwrites its password', async () => {

@@ -21,6 +21,25 @@ export interface AvatarProps {
   className?: string;
 }
 
+/** What arrives on the round's stream: the whole history (`reset`) or new chunks. */
+export interface StreamUpdate {
+  reset: boolean;
+  chunks: readonly unknown[];
+  /** The round's stream limit is reached: the server drops further chunks. */
+  full: boolean;
+}
+
+/** The round's stream channel (SPEC §5), for games that declare one. */
+export interface RoundStream {
+  /**
+   * Listens for chunks; called at once with everything received so far for this round (as a
+   * reset), then with each update. Returns the unsubscribe function.
+   */
+  subscribe: (listener: (update: StreamUpdate) => void) => () => void;
+  /** Sends a chunk (players; fire-and-forget, the server checks it). */
+  send: (chunk: unknown) => void;
+}
+
 interface RendererBase<View> {
   view: View;
   /** The round's current phase clock from the server. */
@@ -30,6 +49,7 @@ interface RendererBase<View> {
   players: readonly RendererPlayer[];
   t: Translate;
   Avatar: ComponentType<AvatarProps>;
+  stream: RoundStream;
 }
 
 export type HostRendererProps<View> = RendererBase<View>;

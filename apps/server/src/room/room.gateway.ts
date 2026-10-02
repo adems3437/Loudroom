@@ -22,6 +22,7 @@ import { CommandError } from '../realtime/command-error.js';
 import { CommandRunner } from '../realtime/command-runner.service.js';
 import { assertNoSession, requireHost, requirePlayer } from '../realtime/session-guards.js';
 import type { AppServer, AppSocket, Session } from '../realtime/socket-types.js';
+import { GameStreamService } from '../game/game-stream.service.js';
 import { GameEngine } from '../game/game.engine.js';
 import { SessionRecorder } from '../game/session-recorder.js';
 import { PresenceService } from './presence.service.js';
@@ -56,6 +57,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     private readonly presence: PresenceService,
     private readonly engine: GameEngine,
     private readonly recorder: SessionRecorder,
+    private readonly streams: GameStreamService,
   ) {}
 
   afterInit(server: AppServer): void {
@@ -261,6 +263,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     if (session.role === 'host') {
       this.broadcaster.state(await this.rooms.setHostConnected(session.roomCode, true));
+      await this.streams.sendHistory(socket.id, session);
       return;
     }
     this.presence.cancelExpiry(session.roomCode, session.playerId);
@@ -269,6 +272,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (change.wasDisconnected) {
       this.broadcaster.playerReconnected(session.roomCode, session.playerId);
     }
+    await this.streams.sendHistory(socket.id, session);
   }
 
   private async attach(socket: AppSocket, session: Session): Promise<void> {

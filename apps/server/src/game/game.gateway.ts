@@ -4,11 +4,24 @@ import {
   SubscribeMessage,
   WebSocketGateway,
 } from '@nestjs/websockets';
-import { ClientCommand, type Ack, type CommandInput, type CommandResult } from '@loudroom/shared';
+import { Inject, Logger } from '@nestjs/common';
+import {
+  ClientCommand,
+  ClientStream,
+  clientStreams,
+  type Ack,
+  type CommandInput,
+  type CommandResult,
+} from '@loudroom/shared';
+import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
+import { RateLimiterService } from '../rate-limit/rate-limiter.service.js';
 import { CommandRunner } from '../realtime/command-runner.service.js';
 import { requireHost, requirePlayer } from '../realtime/session-guards.js';
 import type { AppSocket } from '../realtime/socket-types.js';
+import { GameStreamService } from './game-stream.service.js';
 import { GameEngine } from './game.engine.js';
+
+const logger = new Logger('GameGateway');
 
 type HostCommand =
   | typeof ClientCommand.GamePause
@@ -22,8 +35,11 @@ type HostCommand =
 @WebSocketGateway()
 export class GameGateway {
   constructor(
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
     private readonly commands: CommandRunner,
     private readonly engine: GameEngine,
+    private readonly streams: GameStreamService,
+    private readonly rateLimiter: RateLimiterService,
   ) {}
 
   @SubscribeMessage(ClientCommand.GameStart)
@@ -84,6 +100,34 @@ export class GameGateway {
         return {};
       },
     );
+  }
+
+  /**
+   * `round:stream` (SPEC §5): not acknowledged — chunks a client may not send, or sends too
+   * fast, are dropped without an answer.
+   */
+  @SubscribeMessage(ClientStream.RoundStream)
+  async stream(
+    @ConnectedSocket() socket: AppSocket,
+    @MessageBody() payload: unknown,
+  ): Promise<void> {
+    const session = socket.data.session;
+    if (session?.role !== 'player') return;
+    const allowed = await this.rateLimiter.consume(
+      'stream',
+      socket.id,
+      this.config.rateLimits.stream,
+    );
+    if (!allowed) return;
+    const request = clientStreams[ClientStream.RoundStream].safeParse(payload);
+    if (!request.success) return;
+    await this.streams
+      .push(session.roomCode, session.playerId, socket.id, request.data)
+      .catch((error: unknown) => {
+        logger.warn(
+          `stream chunk failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
   }
 
   private host<C extends HostCommand>(

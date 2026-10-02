@@ -1,13 +1,13 @@
 'use client';
 
-import type { AvatarProps, RendererPlayer } from '@loudroom/game-sdk/client';
+import type { AvatarProps, RendererPlayer, RoundStream } from '@loudroom/game-sdk/client';
 import { avatarIdSchema, ClientCommand, type GameState } from '@loudroom/shared';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
 import { Avatar } from '@/components/avatar';
 import { tapFeedback } from '@/lib/haptics';
-import { sendCommand } from '@/realtime/commands';
-import { useRealtime } from '@/realtime/realtime-provider';
+import { sendCommand, sendStream } from '@/realtime/commands';
+import { useRealtime, type RealtimeState } from '@/realtime/realtime-provider';
 import { findRenderer } from './registry';
 import { useGameTranslator } from './translator';
 
@@ -30,12 +30,29 @@ function GameAvatar({ avatar, color, size, className }: AvatarProps) {
   );
 }
 
+/** The round's stream channel for its renderer (SPEC §5 `round:stream`). */
+function useRoundStream(roundId: string, realtime: RealtimeState): RoundStream {
+  const { socket, streams } = realtime;
+  return useMemo(
+    () => ({
+      subscribe: (listener) => streams.subscribe(roundId, listener),
+      send: (chunk) => {
+        streams.record(roundId, chunk);
+        if (socket) sendStream(socket, roundId, chunk);
+      },
+    }),
+    [roundId, socket, streams],
+  );
+}
+
 /**
  * The current round on the host screen, drawn by the game's own renderer. Keyed by round, so a
  * renderer's local state (a half-sorted list, a typed number) never carries into the next round.
  */
 export function HostRound({ round, players }: { round: Round; players: RendererPlayer[] }) {
-  const { serverNow } = useRealtime();
+  const realtime = useRealtime();
+  const { serverNow } = realtime;
+  const stream = useRoundStream(round.roundId, realtime);
   const t = useGameTranslator(round.gameType);
   const renderer = findRenderer(round.gameType);
   const view = renderer?.hostViewSchema.safeParse(round.view);
@@ -50,6 +67,7 @@ export function HostRound({ round, players }: { round: Round; players: RendererP
       players={players}
       t={t}
       Avatar={GameAvatar}
+      stream={stream}
     />
   );
 }
@@ -64,7 +82,9 @@ export function PlayerRound({
   players: RendererPlayer[];
   playerId: string;
 }) {
-  const { socket, serverNow } = useRealtime();
+  const realtime = useRealtime();
+  const { socket, serverNow } = realtime;
+  const stream = useRoundStream(round.roundId, realtime);
   const t = useGameTranslator(round.gameType);
   const errors = useTranslations('errors');
   const renderer = findRenderer(round.gameType);
@@ -97,6 +117,7 @@ export function PlayerRound({
       players={players}
       t={t}
       Avatar={GameAvatar}
+      stream={stream}
       playerId={playerId}
       submit={submit}
       haptic={tapFeedback}

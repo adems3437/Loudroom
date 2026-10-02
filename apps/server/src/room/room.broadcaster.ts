@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ServerEvent, type ServerEventPayload, type SessionErrorCode } from '@loudroom/shared';
+import {
+  ServerEvent,
+  type RoundStreamEvent,
+  type ServerEventPayload,
+  type SessionErrorCode,
+} from '@loudroom/shared';
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
 import { hostGameState, playerGameState } from '../game/game.views.js';
 import type { AppServer } from '../realtime/socket-types.js';
@@ -76,6 +81,15 @@ export class RoomBroadcaster {
       // The union pairs each event with its payload; the emitter cannot see that pairing.
       (everyone.emit as (event: string, payload: unknown) => boolean)(notice.event, notice.payload);
     }
+  }
+
+  /** Live stream chunks go to the host screen only (SPEC §7.5). */
+  streamToHost(code: string, event: RoundStreamEvent): void {
+    this.io.to(channels.host(code)).emit(ServerEvent.RoundStream, event);
+  }
+
+  streamTo(socketId: string, event: RoundStreamEvent): void {
+    this.io.to(socketId).emit(ServerEvent.RoundStream, event);
   }
 
   playerJoined(code: string, player: StoredPlayer): void {

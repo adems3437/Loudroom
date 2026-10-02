@@ -7,6 +7,9 @@ import {
   roundPhaseEventSchema,
   roundResultEventSchema,
   roundStartEventSchema,
+  roundStreamEventSchema,
+  roundStreamRequestSchema,
+  type RoundStreamRequest,
   scoreUpdateEventSchema,
 } from '../game/game.js';
 import {
@@ -82,11 +85,26 @@ export type CommandRequest<C extends ClientCommand> = z.input<Commands[C]['reque
 export type CommandInput<C extends ClientCommand> = z.output<Commands[C]['request']>;
 export type CommandResult<C extends ClientCommand> = z.output<Commands[C]['result']>;
 
+/**
+ * Client → server events that are not commands: no ack, so high-frequency data does not wait
+ * for round trips (SPEC §8 exception).
+ */
+export const ClientStream = {
+  RoundStream: 'round:stream',
+} as const;
+export type ClientStream = (typeof ClientStream)[keyof typeof ClientStream];
+
+export const clientStreams = {
+  [ClientStream.RoundStream]: roundStreamRequestSchema,
+} as const satisfies Record<ClientStream, z.ZodType>;
+
 export type ClientToServerEvents = {
   [C in ClientCommand]: (
     payload: CommandRequest<C>,
     ack: (result: Ack<CommandResult<C>>) => void,
   ) => void;
+} & {
+  [ClientStream.RoundStream]: (payload: RoundStreamRequest) => void;
 };
 
 /** Server → client events. */
@@ -99,6 +117,7 @@ export const ServerEvent = {
   RoundStart: 'round:start',
   RoundPhase: 'round:phase',
   RoundResult: 'round:result',
+  RoundStream: 'round:stream',
   ScoreUpdate: 'score:update',
   GameEnd: 'game:end',
   Error: 'error',
@@ -114,6 +133,7 @@ export const serverEventSchemas = {
   [ServerEvent.RoundStart]: roundStartEventSchema,
   [ServerEvent.RoundPhase]: roundPhaseEventSchema,
   [ServerEvent.RoundResult]: roundResultEventSchema,
+  [ServerEvent.RoundStream]: roundStreamEventSchema,
   [ServerEvent.ScoreUpdate]: scoreUpdateEventSchema,
   [ServerEvent.GameEnd]: gameEndEventSchema,
   [ServerEvent.Error]: sessionErrorEventSchema,

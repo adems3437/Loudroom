@@ -77,7 +77,8 @@
       "sorting": "Sıralama",
       "whoWould": "Kim Yapar?",
       "imageLocation": "Haritada Bul",
-      "bluff": "Blöf"
+      "bluff": "Blöf",
+      "drawing": "Çiz Bil"
     },
     "overview": {
       "title": "Genel bakış",
@@ -572,6 +573,53 @@
         "voteSeconds": "Oylama süresi (sn)",
         "minOptions": "En az seçenek",
         "minOptionsHint": "Blöfler yetmezse yem cevaplarla tamamlanır."
+      }
+    },
+    "drawing": {
+      "timeLeft": "Kalan süre",
+      "notEnoughPlayers": "Bu çizim için en az {min} bağlı oyuncu gerekiyor; puansız geçildi.",
+      "isDrawing": "{nickname} çiziyor",
+      "getReady": "Hazır olun, çizim başlıyor…",
+      "solvedCount": "{count} / {total} kişi bildi",
+      "solvers": "Bilenler",
+      "hideDrawing": "Çizimi gizle",
+      "showDrawing": "Çizimi göster",
+      "drawingHidden": "Çizim gizlendi",
+      "yourTurn": "Senin sıran! Bunu çiz:",
+      "colors": "Renkler",
+      "color": "{number}. renk",
+      "eraser": "Silgi",
+      "penSize": "{number}. kalınlık",
+      "undo": "Geri al",
+      "clear": "Temizle",
+      "streamFull": "Çizim sınırına ulaşıldı; yeni çizgiler gönderilmiyor.",
+      "guessHint": "{nickname} ne çiziyor? Tahminini yaz.",
+      "send": "Tahmin et",
+      "close": "Çok yakın!",
+      "wrong": "Yanlış",
+      "youGotIt": "Bildin!",
+      "waitForOthers": "Diğerleri bekleniyor…",
+      "theWordWas": "Kelime:",
+      "drawerResult": "Çizimini {count} kişi bildi",
+      "solvedAs": "{rank}. bilen sensin!",
+      "notSolved": "Bilemedin",
+      "noGuess": "Tahmin etmedin",
+      "editor": {
+        "word": "Kelime",
+        "wordPlaceholder": "ör. Zürafa",
+        "alternatives": "Kabul edilen başka yazılışlar (isteğe bağlı)",
+        "alternativesPlaceholder": "ör. buzdolabı, buz dolabı",
+        "alternativesHint": "Virgülle ayır, en fazla 5. Büyük/küçük harf ve Türkçe karakter farkları zaten kabul edilir.",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "baseScore": "İlk bilenin puanı",
+        "baseScoreHint": "Sonraki bilenler sırayla daha az alır.",
+        "rankStep": "Sıra başına düşüş",
+        "minScore": "En düşük puan",
+        "drawerPoints": "Çizenin puanı",
+        "drawerPointsHint": "Bilen her oyuncu için.",
+        "showLetterSlots": "Harf kutularını göster"
       }
     }
   },

@@ -1,4 +1,5 @@
 import {
+  ClientStream,
   ackSchema,
   clientCommands,
   type Ack,
@@ -38,4 +39,12 @@ export async function sendCommand<C extends ClientCommand>(
   } catch {
     return { ok: false, code: 'NO_RESPONSE', message: 'No response from the server' };
   }
+}
+
+/**
+ * Sends a `round:stream` chunk: no ack (high frequency); the server drops what it refuses.
+ * Buffered by Socket.IO while reconnecting.
+ */
+export function sendStream(socket: AppSocket, roundId: string, chunk: unknown): void {
+  socket.emit(ClientStream.RoundStream, { roundId, chunk });
 }
