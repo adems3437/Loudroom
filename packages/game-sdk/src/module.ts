@@ -30,6 +30,17 @@ export interface PhaseClock {
   endsAt: number | null;
 }
 
+/** Size of an uploaded image the content refers to (Media width/height, in pixels). */
+export interface MediaInfo {
+  width: number;
+  height: number;
+}
+
+/** Checks player-written text against the server's blocked-word lists (SPEC §9). */
+export interface Moderation {
+  isBlocked(text: string): boolean;
+}
+
 export interface RoundContext<Content, Settings> {
   roundId: string;
   roundIndex: number;
@@ -45,6 +56,10 @@ export interface RoundContext<Content, Settings> {
   now: number;
   /** Seeded per round: identical inputs give identical rounds (tests, replays). */
   random: Random;
+  /** Sizes of the images this round's content refers to, by media id. */
+  media: Readonly<Record<string, MediaInfo>>;
+  /** Blocked-word check for text players write. */
+  moderation: Moderation;
 }
 
 export interface InputMeta {
@@ -53,7 +68,14 @@ export interface InputMeta {
   receivedAt: number;
 }
 
-export type InputRejectCode = 'ROUND_CLOSED' | 'ALREADY_ANSWERED' | 'INVALID_INPUT';
+export type InputRejectCode =
+  | 'ROUND_CLOSED'
+  | 'ALREADY_ANSWERED'
+  | 'INVALID_INPUT'
+  /** A written answer is (nearly) the real answer, e.g. a Bluff lie: write another one. */
+  | 'TOO_CLOSE'
+  /** A written answer failed the blocked-word check. */
+  | 'TEXT_REJECTED';
 
 export type Effect =
   /** Enter a phase; with a duration the engine calls `onTimer` when it runs out. */
@@ -108,6 +130,12 @@ export interface GameModule<Content, Settings, State, Input, HostView, PlayerVie
   ): Transition<State>;
   onTimer(state: State, ctx: RoundContext<Content, Settings>): Transition<State>;
   score(state: State, ctx: RoundContext<Content, Settings>): ScoreResult[];
+  /**
+   * The host skips while the round is running. Return a transition to handle it (e.g. end a
+   * timed reveal with its scores); without one — or returning null — the engine drops the
+   * round unscored.
+   */
+  onSkip?(state: State, ctx: RoundContext<Content, Settings>): Transition<State> | null;
 
   getHostView(state: State, ctx: RoundContext<Content, Settings>): HostView;
   getPlayerView(state: State, playerId: string, ctx: RoundContext<Content, Settings>): PlayerView;

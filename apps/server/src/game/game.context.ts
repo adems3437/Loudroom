@@ -2,6 +2,7 @@ import {
   createRandom,
   type AnyGameModule,
   type GamePlayer,
+  type Moderation,
   type PlayerStats,
   type RoundContext,
 } from '@loudroom/game-sdk';
@@ -35,12 +36,23 @@ export function moduleFor(round: PlannedRound): AnyGameModule {
   return module;
 }
 
+/**
+ * Moderation for view projections: views only show what inputs already stored, so they must
+ * never check text themselves.
+ */
+export const NO_MODERATION_IN_VIEWS: Moderation = {
+  isBlocked() {
+    throw new Error('Moderation is checked on input, not in views');
+  },
+};
+
 /** What a module sees for the current round (SPEC §5 RoundContext). */
 export function roundContext(
   game: GameRecord,
   round: PlannedRound,
   players: readonly StoredPlayer[],
   now: number,
+  moderation: Moderation,
 ): RoundContext<unknown, unknown> {
   return {
     roundId: round.roundId,
@@ -53,5 +65,7 @@ export function roundContext(
     phase: game.phase,
     now,
     random: createRandom(round.seed),
+    media: round.media ?? {},
+    moderation,
   };
 }

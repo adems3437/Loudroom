@@ -1,6 +1,12 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
-import { createRandom, seedFromString, type AnyGameModule } from '@loudroom/game-sdk';
+import {
+  collectMediaIds,
+  createRandom,
+  seedFromString,
+  type AnyGameModule,
+  type MediaInfo,
+} from '@loudroom/game-sdk';
 import { contentSelectionSchema, type ContentSelection } from '@loudroom/shared';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -74,6 +80,8 @@ export class PackLoader {
       const settings = roundSettings(module, pack.settings, packRound);
       const items = await this.pickContent(module, selection.data, packRound.questionCount, random);
 
+      const sizes = await this.mediaSizes(items.flatMap((item) => collectMediaIds(item.content)));
+
       items.forEach((item, index) => {
         const roundId = `r${rounds.length + 1}-${randomBytes(4).toString('hex')}`;
         rounds.push({
@@ -87,6 +95,12 @@ export class PackLoader {
           showScoreboardAfter: packRound.showScoreboardAfter,
           lastInSegment: index === items.length - 1,
           seed: seedFromString(roundId),
+          media: Object.fromEntries(
+            collectMediaIds(item.content).flatMap((id) => {
+              const size = sizes.get(id);
+              return size ? [[id, size]] : [];
+            }),
+          ),
         });
       });
       segments.push({
@@ -118,6 +132,20 @@ export class PackLoader {
       rounds,
       minPlayers,
     };
+  }
+
+  /** Image sizes from Media, so modules can work in image proportions (SPEC §7.4). */
+  private async mediaSizes(ids: string[]): Promise<Map<string, MediaInfo>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.prisma.media.findMany({
+      where: { id: { in: [...new Set(ids)] } },
+      select: { id: true, width: true, height: true },
+    });
+    return new Map(
+      rows.flatMap((row) =>
+        row.width && row.height ? [[row.id, { width: row.width, height: row.height }]] : [],
+      ),
+    );
   }
 
   private async pickContent(

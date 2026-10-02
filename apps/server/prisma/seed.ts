@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import { seedAdminUser } from '../src/seed/admin-user.js';
 import { seedCategories } from '../src/seed/categories.js';
+import { seedMapPack } from '../src/seed/map-pack.js';
 import { seedPartyPack } from '../src/seed/party-pack.js';
 import { seedQuizPack } from '../src/seed/quiz-pack.js';
 
@@ -13,6 +14,7 @@ try {
   await seedCategories(prisma);
   await seedQuizPack(prisma);
   await seedPartyPack(prisma);
+  await seedMapPack(prisma);
   const email = process.env.ADMIN_SEED_EMAIL;
   const password = process.env.ADMIN_SEED_PASSWORD;
   if (email && password) {

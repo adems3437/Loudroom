@@ -19,6 +19,8 @@ x-app: &app
     - game-closest-number-node-modules:/app/packages/games/closest-number/node_modules
     - game-sorting-node-modules:/app/packages/games/sorting/node_modules
     - game-who-would-node-modules:/app/packages/games/who-would/node_modules
+    - game-image-location-node-modules:/app/packages/games/image-location/node_modules
+    - game-bluff-node-modules:/app/packages/games/bluff/node_modules
     - pnpm-store:/pnpm-store
     # Uploaded media (SPEC §13: a Docker volume in the MVP).
     - media-data:/media-data
@@ -110,4 +112,6 @@ volumes:
   game-closest-number-node-modules:
   game-sorting-node-modules:
   game-who-would-node-modules:
+  game-image-location-node-modules:
+  game-bluff-node-modules:
   pnpm-store:

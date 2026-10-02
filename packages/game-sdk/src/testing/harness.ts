@@ -2,12 +2,15 @@ import type {
   AnyGameModule,
   Effect,
   GamePlayer,
+  MediaInfo,
+  Moderation,
   PhaseClock,
   PlayerStats,
   RoundContext,
   ScoreResult,
 } from '../module.js';
 import { createRandom } from '../rng.js';
+import { foldText } from '../text.js';
 
 export type ScriptStep =
   /** Let the current phase run out. */
@@ -21,6 +24,10 @@ export interface RoundFixture {
   players: GamePlayer[];
   stats?: Record<string, PlayerStats>;
   scoreMultiplier?: number;
+  /** Sizes of the images the content refers to (the engine reads them from Media). */
+  media?: Record<string, MediaInfo>;
+  /** Words the moderation check blocks (whole words, compared folded). */
+  blockedWords?: string[];
   /** Steps that play one full round until the module ends it. */
   script: ScriptStep[];
 }
@@ -39,6 +46,17 @@ export interface PlayedRound {
 }
 
 const START_TIME = 1_700_000_000_000;
+
+/** A stand-in for the server's profanity filter: blocks the listed words. */
+export function wordListModeration(words: readonly string[]): Moderation {
+  const blocked = new Set(words.map(foldText));
+  return {
+    isBlocked: (text) =>
+      foldText(text)
+        .split(' ')
+        .some((word) => blocked.has(word)),
+  };
+}
 export const FIXTURE_SEED = 42;
 
 function zeroStats(): PlayerStats {
@@ -63,6 +81,7 @@ export function playRound(
     ...module.defaultSettings,
     ...fixture.settings,
   });
+  const moderation = wordListModeration(fixture.blockedWords ?? []);
   const stats = Object.fromEntries(
     fixture.players.map((player) => [player.id, fixture.stats?.[player.id] ?? zeroStats()]),
   );
@@ -78,6 +97,8 @@ export function playRound(
     phase,
     now,
     random: createRandom(FIXTURE_SEED),
+    media: fixture.media ?? {},
+    moderation,
   });
 
   const apply = (effects: Effect[] | undefined) => {

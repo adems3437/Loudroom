@@ -29,7 +29,9 @@
     "unplugin-swc": "2.0.0"
   },
   "dependencies": {
+    "@loudroom/game-bluff": "workspace:*",
     "@loudroom/game-closest-number": "workspace:*",
+    "@loudroom/game-image-location": "workspace:*",
     "@loudroom/game-quiz": "workspace:*",
     "@loudroom/game-sdk": "workspace:*",
     "@loudroom/game-sorting": "workspace:*",

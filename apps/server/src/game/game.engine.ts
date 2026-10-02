@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs
 import type { AnyGameModule, Effect, InputRejectCode } from '@loudroom/game-sdk';
 import { ServerEvent, type GameStatus } from '@loudroom/shared';
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
+import { ProfanityFilter } from '../moderation/profanity-filter.js';
 import { CommandError } from '../realtime/command-error.js';
 import { PresenceService } from '../room/presence.service.js';
 import { RoomBroadcaster, type GameNotice } from '../room/room.broadcaster.js';
@@ -55,7 +56,15 @@ export class GameEngine implements OnApplicationBootstrap {
     private readonly timers: GameTimers,
     private readonly broadcaster: RoomBroadcaster,
     private readonly presence: PresenceService,
+    private readonly profanity: ProfanityFilter,
   ) {}
+
+  /** Player text goes through the same blocked-word lists as nicknames (SPEC §7.6, §9). */
+  private readonly moderation = { isBlocked: (text: string) => this.profanity.isProfane(text) };
+
+  private context(game: GameRecord, round: PlannedRound, draft: Draft) {
+    return roundContext(game, round, draft.players, draft.now, this.moderation);
+  }
 
   // ── Host commands ─────────────────────────────────────────────────────────
 
@@ -79,11 +88,25 @@ export class GameEngine implements OnApplicationBootstrap {
         case 'STARTING':
           this.beginRound(draft, game, 0);
           return;
-        case 'PLAYING':
-          // The round is dropped without scoring.
+        case 'PLAYING': {
+          // A module may handle the skip itself (e.g. end a timed reveal with its scores).
+          const round = currentRound(game);
+          const module = round ? moduleFor(round) : null;
+          const handled =
+            round && module?.onSkip
+              ? module.onSkip(game.moduleState, this.context(game, round, draft))
+              : null;
+          if (round && module && handled) {
+            game.moduleState = handled.state;
+            game.timer = null;
+            this.applyEffects(draft, game, module, round, handled.effects);
+            return;
+          }
+          // Otherwise the round is dropped without scoring.
           if (this.isLastRound(game)) this.finishGame(draft, game);
           else this.beginRound(draft, game, game.roundIndex + 1);
           return;
+        }
         case 'ROUND_RESULT':
         case 'SCOREBOARD':
           this.advance(draft);
@@ -154,7 +177,7 @@ export class GameEngine implements OnApplicationBootstrap {
       const input = module.inputSchema.safeParse(raw);
       if (!input.success) throw new CommandError('INVALID_INPUT', 'Invalid answer');
 
-      const ctx = roundContext(game, round, draft.players, draft.now);
+      const ctx = this.context(game, round, draft);
       const transition = module.onInput(
         game.moduleState,
         input.data,
@@ -208,10 +231,7 @@ export class GameEngine implements OnApplicationBootstrap {
       const round = currentRound(game);
       if (draft.room.status !== 'PLAYING' || !round) return false;
       const module = moduleFor(round);
-      const transition = module.onTimer(
-        game.moduleState,
-        roundContext(game, round, draft.players, draft.now),
-      );
+      const transition = module.onTimer(game.moduleState, this.context(game, round, draft));
       game.moduleState = transition.state;
       this.applyEffects(draft, game, module, round, transition.effects);
       return true;
@@ -277,7 +297,7 @@ export class GameEngine implements OnApplicationBootstrap {
     draft.room.status = 'PLAYING';
 
     const module = moduleFor(round);
-    const transition = module.createRound(roundContext(game, round, draft.players, draft.now));
+    const transition = module.createRound(this.context(game, round, draft));
     game.moduleState = transition.state;
     draft.notices.push({
       event: ServerEvent.RoundStart,
@@ -322,7 +342,7 @@ export class GameEngine implements OnApplicationBootstrap {
     module: AnyGameModule,
     round: PlannedRound,
   ): void {
-    const ctx = roundContext(game, round, draft.players, draft.now);
+    const ctx = this.context(game, round, draft);
     const results = module.score(game.moduleState, ctx);
     const byPlayer = new Map(results.map((result) => [result.playerId, result]));
 

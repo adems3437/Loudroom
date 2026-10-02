@@ -13,16 +13,29 @@ export interface ContractFixture extends RoundFixture {
    * Variants of `script` with the same players acting at the same moments, but choosing
    * differently. Until the round ends, the host and every player whose own inputs did not
    * change must see exactly the same thing — otherwise one player's choice leaks to others.
+   * A variant may also change the content: e.g. a Bluff answer swapped with a player's lie
+   * shows that nothing tells the real answer apart from the lies.
    */
-  secretScripts?: ScriptStep[][];
+  secretScripts?: (ScriptStep[] | SecretCase)[];
   /**
    * Variants of `script` that give the same overall result (e.g. the same vote counts) from
    * different players. Even after the round ends, the host and every player whose own inputs did
    * not change must see the same thing, and get the same score — choices stay anonymous.
    */
   anonymousScripts?: ScriptStep[][];
+  /**
+   * The phase from which secrets may be shown, for games whose reveal is a timed phase before
+   * the round ends (Bluff). Without it, secrets must hold until the round ends.
+   */
+  revealPhase?: string;
   /** Inputs the module must refuse, either by schema or with a reject effect. */
   invalidInputs: unknown[];
+}
+
+/** A secret script played with other content. */
+export interface SecretCase {
+  content: unknown;
+  script: ScriptStep[];
 }
 
 /** When and by whom each step happens, without what was chosen. */
@@ -41,6 +54,14 @@ function inputsOf(script: ScriptStep[], playerId: string): string {
       step.type === 'input' && step.playerId === playerId ? [step.input] : [],
     ),
   );
+}
+
+/** Frames shown before anything may be revealed. */
+function hidden(frames: Frame[], revealPhase: string | undefined): Frame[] {
+  const until = frames.findIndex(
+    (frame) => frame.ended || (revealPhase !== undefined && frame.phase === revealPhase),
+  );
+  return until === -1 ? frames : frames.slice(0, until);
 }
 
 /** What the host and the given players were shown, frame by frame. */
@@ -86,7 +107,7 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
       'leaks no secret content to any client before the round ends',
       () => {
         const beforeEnd = (content: unknown) =>
-          playRound(module, { ...fixture, content }).frames.filter((frame) => !frame.ended);
+          hidden(playRound(module, { ...fixture, content }).frames, fixture.revealPhase);
         const reference = beforeEnd(fixture.content);
         expect(reference.length).toBeGreaterThan(0);
         for (const variant of fixture.secretVariants ?? []) {
@@ -100,13 +121,17 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
       "leaks no player's input to others before the round ends",
       () => {
         const reference = playRound(module, fixture).frames;
-        for (const script of fixture.secretScripts ?? []) {
+        for (const variant of fixture.secretScripts ?? []) {
+          const { content, script } = Array.isArray(variant)
+            ? { content: fixture.content, script: variant }
+            : variant;
+          expect(module.contentSchema.safeParse(content).success).toBe(true);
           expect(timing(script)).toEqual(timing(fixture.script));
           const unchanged = fixture.players
             .map((player) => player.id)
             .filter((id) => inputsOf(script, id) === inputsOf(fixture.script, id));
-          const frames = playRound(module, { ...fixture, script }).frames;
-          const beforeEnd = (list: Frame[]) => list.filter((frame) => !frame.ended);
+          const frames = playRound(module, { ...fixture, content, script }).frames;
+          const beforeEnd = (list: Frame[]) => hidden(list, fixture.revealPhase);
           expect(seenBy(beforeEnd(frames), unchanged)).toEqual(
             seenBy(beforeEnd(reference), unchanged),
           );

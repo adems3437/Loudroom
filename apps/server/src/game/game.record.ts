@@ -14,6 +14,10 @@ const plannedRoundSchema = z.object({
   showScoreboardAfter: z.boolean(),
   lastInSegment: z.boolean(),
   seed: z.number().int(),
+  /** Sizes of the images the content refers to (from Media), for modules that need them. */
+  media: z
+    .record(z.string(), z.object({ width: z.number().int(), height: z.number().int() }))
+    .optional(),
 });
 export type PlannedRound = z.infer<typeof plannedRoundSchema>;
 

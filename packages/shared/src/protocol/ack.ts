@@ -22,6 +22,8 @@ export const errorCodeSchema = z.enum([
   'ROUND_CLOSED',
   'ALREADY_ANSWERED',
   'INVALID_INPUT',
+  'TOO_CLOSE',
+  'TEXT_REJECTED',
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 

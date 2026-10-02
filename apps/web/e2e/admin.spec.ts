@@ -220,7 +220,14 @@ test('an editor writes content for the new games and changes a round’s game se
   await login(admin, ADMIN_EMAIL, ADMIN_PASSWORD);
   await expect(admin).toHaveURL(/\/admin\/content$/);
   // Every registered game gets its own "new content" button.
-  for (const gameType of ['quiz', 'closestNumber', 'sorting', 'whoWould']) {
+  for (const gameType of [
+    'quiz',
+    'closestNumber',
+    'sorting',
+    'whoWould',
+    'imageLocation',
+    'bluff',
+  ]) {
     await expect(admin.getByTestId(`content-new-${gameType}`)).toBeVisible();
   }
 
@@ -261,6 +268,44 @@ test('an editor writes content for the new games and changes a round’s game se
   await admin.getByTestId('content-save').click();
   await expect(admin).toHaveURL(/\/admin\/content\/[0-9a-f-]{36}$/);
   await expect(admin.getByTestId('who-editor-title')).toHaveValue('E2E Şampiyonu');
+
+  // Image Location: upload an image, click the target on it; the point survives saving.
+  await admin.goto('/admin/content/new?gameType=imageLocation');
+  await admin.getByTestId('location-editor-question').fill(`E2E harita ${tag}: nerede?`);
+  await admin.getByTestId('location-editor-image-choose').click();
+  const picker = admin.getByTestId('media-picker');
+  await picker.getByTestId('media-file').setInputFiles({
+    name: `harita-${tag}.png`,
+    mimeType: 'image/png',
+    buffer: png(64, 48, [46, 74, 58]),
+  });
+  await picker.getByTestId('media-upload-submit').click();
+  await expect(picker).toBeHidden();
+  const canvas = admin.getByTestId('location-editor-canvas');
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('no editor canvas');
+  await canvas.click({ position: { x: box.width / 2 + 120, y: box.height / 2 - 60 } });
+  const target = admin.getByTestId('location-editor-target');
+  await expect(target).not.toContainText('%50.0');
+  const chosen = await target.innerText();
+  await admin.getByTestId('content-save').click();
+  await expect(admin).toHaveURL(/\/admin\/content\/[0-9a-f-]{36}$/);
+  await expect(admin.getByTestId('location-editor-target')).toHaveText(chosen);
+
+  // Bluff: a decoy that looks like the answer is refused by the server.
+  await admin.goto('/admin/content/new?gameType=bluff');
+  await admin.getByTestId('bluff-editor-question').fill(`E2E blöf ${tag}?`);
+  await admin.getByTestId('bluff-editor-answer').fill('Üç');
+  await admin.getByTestId('bluff-editor-decoy').nth(0).fill('UC');
+  await admin.getByTestId('bluff-editor-decoy').nth(1).fill('Beş');
+  await admin.getByTestId('content-save').click();
+  await expect(admin.getByTestId('bluff-editor-decoy').nth(0)).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
+  await admin.getByTestId('bluff-editor-decoy').nth(0).fill('Dört');
+  await admin.getByTestId('content-save').click();
+  await expect(admin).toHaveURL(/\/admin\/content\/[0-9a-f-]{36}$/);
 
   // A draft pack whose Closest Number round scores by rank; the change survives saving.
   await admin.goto('/admin/game-packs/new');

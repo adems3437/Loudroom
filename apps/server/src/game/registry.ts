@@ -1,5 +1,7 @@
 import type { AnyGameModule } from '@loudroom/game-sdk';
+import { bluffModule } from '@loudroom/game-bluff/server';
 import { closestNumberModule } from '@loudroom/game-closest-number/server';
+import { imageLocationModule } from '@loudroom/game-image-location/server';
 import { quizModule } from '@loudroom/game-quiz/server';
 import { sortingModule } from '@loudroom/game-sorting/server';
 import { whoWouldModule } from '@loudroom/game-who-would/server';
@@ -10,6 +12,8 @@ const MODULES: readonly AnyGameModule[] = [
   closestNumberModule,
   sortingModule,
   whoWouldModule,
+  imageLocationModule,
+  bluffModule,
 ];
 
 const byType = new Map(MODULES.map((module) => [module.id, module]));

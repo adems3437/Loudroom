@@ -1,6 +1,12 @@
 import type { GameStatus, HostGameState, PlayerGameState, Standing } from '@loudroom/shared';
 import type { RoomSnapshot } from '../room/room.store.js';
-import { currentRound, moduleFor, roundContext, statsOf } from './game.context.js';
+import {
+  currentRound,
+  moduleFor,
+  NO_MODERATION_IN_VIEWS,
+  roundContext,
+  statsOf,
+} from './game.context.js';
 import type { GameRecord } from './game.record.js';
 
 /**
@@ -56,7 +62,7 @@ function roundView(
   const round = currentRound(game);
   if (!round || game.moduleState == null) return null;
   if (effective !== 'PLAYING' && effective !== 'ROUND_RESULT') return null;
-  const ctx = roundContext(game, round, snapshot.players, Date.now());
+  const ctx = roundContext(game, round, snapshot.players, Date.now(), NO_MODERATION_IN_VIEWS);
   return { roundId: round.roundId, gameType: round.gameType, phase: game.phase, view: view(ctx) };
 }
 

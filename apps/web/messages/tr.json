@@ -75,7 +75,9 @@
       "quiz": "Quiz",
       "closestNumber": "En Yakın Sayı",
       "sorting": "Sıralama",
-      "whoWould": "Kim Yapar?"
+      "whoWould": "Kim Yapar?",
+      "imageLocation": "Haritada Bul",
+      "bluff": "Blöf"
     },
     "overview": {
       "title": "Genel bakış",
@@ -490,6 +492,87 @@
         "winnerPointsHint": "En çok oy alan oyuncuya (eşitlikte hepsine) verilir.",
         "allowSelfVote": "Kendine oy verilebilsin"
       }
+    },
+    "imageLocation": {
+      "timeLeft": "Kalan süre",
+      "image": "Soru görseli",
+      "getReady": "Görsel geliyor…",
+      "answered": "{count} / {total} oyuncu işaretledi",
+      "distanceHint": "Uzaklıklar görselin uzun kenarına göre",
+      "noPins": "Kimse işaretlemedi.",
+      "lookAtScreen": "Soru ekranda!",
+      "tapHint": "Görselde doğru yere dokun.",
+      "moveHint": "Taşımak için başka bir yere dokun, sonra gönder.",
+      "send": "Gönder",
+      "pinLocked": "İşaretin alındı, diğerleri bekleniyor…",
+      "noPin": "İşaretlemedin",
+      "onTarget": "Tam isabet!",
+      "rankOf": "{total} kişi içinde {rank}. en yakın",
+      "editor": {
+        "question": "Soru",
+        "questionPlaceholder": "ör. Ankara nerede?",
+        "image": "Görsel",
+        "targetHint": "Hedefi koymak için görselde doğru yere tıkla. Halka tam puan alanını gösterir.",
+        "target": "Hedef: yatayda %{x}, dikeyde %{y}",
+        "radius": "Tam puan yarıçapı (%, isteğe bağlı)",
+        "radiusHint": "Büyük hedefler için (ör. bir deniz). Boş: oyun ayarı. Uzun kenarın yüzdesi.",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "baseScore": "Taban puan",
+        "fullScoreRadius": "Tam puan yarıçapı (%)",
+        "fullScoreRadiusHint": "Görselin uzun kenarının yüzdesi.",
+        "zeroScoreDistance": "Puansız uzaklık (%)",
+        "zeroScoreDistanceHint": "Bu kadar uzak işaretler 0 puan alır; arada puan yumuşakça azalır."
+      }
+    },
+    "bluff": {
+      "timeLeft": "Kalan süre",
+      "getReady": "Soru geliyor…",
+      "writeLie": "Telefonundan inandırıcı bir blöf yaz!",
+      "written": "{count} / {total} oyuncu blöfünü yazdı",
+      "voted": "{count} / {total} oyuncu oy verdi",
+      "fellForIt": "Kananlar ({count})",
+      "knewIt": "Bilenler ({count})",
+      "theTruth": "DOĞRU CEVAP!",
+      "houseLie": "Bizim yalanımızdı!",
+      "lieBy": "Blöfün sahibi:",
+      "lookAtScreen": "Ekrana bak!",
+      "yourLie": "Blöfün",
+      "lieHint": "Doğru cevabı biliyorsan onu yazma; diğerlerini kandıracak bir cevap uydur.",
+      "send": "Gönder",
+      "lieAccepted": "Blöfün alındı",
+      "waitForOthers": "Diğerleri bekleniyor…",
+      "findTruth": "Doğru cevabı bul!",
+      "ownLie": "senin blöfün",
+      "voteLocked": "Oyun alındı",
+      "noVote": "Oy vermedin",
+      "foundTruth": "Doğru cevabı buldun!",
+      "fooledByHouse": "Bizim yalanımıza kandın!",
+      "fooledBy": "{names} seni kandırdı!",
+      "truthWas": "Doğru cevap: {truth}",
+      "youFooled": "Kandırdıkların: {names}",
+      "nobodyFooled": "Blöfüne kimse kanmadı.",
+      "editor": {
+        "question": "Soru",
+        "questionPlaceholder": "ör. Bir ahtapotun kaç kalbi vardır?",
+        "answer": "Doğru cevap",
+        "accepted": "Doğru cevabın başka yazılışları",
+        "acceptedHint": "Oyuncular bunları da blöf olarak yazamaz (ör. \"3\" ve \"üç\").",
+        "decoys": "Yem cevaplar",
+        "decoysHint": "Yeterli blöf gelmezse seçenekleri bunlar tamamlar. 2–6 tane.",
+        "add": "Ekle",
+        "remove": "Kaldır",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "truthPoints": "Doğru cevap puanı",
+        "foolPoints": "Kandırma puanı",
+        "foolPointsHint": "Blöfüne kanan her oyuncu için.",
+        "voteSeconds": "Oylama süresi (sn)",
+        "minOptions": "En az seçenek",
+        "minOptionsHint": "Blöfler yetmezse yem cevaplarla tamamlanır."
+      }
     }
   },
   "errors": {
@@ -513,7 +596,9 @@
     "ROUND_CLOSED": "Süre doldu.",
     "ALREADY_ANSWERED": "Cevabını zaten verdin.",
     "INVALID_INPUT": "Geçersiz cevap.",
-    "NO_RESPONSE": "Sunucuya ulaşılamadı. Bağlantını kontrol et."
+    "NO_RESPONSE": "Sunucuya ulaşılamadı. Bağlantını kontrol et.",
+    "TOO_CLOSE": "Bu, doğru cevaba çok yakın! Başka bir blöf yaz.",
+    "TEXT_REJECTED": "Bu ifade kullanılamaz. Başka bir şey yaz."
   },
   "avatars": {
     "circle": "Daire",
