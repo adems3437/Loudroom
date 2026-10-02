@@ -191,10 +191,8 @@ docker/            dev image, postgres init (creates loudroom_test)
 - The seed writes map images into `MEDIA_DIR` (resolved from the server's working directory,
   `/media-data` in Docker); `seedMapPack(prisma, { mediaDir })` lets tests use a temp dir.
 - In the dev stack every browser reaches the server through the web container's address, so
-  the whole e2e suite shares one REST rate-limit bucket (120, +4/s): keep e2e tests frugal
-  with page loads.
-- All panel and e2e traffic reaches the server through the Next proxy from one address, so it
-  shares one REST bucket; the dev `.env` raises it (`REST_RATE_LIMIT_*`, unset in production).
-  `apiRequest` waits out a 429 on GETs (3 retries).
+  the whole e2e suite shares one REST rate-limit bucket. The dev `.env` raises it
+  (`REST_RATE_LIMIT_*`: 600, +20/s; unset in production = 120, +4/s) and `apiRequest` waits
+  out a 429 on GETs (3 retries); still keep e2e tests frugal with page loads.
 - Rate-limit buckets live in Redis. To reset them in the dev stack:
   `docker compose exec redis sh -c "redis-cli --scan --pattern 'rl:*' | xargs -r redis-cli del"`.
