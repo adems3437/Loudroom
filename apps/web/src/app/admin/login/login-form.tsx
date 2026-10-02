@@ -44,47 +44,50 @@ export function LoginForm() {
 
   return (
     <form
-      className="flex flex-col gap-5"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
-      <Field label={t('email')}>
-        <input
-          data-testid="login-email"
-          type="email"
-          autoComplete="username"
-          required
-          className={inputClass}
-          value={email}
-          onChange={(event) => {
-            setEmail(event.target.value);
-          }}
-        />
-      </Field>
-      <Field label={t('password')}>
-        <input
-          data-testid="login-password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className={inputClass}
-          value={password}
-          onChange={(event) => {
-            setPassword(event.target.value);
-          }}
-        />
-      </Field>
-      <ErrorBanner error={error} />
-      <button
-        type="submit"
-        data-testid="login-submit"
-        disabled={busy}
-        className={buttonClass('primary')}
-      >
-        {busy ? t('submitting') : t('submit')}
-      </button>
+      {/* Locked until hydrated and the session is known: WebKit drops text typed into the
+          server-rendered inputs when React hydrates them. */}
+      <fieldset disabled={state.status === 'loading'} className="flex flex-col gap-5">
+        <Field label={t('email')}>
+          <input
+            data-testid="login-email"
+            type="email"
+            autoComplete="username"
+            required
+            className={inputClass}
+            value={email}
+            onChange={(event) => {
+              setEmail(event.target.value);
+            }}
+          />
+        </Field>
+        <Field label={t('password')}>
+          <input
+            data-testid="login-password"
+            type="password"
+            autoComplete="current-password"
+            required
+            className={inputClass}
+            value={password}
+            onChange={(event) => {
+              setPassword(event.target.value);
+            }}
+          />
+        </Field>
+        <ErrorBanner error={error} />
+        <button
+          type="submit"
+          data-testid="login-submit"
+          disabled={busy}
+          className={buttonClass('primary')}
+        >
+          {busy ? t('submitting') : t('submit')}
+        </button>
+      </fieldset>
     </form>
   );
 }
