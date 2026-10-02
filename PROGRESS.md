@@ -4,174 +4,186 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                          |
-| ----------------------------------------------- | ------------------------------ |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)     |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)     |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)     |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)     |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)     |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02)     |
-| Phase 7 — Drawing (stream kanalı)               | ⏸ Plan onay bekliyor (aşağıda) |
+| Faz                                             | Durum                      |
+| ----------------------------------------------- | -------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
 
 ---
 
-## Phase 7 — Drawing (stream kanalı) (plan, onay bekliyor)
+## Phase 7 — Drawing (stream kanalı)
 
-Plan 2026-10-02'de çıkarıldı. D1–D12 kararları kullanıcının onayını bekliyor. Kullanıcı
-"öneriler tamam" derse uygulamaya geçilir.
+Plan 2026-10-02'de onaylandı (D1–D12: "öneriler tamam") ve aynı gün Mac'te uygulandı.
 
-### 1. Stream kanalı (ortak altyapı)
+### Yapılanlar
 
-- **Sözleşme (game-sdk):** Modül isteğe bağlı bir `stream` tanımı verir:
-  - `schema`: paketin şekli.
-  - `accepts(state, playerId, ctx)`: kimin, hangi fazda çizebileceği.
-  - `limits`: round başına en fazla paket ve nokta sayısı.
+- **Stream sözleşmesi (game-sdk):**
+  - `GameModule.stream` (isteğe bağlı): `schema`, `accepts(state, playerId, ctx)`,
+    `cost(chunk)`, `limits`. `GameModule`'e yedinci tip parametresi (`StreamChunk`, varsayılan
+    `never`).
+  - Renderer'lara `stream` prop'u: `subscribe(listener)` (önce o ana kadar gelen her şey
+    `reset` olarak, sonra yeni paketler) ve `send(chunk)`. `StreamUpdate.full` round
+    limitinin dolduğunu söylüyor.
+  - Sözleşme testine `secretHolders`: gizli içeriği bilmesi gereken oyuncular (çizen)
+    `secretVariants` karşılaştırmasından çıkarılıyor; host ve diğer herkes hâlâ kontrol
+    ediliyor.
+- **Shared:** `ClientStream.RoundStream` (`round:stream`, ack'siz) ve
+  `roundStreamRequestSchema`; server olayı `round:stream`
+  (`{ roundId, reset, chunks, full }`, en fazla 5.000 paket).
+- **Server:**
+  - `GameGateway`'de ack'siz `round:stream` işleyicisi, yalnızca oyuncu oturumları. Kendi
+    hız kovası `stream` (soket başına 60, saniyede +30).
+  - `GameStreamService`: odayı kilitsiz okur. Oda PLAYING değilse (duraklatma dahil), round
+    id eskiyse, şema ya da `accepts` uymazsa paketi düşürür. Uygunsa geçmişe yazar ve yalnızca
+    host kanalına iletir. Limit dolunca gönderen sokete bir kez `full: true` gider.
+  - `StreamStore`: `room:{code}:stream` listesi (her kayıt round id'siyle) ve
+    `room:{code}:stream:cost` toplamı. Limit kontrolü ve ekleme tek Lua betiğinde (atomik).
+    Odanın TTL'ini taşır. Yeni round başlarken ve oyun bitince siliniyor; sonuç ekranında
+    host yenilenirse çizim geri gelsin diye round bitince değil.
+  - Yeniden bağlanma (`resume`): host'a ve `accepts` true olan oyuncuya (çizen) o round'un
+    geçmişi `reset: true` ile gönderiliyor.
+- **Web:**
+  - `StreamHub`: React state'i dışında tutulan round paketleri. Yalnızca o round'a abone olan
+    renderer'lar çağrılıyor. Geç açılan renderer o ana kadar gelen her şeyi `reset` olarak
+    alıyor.
+  - Gönderen telefonun kendi paketleri de hub'a yazılıyor. Duraklatmada telefondaki round
+    ekranı kaldırılıp geri geldiğinde çizenin tuvali kaybolmuyor.
+  - `sendStream` (ack'siz emit; bağlantı koparken Socket.IO tamponluyor).
+- **Drawing** (`drawing`, `@loudroom/game-drawing`):
+  - İçerik `{ word, alternatives? }`.
+  - Çizen sırası: round başında bağlı oyuncular, katılma sırasıyla, `roundIndex mod n`.
+    2'den az bağlı oyuncu varsa `SKIPPED`.
+  - Fazlar INTRO (çizen kelimeyi görür) → DRAWING (80 sn) → REVEAL. Tahmin edenlerin hepsi
+    bilince erken REVEAL.
+  - Tahmin: katlanmış hali eşitse doğru; 6+ harfte 1 harf hata da doğru. 3–5 harfte 1,
+    6+ harfte 2 harf uzaksa yalnızca tahmin edene "çok yakın". Yanlışlar TV akışında (son 30),
+    yakın ve doğru tahminler hiçbir zaman akışta değil. Küfürlü tahmin `TEXT_REJECTED`; bilen
+    oyuncu tekrar tahmin edemez; çizen tahmin edemez.
+  - Puan: 1000, sıra başına −150, en az 300; çizen bilen başına +250 (hepsi ayar, çarpanla).
+    `correct`: bildi; yanlış tahmin edip bilemeyen false; hiç tahmin etmeyen ve çizen null.
+  - "Atla" çizimi bitirip kelimeyi gösteriyor, o ana kadarki puanlar kalıyor (`onSkip`).
+  - Stream: yalnızca çizen ve yalnızca DRAWING'de. Paket = en fazla 16 işlem
+    (`line`: en fazla 64 nokta, `undo`, `clear`), 8 renk (beyaz = silgi), 3 kalınlık, 0..1000
+    koordinat, 4:3 tuval. Round limiti 3.000 paket / 30.000 maliyet (nokta + işlem başına 1).
+  - Tuval: `DrawingModel` (çizgiler, geri al, temizle) ve `CanvasController` (React dışında
+    boyama, 50 ms'lik gönderim kuyruğu, 2 birimden yakın noktaları atma). Yeni noktalar
+    artımlı, yeniden çizimde çizgiler ikinci derece eğrilerle yumuşatılıyor. Piksel sayısı
+    ekran boyu × devicePixelRatio.
+  - TV: tuval, çizen, süre, harf kutuları, bilenler, yanlış tahmin akışı, "Çizimi gizle"
+    (yalnızca o ekranda bulanıklaştırma). Telefon: çizen için tuval ve araçlar; tahmin eden
+    için kutu, kendi tahminleri ve "çok yakın" etiketi.
+  - Admin: kelime ve alternatifler editörü; ayar formu (puanlar, harf kutuları).
+- **Seed:** 41 Türkçe kelime (hayvan, yiyecek, eşya, meslek, spor, doğa; zorluk dereceli,
+  bazılarında alternatif yazılış) ve yayında "Çiz Bil" paketi (rastgele 6 kelime, en az 2
+  oyuncu).
+- **turbo.json:** `"concurrency": "30"`. Bu paketle dev modundaki kalıcı izleme görevleri
+  10'a çıktı ve turbo'nun varsayılan sınırı (10) Docker'daki server'ı başlatmaz hale getirdi.
 
-  Çizim modül durumuna girmez; modül saf kalır, taşıma işini motor yapar.
+### Testler
 
-- **İstemci → server `round:stream`:**
-  - Ack'siz. SPEC §8'de komutlar ack'li; bu kanal için açık bir istisna yazılır.
-  - Kendi hız kovası var (soket başına 60 kapasite, saniyede 30). Mevcut komut kovası
-    saniyede 10 ile 50 ms'lik paketleri kaldırmaz.
-  - Server her pakette şunları kontrol eder: oda PLAYING mi (duraklatmada reddedilir), round
-    id güncel mi, şema ve `accepts` uyuyor mu, round limiti aşılmış mı. Uygunsuz paket
-    sessizce düşer; limit aşılınca çizen telefona bir kez bildirilir.
-  - Her pakette oyun durumu kilitsiz okunur; kilit yalnızca girdi komutlarında.
-- **Server → istemci `round:stream`:**
-  - Canlı paketler yalnızca host'a gider.
-  - Host bağlanınca ya da yeniden bağlanınca (sayfa yenileme dahil) o round'un bütün
-    geçmişi `reset: true` ile tek seferde gönderilir. Çizen telefon yeniden bağlanırsa ona
-    da gönderilir, kendi tuvali geri gelir.
-- **Geçmiş:**
-  - Redis'te `room:{code}:stream` listesinde round id ile tutulur (SPEC §11'deki anahtar).
-  - Round başlarken ve biterken silinir, odanın TTL'ini taşır. Postgres'e yazılmaz; oturum
-    geçmişine yalnızca kelime ve tahminler girer.
-- **Veri biçimi:**
-  - 4:3 tuvalde 0..1000 tam sayı koordinatlar.
-  - Bir paket işlem listesidir: `line` (stroke id, renk, kalınlık, en fazla 64 nokta),
-    `undo` (son çizgi), `clear`.
-  - 8 renk (beyaz = silgi) ve 3 kalınlık. Round sınırı 3.000 paket / 30.000 nokta.
-- **İstemci tarafı:**
-  - Shared'e yeni olay şemaları.
-  - `RealtimeProvider` stream olaylarını dinler.
-  - Renderer'lara `stream` prop'u gelir: `subscribe(listener)` + son `reset` geçmişi.
-    Renderer canvas'a doğrudan çizer, React render'ı tetiklenmez.
-  - Çizen telefon paketleri `sendStream` ile 50 ms'de bir toplu gönderir.
-- **Docker:** Yeni paket için `node_modules` volume'u ve bağlama noktası.
+- **Unit (drawing):**
+  - Tahmin eşleştirme: İ/ı, boşluk, alternatif, 1 harf toleransı, "çok yakın" sınırları,
+    kısa kelimeler.
+  - Tuval modeli: devam eden çizgi, geri al, temizle.
+  - Çizen rotasyonu, `SKIPPED`, kelimenin yalnızca çizende olması, akış ve ipucu ayrımı,
+    retler, erken REVEAL, puan sırası ve alt sınır, çarpan, `onSkip`, `accepts`.
+  - Sözleşme testi `secretHolders` ile.
+  - Tahmin edenlere kelimenin ilk harfini sızdıran geçici bir modül gizlilik kontrolüne
+    takıldı (deneme silindi).
+- **Integration** (`test/drawing.test.ts`, gerçek Redis/Socket.IO):
+  - Çizen olmayanın, bozuk ve eski round'un paketleri düşüyor.
+  - Canlı paket yalnızca host'a gidiyor, oyuncular almıyor; Redis'te birikiyor.
+  - Yeniden bağlanan host'a ve çizene geçmiş `reset` ile geliyor, tahmin edene gelmiyor.
+  - Duraklatmada paket alınmıyor.
+  - Kelime REVEAL'den önce host'a ve tahmin edenlere hiç gitmiyor.
+  - Puanlar 500 / 1000 / 850; sonraki round'da çizen değişiyor ve geçmiş boş.
+  - Limit: 40 büyük paketten 28'i saklanıyor, çizene tek `full`. Hız kovası 200 paketlik
+    bir seli 55–120 arasına indiriyor.
+  - Seed testi: kelimeler ve paket.
+- **E2E** (`e2e/drawing.spec.ts`, Chromium + WebKit):
+  - Çizen telefonda fareyle iki çizgi çizer, TV'de `data-strokes` 2 olur. Geri al TV'den de
+    siler.
+  - TV yenilenir (oyun duraklar, devam ettirilir), çizim geri gelir. "Çizimi gizle" açılıp
+    kapatılır.
+  - Yanlış tahmin TV akışında görünür; "çok yakın" yalnızca tahmin edenin telefonunda kalır,
+    TV'ye düşmez.
+  - REVEAL'den önce kelime host'un ve tahmin edenlerin WebSocket çerçevelerinde yok.
+  - İkisi de bilince round erken biter; çizen 500 puan alır.
+  - İkinci çizimde sıra Mehmet'te ve tuval boş; "Atla" kelimeyi gösterir.
 
-### 2. Drawing (`drawing`, `@loudroom/game-drawing`)
+### Bitti tanımı — son çalıştırma (2026-10-02, Mac)
 
-- **İçerik:** `{ word, alternatives?: string[] }`. Kelime 1–30 karakter; `alternatives`
-  kabul edilen başka yazılışlar ("buzdolabı" / "buz dolabı").
-- **Kim çizer:**
-  - Round başında bağlı oyuncular katılma sırasıyla dizilir; çizen
-    `roundIndex mod oyuncu sayısı`. Bir pakette N soru N çizim demek.
-  - Kelime yalnızca çizenin görünümünde.
-  - Host'ta ve tahmin edenlerde harf kutuları (`_ _ _ _`, boşluklar görünür) gösterilir;
-    ayarla kapatılabilir.
-- **Fazlar:** INTRO (kim çiziyor; çizen kelimeyi görür, ~3 sn) → DRAWING (varsayılan 80
-  sn; tahminler açık) → REVEAL (kelime) → round sonu. Tahmin edenlerin hepsi bilince erken
-  REVEAL.
-- **Tahmin:**
-  - `{ type: 'guess', text }`, çizen dışındaki oyunculardan; Phase 6'nın metin
-    yardımcılarıyla eşleşir.
-  - Normalize edilmiş hali eşitse doğru. 6+ harfte 1 harf hatası da doğru.
-  - 1–2 harf uzaktaysa yalnızca o oyuncuya "çok yakın" ipucu; TV'de görünmez.
-  - Yanlış tahminler TV'de akışta takma adla görünür; doğru tahmin metinsiz "Ayşe bildi!"
-    olarak düşer.
-  - Küfürlü tahmin `TEXT_REJECTED`.
-  - Tahmin sayısı sınırsız (komut hız sınırı geçerli). Bilen oyuncu artık tahmin
-    gönderemez.
-- **Puan:**
-  - Tahmin edenler bilme sırasına göre: 1000, sonra her sırada −150, en az 300.
-  - Çizen, bilen her oyuncu için +250.
-  - Hepsi ayar, pack çarpanı uygulanır; hız yalnızca sırayı belirler.
-  - `correct`: bildi; hiç tahmin etmeyen ve çizen için null.
-- **Host kontrolleri:**
-  - "Atla" çizimi bitirir ve o ana kadarki puanlarla kelimeyi gösterir (`onSkip`).
-  - TV'deki "Çizimi gizle" düğmesi uygunsuz bir çizimi yalnızca o ekranda bulanıklaştırır;
-    sunucu komutu yok.
-- **Telefon ekranları:**
-  - Çizen: 4:3 tuval (`touch-action: none`, kaydırma yok), 8 renk, 3 kalınlık, geri al,
-    temizle, kelime, süre ve bilen sayısı.
-  - Tahmin eden: metin kutusu ve kendi tahminlerinin sonucu (yanlış / çok yakın / doğru).
-    Çizim yalnızca TV'de.
-- **TV:**
-  - Canlı çizim, çizgiler ikinci derece eğrilerle yumuşatılır.
-  - Yanında tahmin akışı, bilenler listesi, süre, harf kutuları.
-  - REVEAL'de kelime ve sıra.
-- **Gizli bilgi:** Kelime ve alternatifleri (`secretVariants`, aynı uzunlukta kelimeler).
-  Tahmin edenlerin "çok yakın" bilgisi yalnızca kendilerine gider.
-- **En az 2 oyuncu.**
+Stack `docker compose up -d --build --wait` ile kuruldu; seed "Çiz Bil"i ekledi.
 
-### 3. Admin ve seed
+| Kontrol             | Sonuç                                                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`    | ✅ 20/20 görev                                                                                                                                                      |
+| `pnpm lint`         | ✅ 20/20 görev                                                                                                                                                      |
+| `pnpm test`         | ✅ 393 test: shared 45, game-sdk 33, quiz 44, closest-number 60, sorting 24, who-would 18, image-location 20, bluff 19, drawing 25, server 105 (13 koşullu atlandı) |
+| `pnpm build`        | ✅ 11/11 görev                                                                                                                                                      |
+| `pnpm test:e2e`     | ✅ 28/28 (Chromium + WebKit; Phase 1–6 dahil)                                                                                                                       |
+| `pnpm format:check` | ✅                                                                                                                                                                  |
 
-- **Editör:** kelime ve alternatif yazılışlar.
-- **Ayar formu:** taban puan, sıra başına düşüş, en düşük puan, çizen puanı, harf kutuları.
-  Bölümün "Soru süresi" alanı çizim süresine uygulanır.
-- **Seed:**
-  - ~40 Türkçe kelime: hayvan, yiyecek, eşya, meslek, spor; zorluk dereceli.
-  - Yayında "Çiz Bil" paketi, rastgele 6 kelime.
+Yol boyunca:
 
-### 4. Testler
+- **Gizle butonu:** E2E, "Çizim gizlendi" yazısının tuvalin tamamını kaplayıp "Çizimi göster"
+  butonunu tıklanamaz yaptığını yakaladı; host çizimi geri açamıyordu. Yazı tıklamaları
+  geçiriyor.
+- **Docker'daki dev server:** turbo'nun eşzamanlılık sınırı nedeniyle başlamadı (yukarıda).
+- **Tek seferlik WebKit hatası:** Drawing e2e'si WebKit'teki ilk koşusunda bir kez 9,6 sn'de
+  kırmızı oldu; ayrıntısı bir sonraki koşuda üzerine yazıldığı için kayboldu. Sonra WebKit'te
+  13, Chromium'da 6 tekrarın hepsi ve tam koşu yeşil. Nedeni bulunamadı; tekrarlarsa trace ile
+  incelenmeli.
 
-- **Unit:**
-  - Drawing: çizen rotasyonu, doğru / 1 harf toleransı / "çok yakın" sınırları, akışa
-    yalnızca yanlış tahminlerin girmesi, puan sırası ve alt sınırı, çizen puanı, erken
-    REVEAL, `onSkip`.
-  - Stream şeması ve `accepts`.
-  - Sözleşme testi: gizli kelime ve kendi ipuçları.
-- **Integration (gerçek Redis/Socket.IO):**
-  - Çizen olmayanın, duraklatılmış oyunun, eski round'un ve bozuk paketin stream'i düşer.
-  - Hız kovası ve round limiti çalışır.
-  - Canlı paket yalnızca host'a gider, geçmiş Redis'te birikir ve round bitince silinir.
-  - Host yeniden bağlanınca ve çizen telefon yenilenince geçmiş `reset` ile gelir.
-  - REVEAL'den önce kelime host'a ve tahmin edenlere gitmez.
-  - Puanlar.
-- **E2E (host + 3 telefon, Chromium + WebKit):**
-  - Çizen telefonda fareyle çizer, TV'deki tuvalde çizgi belirir.
-  - Host sayfayı yeniler, çizim geri gelir.
-  - Tahmin edenlerden biri yanlış (TV akışında görünür), biri "çok yakın" (yalnızca kendi
-    telefonunda), sonra hepsi doğru bilir; round erken biter, puanlar sıralı gelir.
-  - Çizenin telefonundan okunan kelime, REVEAL'den önce host'un ve tahmin edenlerin
-    WebSocket çerçevelerinde yok.
+### Alınan kararlar (kullanıcı onaylı)
 
-### Onay bekleyen kararlar
-
-- **D1:** gameType `drawing`, paket `@loudroom/game-drawing`.
-- **D2:** Stream modülde isteğe bağlı bir tanım; taşıma, doğrulama ve geçmiş motorda; çizim
-  modül durumuna girmez.
-- **D3:** `round:stream` istemciden ack'siz ve kendi hız kovasıyla (SPEC §8'e istisna olarak
-  yazılır). Canlı paketler yalnızca host'a; yeniden bağlanan host'a ve çizene geçmiş
-  `reset` ile.
-- **D4:** Veri biçimi (4:3, 0..1000, line/undo/clear, 8 renk, 3 kalınlık) ve round
-  limitleri.
-- **D5:** Geçmiş Redis `room:{code}:stream` listesinde, round sonunda silinir, Postgres'e
-  girmez.
+- **D1:** `drawing` / `@loudroom/game-drawing`.
+- **D2:** Stream modülde isteğe bağlı tanım; taşıma, doğrulama, geçmiş motorda.
+- **D3:** `round:stream` ack'siz, kendi hız kovası; canlı yalnızca host'a, geçmiş `reset` ile.
+- **D4:** 4:3, 0..1000, line/undo/clear, 8 renk, 3 kalınlık, 3.000 / 30.000 limit.
+- **D5:** Redis'te geçmiş, Postgres'e yazılmıyor.
 - **D6:** Çizen sırası katılma sırasıyla dönüşümlü.
-- **D7:** İçerik `{ word, alternatives? }`; harf kutuları varsayılan açık.
-- **D8:** Tahmin eşleştirme eşikleri, gizli "çok yakın" ipucu, TV'de yanlış tahmin akışı.
-- **D9:** Puan: 1000 / −150 / en az 300, çizene bilen başına +250.
+- **D7:** İçerik `{ word, alternatives? }`, harf kutuları varsayılan açık.
+- **D8:** Eşleştirme eşikleri, gizli "çok yakın", TV'de yanlış tahmin akışı.
+- **D9:** 1000 / −150 / en az 300, çizene bilen başına +250.
 - **D10:** Erken REVEAL, "Atla" puanları korur, "Çizimi gizle" yalnızca TV'de.
-- **D11:** Telefon araçları (8 renk, 3 kalınlık, geri al, temizle); çizim yalnızca TV'de.
-- **D12:** Seed: ~40 kelime ve "Çiz Bil" paketi.
+- **D11:** Telefon araçları; çizim yalnızca TV'de.
+- **D12:** Seed kelimeleri ve "Çiz Bil".
 
-**Eklenecek paket:** Yok. Çizim tarayıcının Canvas 2D API'siyle, yumuşatma kendi kodumuzla.
+### Varsayımlar ve küçük kararlar
 
-### Riskler
+- **Geçmiş ne zaman silinir:** Planda "round başlarken ve biterken" yazıyordu. Sonuç
+  ekranında host sayfası yenilenirse çizimin geri gelmesi için round bitince değil, sonraki
+  round başlarken ve oyun bitince siliniyor.
+- **Limit maliyeti:** nokta sayısı + işlem başına 1 (boş `undo`/`clear` selleri de sayılsın).
+- **"Çok yakın" için en az 3 harf:** 2 harfli kelimelerde ("ev") ipucu verilmiyor.
+- **Tahmin uzunluğu:** kelime sınırı + 10 karakter (40'a kadar).
+- **`room:{code}:stream:cost`** anahtarı SPEC §11'e eklendi.
+- **Hub'a kendi paketlerini yazmak:** Duraklatmadan dönen çizen telefonun tuvali hub'dan
+  yeniden kuruluyor; server geçmişi yalnızca yeniden bağlanmada geliyor.
+- **Çizenin `correct` değeri null:** Motorun kuralı gereği çizenin serisi o round'da
+  sıfırlanıyor.
 
-- **Çizen koparsa:** Motor modüllere bağlantı değişimini bildirmiyor; round süre bitene ya da
-  host "Atla" diyene kadar sürer. Çizen geri dönünce tuvali geçmişten yüklenir.
-- **Ağ ve pil:** Saniyede ~20 küçük paket. Toplu gönderim ve nokta seyreltme (1 birimden
-  yakın noktalar atılır) ile sınırlanır.
-- **iOS Safari'de dokunmatik çizim:** Kaydırma ve yakınlaştırma çakışabilir;
-  `touch-action: none` ve pointer events ile ele alınır, e2e WebKit'te çalışır. Gerçek
-  cihaz elle denenmeli.
-- **Kilitsiz okuma:** Round değişirken gelen paket eski round'a yazılabilir. Paket round
-  id'si taşır; yanlış round'unki atılır, geçmiş round id ile anahtarlanır.
-- **Uygunsuz çizim:** Yalnızca host tarafında gizleme var; çizimin kendisi
-  denetlenemiyor.
+### Eklenen paketler
+
+Yok. Çizim Canvas 2D API'siyle, yumuşatma kendi kodumuzla.
+
+### Bilinen sınırlar
+
+- **Çizen koparsa:** Round süre bitene ya da host "Atla" diyene kadar sürüyor (motor
+  modüllere bağlantı değişimini bildirmiyor). Çizen dönünce tuvali geçmişten geliyor.
+- **Gerçek iPhone'da parmakla çizim** elle denenmedi. `touch-action: none` ve pointer events
+  kullanılıyor; e2e WebKit'te fareyle çiziyor.
+- **Kilitsiz okuma:** Round değişirken gelen bir paket yeni round'un maliyet toplamına bir kez
+  sayılabilir; geçmişe round id'siyle yazıldığı için gösterilmez.
+- **Çizim denetimi yok:** Uygunsuz çizim için yalnızca TV'de gizleme var.
+- **Canlı çizimde yumuşatma yok:** Canlı gelen parçalar düz segmentler; tuval yeniden
+  çizildiğinde (boyut değişimi, geri al, yenileme) yumuşatılıyor.
 
 ---
 

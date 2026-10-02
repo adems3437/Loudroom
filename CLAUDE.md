@@ -46,7 +46,8 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
   src/rate-limit/  Redis token bucket (Lua), hashed client IP
   src/moderation/  profanity filter + TR/EN word lists
   src/game/        engine (state machine, timers), pack loader, session recorder (history),
-                   game views, game gateway, registry (gameType → module)
+                   game views, game gateway, registry (gameType → module), round stream
+                   (GameStreamService + StreamStore: Redis history, limits, host-only fan-out)
   src/admin/       admin REST API: session store + AdminGuard (cookie, CSRF, Origin, roles),
                    auth, categories, content, media, packs (+ public GET /api/packs), users
   src/http/        ApiException + parseRequest (zod), ApiError filter, REST rate-limit guard
@@ -64,8 +65,8 @@ apps/web           Next.js 16 App Router; next.config rewrites /api and /media t
                                         game-packs, users, account (client pages)
     host/create, host/room/[roomCode]   room creation, lobby (QR, code, players, kick, lock)
     play, play/[roomCode]               code entry, join form, phone lobby
-  src/realtime/    socket client (handshake token), sendCommand, clock sync,
-                   RealtimeProvider (room state + session) / RealtimeRoot
+  src/realtime/    socket client (handshake token), sendCommand, sendStream, clock sync,
+                   RealtimeProvider (room state + session + StreamHub) / RealtimeRoot
   src/lib/         session-storage (localStorage + useStoredSession), wake lock, haptics,
                    sfx (WebAudio, no audio files), api (same-origin REST client)
   src/admin/       admin session provider (CSRF token), UI pieces, media picker, content and
@@ -82,7 +83,8 @@ packages/game-sdk  GameModule contract, seeded RNG, text matching (cleanText, fo
 packages/games/*   one package per game: schema.ts, server.ts (module), host.tsx, player.tsx,
                    editor.tsx (admin content form), settings-editor.tsx (pack round settings);
                    exports ./server and ./client separately. quiz, closest-number, sorting
-                   (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff
+                   (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff, drawing (round
+                   stream, canvas)
 docker/            dev image, postgres init (creates loudroom_test)
 ```
 
@@ -131,6 +133,9 @@ docker/            dev image, postgres init (creates loudroom_test)
 - Images with pins/targets use `ContainedImage` (object-contain + an overlay exactly over the
   drawn image, positions in percent), so TV, phone and admin editor agree.
 - A host "skip" while PLAYING drops the round unless the module's `onSkip` handles it.
+- High-frequency data goes over `round:stream` (no ack, own rate bucket), never `round:input`.
+  A module declares `stream` (schema, `accepts`, `cost`, limits); chunks never enter the
+  module state. Renderers get a `stream` prop (`subscribe` replays the history, `send`).
 - Game modules are pure and synchronous; the engine does IO, timers, persistence and
   broadcasting. Engine steps run under the room lock (`RoomService.transact`).
 
@@ -170,6 +175,9 @@ docker/            dev image, postgres init (creates loudroom_test)
 - The media volume needs the dev image's `/media-data` mount point: after pulling, run
   `docker compose up -d --build` once.
 - dnd-kit swallows clicks for 50 ms after a drag; e2e tests wait a moment after dragging.
+- Turbo runs every package's `dev` watcher as a persistent task; `turbo.json` sets
+  `concurrency` above their count (the default 10 broke the dev server at 10 tasks).
+- Reloading the host page pauses a running game (host disconnect); e2e tests resume it.
 - The seed writes map images into `MEDIA_DIR` (resolved from the server's working directory,
   `/media-data` in Docker); `seedMapPack(prisma, { mediaDir })` lets tests use a temp dir.
 - In the dev stack every browser reaches the server through the web container's address, so

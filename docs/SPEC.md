@@ -127,6 +127,9 @@ interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
   // ScoreResult: { playerId, points, correct, responseTimeMs, answer, breakdown }
   onSkip?(state: State, ctx: RoundContext<Content, Settings>): Transition<State> | null;
   // host "atla" dediğinde; yoksa ya da null dönerse round puansız düşer
+  stream?: { schema: ZodType<Chunk>; accepts(state, playerId, ctx): boolean;
+             cost(chunk): number; limits: { maxChunks: number; maxCost: number } };
+  // round:stream kullanan oyunlar (Drawing); paketler modül durumuna girmez
 
   getHostView(state: State, ctx: RoundContext<Content, Settings>): HostView;
   getPlayerView(state: State, playerId: string, ctx: RoundContext<Content, Settings>): PlayerView;
@@ -140,7 +143,7 @@ type Transition<S> = { state: S; effects?: Effect[] };
 
 - `RoundContext`: round id/sırası, içerik, ayarlar, puan çarpanı, oyuncular (bağlı olup olmadıkları dahil), engine'in round'lar arası tuttuğu oyuncu istatistikleri (skor, seri, toplam cevap süresi), aktif faz saati (`endsAt` duraklatmada kaydırılır), `now`, round'a özel seed'li rastgelelik (testte deterministik), içeriğin referans verdiği görsellerin boyutları (`media`, oyun başlarken `Media`'dan okunur) ve oyuncu metinleri için küfür kontrolü (`moderation`).
 - Bir round'un sabit süresi olmak zorunda değildir; zamanlamayı modül faz efektleriyle yönetir (sıra tabanlı oyunlar dahil).
-- **Stream kanalı:** Çizim gibi yüksek frekanslı veriler için `round:stream` — kalıcılığa yazılmaz, throttle edilir, yine server üzerinden geçer ve doğrulanır.
+- **Stream kanalı:** Çizim gibi yüksek frekanslı veriler için `round:stream` — kalıcılığa yazılmaz, throttle edilir, yine server üzerinden geçer ve doğrulanır. Modül paketin şemasını, kimin hangi fazda gönderebileceğini (`accepts`) ve round limitini verir; taşıma, doğrulama ve geçmiş motordadır. Canlı paketler yalnızca host'a gider; yeniden bağlanan host'a ve gönderebilen oyuncuya (çizen) round'un geçmişi `reset` ile gönderilir.
 - **Client tarafı:** Her oyun paketi `HostRenderer` ve `PlayerRenderer` bileşenlerini (faza göre) export eder. Web'de bir registry `gameType → renderer` eşler. Player UI oyun tipine ve faza göre dinamik render edilir.
 - **Kayıt:** Yeni oyun = yeni paket + server ve web registry'lerine birer satır.
 - **Sözleşme testi:** `game-sdk` içinde her modülün geçmesi gereken ortak test paketi (projeksiyonda cevap sızmıyor, geçersiz input reddediliyor, skor deterministik vb.).
@@ -160,6 +163,7 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
   - Kim Yapar?: `{ question, title? }` (seçenekler round başında bağlı oyunculardan üretilir)
   - Image Location: `{ question, mediaId, target: { x, y } (0..1), radius? }` (yarıçap uzun kenarın oranı)
   - Bluff: `{ question, answer, acceptedAnswers?: string[] (≤5), decoys: string[] (2–6) }`
+  - Drawing: `{ word, alternatives?: string[] (≤5) }`
   - Diğer oyunlar kendi şemalarıyla.
 - **GamePack:** `id, name, description, status (DRAFT|PUBLISHED), settings, rounds[]` — host yalnızca yayındaki paketleri görür; yayınlarken her bölümün oynanabilir olduğu kontrol edilir.
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`
@@ -286,9 +290,10 @@ time:sync
 Server → client:
 ```
 room:state  player:joined  player:left  player:reconnected
-game:state  round:start  round:phase  round:result
+game:state  round:start  round:phase  round:result  round:stream
 score:update  game:end  error
 ```
+- `round:stream` (istemci → server) **ack'siz** tek istisnadır: yüksek frekanslı paketler cevap beklemez, kendi hız kovası vardır, server reddettiğini sessizce düşürür. Server → istemci `round:stream`: `{ roundId, reset, chunks, full }`.
 - `game:next`: host sonuç / skor tablosu ekranından ilerler. `game:restart`: oyun bittikten sonra aynı oyuncularla lobby'ye döner.
 - Oyun durumu kaynağı `game:state`'tir (izleyiciye özel); `round:*`, `score:update`, `game:end` efektler (ses, titreşim) için bildirimdir.
 - Hepsinin payload şeması `packages/shared` içinde zod ile tanımlı.
@@ -335,7 +340,8 @@ Aktif oda ve canlı oyun durumu **Redis'te** yaşar (geçicidir). PostgreSQL'e k
 room:{code}               # oda meta + durum (TTL'li)
 room:{code}:players       # oyuncular
 room:{code}:game          # serileştirilmiş engine/modül durumu
-room:{code}:stream        # çizim stroke geçmişi (round bitince silinir)
+room:{code}:stream        # çizim stroke geçmişi (sonraki round başlarken ve oyun bitince silinir)
+room:{code}:stream:cost   # o round'un stream limitine sayılan toplam
 token:player:{hash}       # token → oyuncu/oda
 token:host:{hash}
 admin:session:{hash}      # admin oturumu (çerezdeki token'ın SHA-256'sı → kullanıcı, CSRF token'ı)
