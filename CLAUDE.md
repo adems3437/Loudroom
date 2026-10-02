@@ -51,7 +51,8 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
                    auth, categories, content, media, packs (+ public GET /api/packs), users
   src/http/        ApiException + parseRequest (zod), ApiError filter, REST rate-limit guard
   src/media/       image processing (sniff, sharp → WebP, metadata stripped), MediaStorage
-  src/seed/        categories, sample quiz pack, dev admin (fixed ids → idempotent)
+  src/seed/        categories, sample quiz pack, party pack (+ closest number, sorting and
+                   "Kim Yapar?" samples), dev admin (fixed ids → idempotent)
   scripts/         admin-create.ts (`pnpm admin:create`)
   src/generated/   Prisma client (generated, git-ignored)
   test/            integration tests on real Postgres/Redis (*_test DB, Redis DB 1)
@@ -73,9 +74,12 @@ apps/web           Next.js 16 App Router; next.config rewrites /api and /media t
   e2e/             Playwright (chromium + webkit, multi-context)
 packages/shared    zod schemas, socket event contracts, shared pure logic
 packages/game-sdk  GameModule contract, seeded RNG; ./testing (contract suite + round
-                   harness); ./client (countdown, option shapes, renderer types)
+                   harness); ./client (countdown, option shapes, TR number format, settings
+                   form fields, renderer types)
 packages/games/*   one package per game: schema.ts, server.ts (module), host.tsx, player.tsx,
-                   editor.tsx (admin content form); exports ./server and ./client separately
+                   editor.tsx (admin content form), settings-editor.tsx (pack round settings);
+                   exports ./server and ./client separately. quiz, closest-number, sorting
+                   (@dnd-kit), who-would ("Kim Yapar?")
 docker/            dev image, postgres init (creates loudroom_test)
 ```
 
@@ -105,10 +109,18 @@ docker/            dev image, postgres init (creates loudroom_test)
 - No mocks, TODOs, stubs or placeholder files for features of later phases (SPEC §0.4).
 - Every added package gets a reason in PROGRESS.md. Pin exact versions.
 - New game = new package under `packages/games/` + one line in
-  `apps/server/src/game/registry.ts` and `apps/web/src/games/registry.ts`. It must pass
-  `describeGameModuleContract` (incl. the secret-variant leak test). Its renderer includes an
-  `editor` (admin content form). Game UI text lives in `messages/tr.json` under
-  `games.<gameType>` (editor texts under `games.<gameType>.editor`).
+  `apps/server/src/game/registry.ts` and `apps/web/src/games/registry.ts` + a `node_modules`
+  volume in `compose.dev.yml` and its mount point in `docker/dev.Dockerfile`. It must pass
+  `describeGameModuleContract` with `secretVariants` (hidden content) and/or `secretScripts`
+  (one player's input hidden from others); games with anonymous choices add
+  `anonymousScripts`. Its renderer includes an `editor` (admin content form) and usually a
+  `settings` editor. Game UI text lives in `messages/tr.json` under `games.<gameType>` (editor
+  texts under `.editor`, settings texts under `.settings`); the admin's game name under
+  `admin.gameTypes.<gameType>`.
+- Renderers draw avatars with the `Avatar` prop (never import web code) and are keyed by
+  round, so local state never leaks into the next round.
+- Pack rounds store only settings that differ from the game's defaults; the server checks
+  them with the module's `settingsSchema` on every save.
 - Game modules are pure and synchronous; the engine does IO, timers, persistence and
   broadcasting. Engine steps run under the room lock (`RoomService.transact`).
 
@@ -147,5 +159,9 @@ docker/            dev image, postgres init (creates loudroom_test)
   portal and stop submit propagation (React bubbles events through portals).
 - The media volume needs the dev image's `/media-data` mount point: after pulling, run
   `docker compose up -d --build` once.
+- dnd-kit swallows clicks for 50 ms after a drag; e2e tests wait a moment after dragging.
+- In the dev stack every browser reaches the server through the web container's address, so
+  the whole e2e suite shares one REST rate-limit bucket (120, +4/s): keep e2e tests frugal
+  with page loads.
 - Rate-limit buckets live in Redis. To reset them in the dev stack:
   `docker compose exec redis sh -c "redis-cli --scan --pattern 'rl:*' | xargs -r redis-cli del"`.

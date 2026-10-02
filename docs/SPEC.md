@@ -152,10 +152,13 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
 - `data`, ilgili modülün `contentSchema`'sı ile hem kayıt hem okuma sırasında doğrulanır.
   - Quiz: `{ question, options: [{ id, text, mediaId? }], correctOptionId, media?: { type: 'image', mediaId } }` (2–6 seçenek)
   - Yüklenen dosyaya referans veren her alan `mediaId` adını taşır; server varlığını kontrol eder ve kullanımdaki dosyanın silinmesini engeller.
-  - Closest Number: `{ question, answer, unit?, displayFormat? }`
-  - Sorting, Image Location vb. kendi şemalarıyla.
+  - Closest Number: `{ question, answer, unit?, displayFormat: 'number' | 'year' }` (yıl tam sayıdır)
+  - Sorting: `{ question, items: [{ id, text, mediaId? }] (3–8, doğru sırada), labels?: { first, last } }`
+  - Kim Yapar?: `{ question, title? }` (seçenekler round başında bağlı oyunculardan üretilir)
+  - Image Location vb. kendi şemalarıyla.
 - **GamePack:** `id, name, description, status (DRAFT|PUBLISHED), settings, rounds[]` — host yalnızca yayındaki paketleri görür; yayınlarken her bölümün oynanabilir olduğu kontrol edilir.
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`
+  - `settings`: bölümün, oyunun varsayılan ayarlarından farklı olan ayarları (üst düzey anahtarlar). Varsayılanlarla birleştirilip modülün `settingsSchema`'sı ile doğrulanır; paket editöründe oyunun kendi ayar formuyla düzenlenir.
 - Oyun başlarken pack'in o anki hali `GameSession.packSnapshot`'a kopyalanır (sonradan düzenleme geçmiş oyunları bozmaz).
 
 ---
