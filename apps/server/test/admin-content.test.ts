@@ -309,6 +309,7 @@ describe('admin content, media and packs', () => {
         description: 'Açıklama',
         questionCount: 1,
         gameTypes: ['quiz'],
+        minPlayers: 1,
       });
       expect(packs.some((item) => item.id === draftPack.body.id)).toBe(false);
 
@@ -363,6 +364,99 @@ describe('admin content, media and packs', () => {
       const state = await playing;
       const view = state.round?.view as QuizHostView;
       expect(view.media).toEqual({ type: 'image', mediaId: media.id });
+    });
+
+    it('validates the new games’ content with their own schemas', async () => {
+      const cases: [string, unknown, unknown][] = [
+        [
+          'closestNumber',
+          { question: 'Kaç?', answer: 1234.5, unit: 'm', displayFormat: 'number' },
+          { question: 'Hangi yıl?', answer: 1453.5, displayFormat: 'year' },
+        ],
+        [
+          'sorting',
+          {
+            question: 'Sırala',
+            items: [
+              { id: 'a', text: 'Bir' },
+              { id: 'b', text: 'İki' },
+              { id: 'c', text: 'Üç' },
+            ],
+          },
+          {
+            question: 'Sırala',
+            items: [
+              { id: 'a', text: 'Bir' },
+              { id: 'b', text: 'İki' },
+            ],
+          },
+        ],
+        ['whoWould', { question: 'Kim?', title: 'Unvan' }, { question: '' }],
+      ];
+      for (const [gameType, valid, invalid] of cases) {
+        const created = await createContent(valid, { gameType });
+        expect(created.data).toEqual(valid);
+        const refused = await admin.request<ApiError>('POST', '/api/admin/content', {
+          json: contentInput(invalid, { gameType }),
+        });
+        expect(refused.status).toBe(400);
+        expect(refused.body.code).toBe('CONTENT_INVALID');
+        expect(refused.body.issues?.[0]?.path[0]).toBe('data');
+      }
+    });
+
+    it('checks and keeps per-round game settings; hosts see how many players a pack needs', async () => {
+      const quiz = await createContent(quizData('ayar'));
+      const who = await createContent({ question: 'Kim en çok güler?' }, { gameType: 'whoWould' });
+      const round = (gameType: string, contentId: string, settings: unknown) => ({
+        gameType,
+        contentSelection: { mode: 'fixed', contentIds: [contentId] },
+        questionCount: 1,
+        timeLimitMs: null,
+        scoreMultiplier: 1,
+        showScoreboardAfter: true,
+        settings,
+      });
+
+      const bad = await admin.request<ApiError>('POST', '/api/admin/packs', {
+        json: packInput([quiz.id], {
+          status: 'DRAFT',
+          rounds: [
+            round('quiz', quiz.id, { baseScore: -5 }),
+            round('whoWould', who.id, { nope: 1 }),
+          ],
+        }),
+      });
+      expect(bad.status).toBe(400);
+      expect(bad.body.code).toBe('VALIDATION_ERROR');
+      expect(bad.body.issues?.map((issue) => issue.path)).toEqual([
+        ['rounds', 0, 'settings', 'baseScore'],
+        ['rounds', 1, 'settings'],
+      ]);
+
+      const pack = await admin.request<Pack>('POST', '/api/admin/packs', {
+        json: packInput([quiz.id], {
+          rounds: [
+            round('quiz', quiz.id, { allowAnswerChange: true }),
+            round('whoWould', who.id, { winnerPoints: 200, allowSelfVote: false }),
+          ],
+        }),
+      });
+      expect(pack.status, JSON.stringify(pack.body)).toBe(201);
+      const stored = await admin.request<Pack>('GET', `/api/admin/packs/${pack.body.id}`);
+      expect(stored.body.rounds.map((r) => r.settings)).toEqual([
+        { allowAnswerChange: true },
+        { winnerPoints: 200, allowSelfVote: false },
+      ]);
+
+      const packs = (await (
+        await fetch(new URL('/api/packs', testApp.url))
+      ).json()) as PublicPack[];
+      expect(packs.find((item) => item.id === pack.body.id)).toMatchObject({
+        gameTypes: ['quiz', 'whoWould'],
+        minPlayers: 3,
+      });
+      expect((await admin.request('DELETE', `/api/admin/packs/${pack.body.id}`)).status).toBe(204);
     });
   });
 });

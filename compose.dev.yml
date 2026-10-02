@@ -16,6 +16,9 @@ x-app: &app
     - shared-node-modules:/app/packages/shared/node_modules
     - game-sdk-node-modules:/app/packages/game-sdk/node_modules
     - game-quiz-node-modules:/app/packages/games/quiz/node_modules
+    - game-closest-number-node-modules:/app/packages/games/closest-number/node_modules
+    - game-sorting-node-modules:/app/packages/games/sorting/node_modules
+    - game-who-would-node-modules:/app/packages/games/who-would/node_modules
     - pnpm-store:/pnpm-store
     # Uploaded media (SPEC §13: a Docker volume in the MVP).
     - media-data:/media-data
@@ -104,4 +107,7 @@ volumes:
   shared-node-modules:
   game-sdk-node-modules:
   game-quiz-node-modules:
+  game-closest-number-node-modules:
+  game-sorting-node-modules:
+  game-who-would-node-modules:
   pnpm-store:

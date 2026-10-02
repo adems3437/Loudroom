@@ -57,4 +57,27 @@ describe('admin contracts', () => {
     expect(packInputSchema.safeParse(pack({ mode: 'fixed', contentIds: [] })).success).toBe(false);
     expect(packInputSchema.safeParse(pack({ mode: 'all' })).success).toBe(false);
   });
+
+  it('keeps per-round game settings as an object, empty when left out', () => {
+    const base = {
+      gameType: 'quiz',
+      contentSelection: { mode: 'random' },
+      questionCount: 5,
+      timeLimitMs: null,
+      scoreMultiplier: 1,
+      showScoreboardAfter: true,
+    };
+    const parse = (round: unknown) =>
+      packInputSchema.safeParse({
+        name: 'Paket',
+        description: null,
+        status: 'DRAFT',
+        rounds: [round],
+      });
+    expect(parse(base).data?.rounds[0]?.settings).toEqual({});
+    expect(parse({ ...base, settings: { baseScore: 500 } }).data?.rounds[0]?.settings).toEqual({
+      baseScore: 500,
+    });
+    expect(parse({ ...base, settings: [1] }).success).toBe(false);
+  });
 });

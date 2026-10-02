@@ -13,6 +13,14 @@ export interface RendererPlayer {
   connected: boolean;
 }
 
+/** Draws a player's avatar; provided by the web app, which owns the avatar set. */
+export interface AvatarProps {
+  avatar: string;
+  color: string;
+  size: number;
+  className?: string;
+}
+
 interface RendererBase<View> {
   view: View;
   /** The round's current phase clock from the server. */
@@ -21,6 +29,7 @@ interface RendererBase<View> {
   serverNow: () => number;
   players: readonly RendererPlayer[];
   t: Translate;
+  Avatar: ComponentType<AvatarProps>;
 }
 
 export type HostRendererProps<View> = RendererBase<View>;
@@ -71,11 +80,30 @@ export interface GameContentEditor<Content> {
   Editor: ComponentType<ContentEditorProps<Content>>;
 }
 
+export interface SettingsEditorProps<Settings> {
+  /** The round's effective settings: the game's defaults with the round's changes on top. */
+  value: Settings;
+  onChange: (value: Settings) => void;
+  /** Keys under `games.<id>.*` (settings texts under `games.<id>.settings.*`). */
+  t: Translate;
+}
+
+/**
+ * The pack editor's form for one round's game settings. The pack stores only the settings
+ * that differ from `defaultSettings`; the server validates them with `settingsSchema`.
+ */
+export interface GameSettingsEditor<Settings> {
+  settingsSchema: z.ZodType<Settings>;
+  defaultSettings: Settings;
+  Editor: ComponentType<SettingsEditorProps<Settings>>;
+}
+
 /** What the web registry holds per game type (SPEC §5: gameType → renderer). */
-export interface GameRenderer<HostView, PlayerView, Content = unknown> {
+export interface GameRenderer<HostView, PlayerView, Content = unknown, Settings = unknown> {
   hostViewSchema: z.ZodType<HostView>;
   playerViewSchema: z.ZodType<PlayerView>;
   Host: ComponentType<HostRendererProps<HostView>>;
   Player: ComponentType<PlayerRendererProps<PlayerView>>;
   editor: GameContentEditor<Content>;
+  settings?: GameSettingsEditor<Settings>;
 }

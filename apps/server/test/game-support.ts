@@ -74,6 +74,51 @@ export async function createQuizPack(
   return { packId: pack.id, questions };
 }
 
+export interface PackSegment {
+  gameType: string;
+  /** Content items of the round, played in this order. */
+  contents: unknown[];
+  /** Round settings (changes to the game's defaults). */
+  settings?: Record<string, unknown>;
+  timeLimitMs?: number;
+}
+
+/** A published pack with one round per segment, each a fixed list of new content. */
+export async function createPack(
+  prisma: PrismaClient,
+  segments: PackSegment[],
+): Promise<{ packId: string; contentIds: string[][] }> {
+  const contentIds: string[][] = [];
+  for (const segment of segments) {
+    const ids: string[] = [];
+    for (const data of segment.contents) {
+      const item = await prisma.contentItem.create({
+        data: { gameType: segment.gameType, status: 'PUBLISHED', data: data as object },
+      });
+      ids.push(item.id);
+    }
+    contentIds.push(ids);
+  }
+  const pack = await prisma.gamePack.create({
+    data: {
+      name: `Karışık ${randomUUID().slice(0, 8)}`,
+      status: 'PUBLISHED',
+      rounds: {
+        create: segments.map((segment, index) => ({
+          order: index + 1,
+          gameType: segment.gameType,
+          contentSelection: { mode: 'fixed', contentIds: contentIds[index] ?? [] },
+          questionCount: segment.contents.length,
+          timeLimitMs: segment.timeLimitMs ?? 3_000,
+          showScoreboardAfter: false,
+          settings: { introMs: 50, ...segment.settings },
+        })),
+      },
+    },
+  });
+  return { packId: pack.id, contentIds };
+}
+
 export interface Table {
   host: TestSocket;
   hostToken: string;
@@ -123,6 +168,19 @@ export async function answering(
   const state = await gameState(
     socket,
     (s) => s.status === 'PLAYING' && s.round?.phase?.name === 'ANSWERING',
+  );
+  if (!state.round) throw new Error('no round');
+  return { roundId: state.round.roundId, state };
+}
+
+/** Waits until the round enters the named phase; returns the round id and that state. */
+export async function phaseOpen(
+  socket: TestSocket,
+  phase: string,
+): Promise<{ roundId: string; state: GameState }> {
+  const state = await gameState(
+    socket,
+    (s) => s.status === 'PLAYING' && s.round?.phase?.name === phase,
   );
   if (!state.round) throw new Error('no round');
   return { roundId: state.round.roundId, state };

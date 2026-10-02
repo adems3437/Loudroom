@@ -18,7 +18,8 @@ import {
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { GAME_TYPES } from '@/games/registry';
+import { findRenderer, GAME_TYPES } from '@/games/registry';
+import { useGameTranslator } from '@/games/translator';
 import { summarize } from './content-form';
 import { useAdminSession } from './session';
 import {
@@ -47,6 +48,8 @@ interface RoundDraft {
   timeLimitSec: string;
   scoreMultiplier: string;
   showScoreboardAfter: boolean;
+  /** Changes to the game's default settings. */
+  settings: Record<string, unknown>;
 }
 
 let nextKey = 1;
@@ -63,6 +66,7 @@ function newRound(): RoundDraft {
     timeLimitSec: '',
     scoreMultiplier: '1',
     showScoreboardAfter: true,
+    settings: {},
   };
 }
 
@@ -79,6 +83,7 @@ function draftOf(round: Pack['rounds'][number]): RoundDraft {
     timeLimitSec: round.timeLimitMs ? String(round.timeLimitMs / 1000) : '',
     scoreMultiplier: String(round.scoreMultiplier),
     showScoreboardAfter: round.showScoreboardAfter,
+    settings: round.settings,
   };
 }
 
@@ -100,7 +105,72 @@ function toInput(round: RoundDraft): PackRoundInput {
       : null,
     scoreMultiplier: Number(round.scoreMultiplier.replace(',', '.')),
     showScoreboardAfter: round.showScoreboardAfter,
+    settings: round.settings,
   };
+}
+
+/** The top-level settings that differ from the defaults: all a pack stores. */
+function changedSettings(
+  settings: Record<string, unknown>,
+  defaults: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(settings).filter(
+      ([key, value]) => JSON.stringify(value) !== JSON.stringify(defaults[key]),
+    ),
+  );
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** The round's game settings, edited with the game's own form (collapsed by default). */
+function RoundSettings({
+  round,
+  onChange,
+  invalid,
+}: {
+  round: RoundDraft;
+  onChange: (settings: Record<string, unknown>) => void;
+  invalid: boolean;
+}) {
+  const t = useTranslations('admin');
+  const tGame = useGameTranslator(round.gameType);
+  const editor = findRenderer(round.gameType)?.settings;
+  if (!editor || !isRecord(editor.defaultSettings)) return null;
+  const defaults = editor.defaultSettings;
+  const { Editor } = editor;
+  const changed = Object.keys(round.settings).length;
+  return (
+    <details
+      data-testid="pack-round-settings"
+      className="border-line rounded-xl border px-4 py-3"
+      open={invalid || undefined}
+    >
+      <summary className="cursor-pointer font-semibold">
+        {t('packs.settings')}{' '}
+        <span className="text-muted text-sm font-normal">
+          {changed > 0
+            ? t('packs.settingsChanged', { count: changed })
+            : t('packs.settingsDefault')}
+        </span>
+      </summary>
+      <div className="flex flex-col gap-3 pt-4">
+        <Editor
+          value={{ ...defaults, ...round.settings }}
+          onChange={(value) => {
+            if (isRecord(value)) onChange(changedSettings(value, defaults));
+          }}
+          t={tGame}
+        />
+        {invalid && (
+          <p className="text-danger text-sm" data-testid="pack-settings-invalid">
+            {t('packs.settingsInvalid')}
+          </p>
+        )}
+      </div>
+    </details>
+  );
 }
 
 function move<T>(list: T[], from: number, to: number): T[] {
@@ -314,6 +384,15 @@ export function PackForm({ pack }: { pack: Pack | null }) {
   };
 
   const packIssues = error?.code === 'PACK_INVALID' ? (error.issues ?? []) : [];
+  const settingsIssueRounds = new Set(
+    (error?.issues ?? []).flatMap((issue) =>
+      issue.path[0] === 'rounds' &&
+      issue.path[2] === 'settings' &&
+      typeof issue.path[1] === 'number'
+        ? [issue.path[1]]
+        : [],
+    ),
+  );
 
   return (
     <form
@@ -411,10 +490,11 @@ export function PackForm({ pack }: { pack: Pack | null }) {
           <div className="grid grid-cols-4 gap-4">
             <Field label={t('packs.gameType')}>
               <select
+                data-testid="pack-round-game"
                 className={inputClass}
                 value={round.gameType}
                 onChange={(event) => {
-                  update(index, { gameType: event.target.value, contentIds: [] });
+                  update(index, { gameType: event.target.value, contentIds: [], settings: {} });
                 }}
               >
                 {GAME_TYPES.map((gameType) => (
@@ -461,6 +541,15 @@ export function PackForm({ pack }: { pack: Pack | null }) {
               {t('packs.scoreboardAfter')}
             </label>
           </div>
+
+          <RoundSettings
+            key={`${round.key}-${round.gameType}`}
+            round={round}
+            invalid={settingsIssueRounds.has(index)}
+            onChange={(settings) => {
+              update(index, { settings });
+            }}
+          />
 
           <fieldset className="flex items-center gap-6">
             <legend className="mb-2 font-semibold">{t('packs.selection')}</legend>

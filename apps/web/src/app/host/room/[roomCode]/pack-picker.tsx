@@ -79,6 +79,7 @@ export function PackPicker({
                 <span className="max-w-full truncate text-[32px] font-bold">{pack.name}</span>
                 <span className="text-muted text-[26px]">
                   {t('packQuestions', { count: pack.questionCount })}
+                  {pack.minPlayers > 1 && ` · ${t('packMinPlayers', { count: pack.minPlayers })}`}
                 </span>
               </button>
             </li>

@@ -207,3 +207,80 @@ test('roles: editors do not manage users; logout ends the session', async ({ bro
   await expect(row).toBeHidden();
   await admin.context().close();
 });
+
+test('an editor writes content for the new games and changes a round’s game settings', async ({
+  browser,
+}) => {
+  // Every browser reaches the server through the web app's address, so the whole suite shares
+  // one REST rate-limit bucket: this test goes straight to its pages and reloads nothing.
+  test.setTimeout(120_000);
+  const tag = randomUUID().slice(0, 8);
+  const admin = await adminPage(browser);
+  await admin.goto('/admin/content');
+  await login(admin, ADMIN_EMAIL, ADMIN_PASSWORD);
+  await expect(admin).toHaveURL(/\/admin\/content$/);
+  // Every registered game gets its own "new content" button.
+  for (const gameType of ['quiz', 'closestNumber', 'sorting', 'whoWould']) {
+    await expect(admin.getByTestId(`content-new-${gameType}`)).toBeVisible();
+  }
+
+  // Closest Number: a missing answer is refused; typed numbers are grouped the Turkish way,
+  // and come back the same from the server.
+  await admin.goto('/admin/content/new?gameType=closestNumber');
+  await admin.getByTestId('closest-editor-question').fill(`E2E tahmin ${tag}: kaç metre?`);
+  await admin.getByTestId('content-save').click();
+  await expect(admin.getByTestId('closest-editor-answer')).toHaveAttribute('aria-invalid', 'true');
+  await admin.getByTestId('closest-editor-answer').fill('8848,5');
+  await expect(admin.getByTestId('closest-editor-answer')).toHaveValue('8.848,5');
+  await admin.getByTestId('closest-editor-unit').fill('m');
+  await admin.getByTestId('content-save').click();
+  await expect(admin).toHaveURL(/\/admin\/content\/[0-9a-f-]{36}$/);
+  const closestId = admin.url().split('/').at(-1) ?? '';
+  await expect(admin.getByTestId('closest-editor-answer')).toHaveValue('8.848,5');
+  await expect(admin.getByTestId('closest-editor-unit')).toHaveValue('m');
+
+  // Sorting: items in their correct order, one added, with end labels.
+  await admin.goto('/admin/content/new?gameType=sorting');
+  await admin.getByTestId('sorting-editor-question').fill(`E2E sıralama ${tag}`);
+  await admin.getByTestId('sorting-editor-add-item').click();
+  const items = admin.getByTestId('sorting-editor-item');
+  for (const [index, text] of ['Bir', 'İki', 'Üç', 'Dört'].entries()) {
+    await items.nth(index).fill(text);
+  }
+  await admin.getByTestId('sorting-editor-label-first').fill('Az');
+  await admin.getByTestId('sorting-editor-label-last').fill('Çok');
+  await admin.getByTestId('content-save').click();
+  await expect(admin).toHaveURL(/\/admin\/content\/[0-9a-f-]{36}$/);
+  await expect(items).toHaveCount(4);
+  await expect(items.nth(3)).toHaveValue('Dört');
+
+  // "Kim Yapar?"
+  await admin.goto('/admin/content/new?gameType=whoWould');
+  await admin.getByTestId('who-editor-question').fill(`E2E kim ${tag}?`);
+  await admin.getByTestId('who-editor-title').fill('E2E Şampiyonu');
+  await admin.getByTestId('content-save').click();
+  await expect(admin).toHaveURL(/\/admin\/content\/[0-9a-f-]{36}$/);
+  await expect(admin.getByTestId('who-editor-title')).toHaveValue('E2E Şampiyonu');
+
+  // A draft pack whose Closest Number round scores by rank; the change survives saving.
+  await admin.goto('/admin/game-packs/new');
+  await admin.getByTestId('pack-name').fill(`E2E ayarlar ${tag}`);
+  await admin.getByTestId('pack-round-game').selectOption('closestNumber');
+  await admin.getByTestId('pack-content-search').fill(tag);
+  await admin.getByTestId('pack-content-search').press('Enter');
+  await admin.locator(`[data-testid="pack-content-add"][data-content-id="${closestId}"]`).click();
+  const settings = admin.getByTestId('pack-round-settings');
+  await settings.locator('summary').click();
+  await settings.getByTestId('closest-settings-scoring').selectOption('rank');
+  await expect(settings.locator('summary')).toContainText('1 değişiklik');
+  await admin.getByTestId('pack-save').click();
+  await expect(admin).toHaveURL(/\/admin\/game-packs\/[0-9a-f-]{36}$/);
+  await expect(admin.getByTestId('pack-round-game')).toHaveValue('closestNumber');
+  await expect(settings.locator('summary')).toContainText('1 değişiklik');
+  await settings.locator('summary').click();
+  await expect(settings.getByTestId('closest-settings-scoring')).toHaveValue('rank');
+  await admin.getByTestId('pack-delete').click();
+  await admin.getByTestId('pack-delete-confirm').click();
+  await expect(admin).toHaveURL(/\/admin\/game-packs$/);
+  await admin.context().close();
+});

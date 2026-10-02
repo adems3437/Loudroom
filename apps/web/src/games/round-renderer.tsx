@@ -1,9 +1,10 @@
 'use client';
 
-import type { RendererPlayer } from '@loudroom/game-sdk/client';
-import { ClientCommand, type GameState } from '@loudroom/shared';
+import type { AvatarProps, RendererPlayer } from '@loudroom/game-sdk/client';
+import { avatarIdSchema, ClientCommand, type GameState } from '@loudroom/shared';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
+import { Avatar } from '@/components/avatar';
 import { tapFeedback } from '@/lib/haptics';
 import { sendCommand } from '@/realtime/commands';
 import { useRealtime } from '@/realtime/realtime-provider';
@@ -17,7 +18,22 @@ function UnknownView() {
   return <p className="text-danger">{t('unsupported')}</p>;
 }
 
-/** The current round on the host screen, drawn by the game's own renderer. */
+/** The web app's avatar set, for game screens (an unknown avatar id falls back to a circle). */
+function GameAvatar({ avatar, color, size, className }: AvatarProps) {
+  return (
+    <Avatar
+      id={avatarIdSchema.catch('circle').parse(avatar)}
+      color={color}
+      size={size}
+      {...(className ? { className } : {})}
+    />
+  );
+}
+
+/**
+ * The current round on the host screen, drawn by the game's own renderer. Keyed by round, so a
+ * renderer's local state (a half-sorted list, a typed number) never carries into the next round.
+ */
 export function HostRound({ round, players }: { round: Round; players: RendererPlayer[] }) {
   const { serverNow } = useRealtime();
   const t = useGameTranslator(round.gameType);
@@ -26,7 +42,15 @@ export function HostRound({ round, players }: { round: Round; players: RendererP
   if (!renderer || !view?.success) return <UnknownView />;
   const { Host } = renderer;
   return (
-    <Host view={view.data} phase={round.phase} serverNow={serverNow} players={players} t={t} />
+    <Host
+      key={round.roundId}
+      view={view.data}
+      phase={round.phase}
+      serverNow={serverNow}
+      players={players}
+      t={t}
+      Avatar={GameAvatar}
+    />
   );
 }
 
@@ -66,11 +90,13 @@ export function PlayerRound({
   const { Player } = renderer;
   return (
     <Player
+      key={round.roundId}
       view={view.data}
       phase={round.phase}
       serverNow={serverNow}
       players={players}
       t={t}
+      Avatar={GameAvatar}
       playerId={playerId}
       submit={submit}
       haptic={tapFeedback}

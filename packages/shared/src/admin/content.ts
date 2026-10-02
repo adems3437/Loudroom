@@ -133,6 +133,11 @@ export const packRoundInputSchema = z.strictObject({
   timeLimitMs: timeLimitMsSchema.nullable(),
   scoreMultiplier: z.number().min(0.5).max(5),
   showScoreboardAfter: z.boolean(),
+  /**
+   * The round's game settings that differ from the game's defaults (top-level keys). Checked
+   * with the game module's settingsSchema on the server; the time limit is `timeLimitMs` above.
+   */
+  settings: z.record(z.string(), z.unknown()).default({}),
 });
 export type PackRoundInput = z.infer<typeof packRoundInputSchema>;
 
@@ -171,6 +176,8 @@ export const publicPackSchema = z.strictObject({
   description: z.string().nullable(),
   questionCount: z.number().int().nonnegative(),
   gameTypes: z.array(z.string()),
+  /** Connected players needed to start (the most any of its games needs). */
+  minPlayers: z.number().int().positive(),
 });
 export type PublicPack = z.infer<typeof publicPackSchema>;
 

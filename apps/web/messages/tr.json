@@ -72,7 +72,10 @@
       "EDITOR": "Editör"
     },
     "gameTypes": {
-      "quiz": "Quiz"
+      "quiz": "Quiz",
+      "closestNumber": "En Yakın Sayı",
+      "sorting": "Sıralama",
+      "whoWould": "Kim Yapar?"
     },
     "overview": {
       "title": "Genel bakış",
@@ -151,6 +154,10 @@
       "timeLimitHint": "Boş: oyunun varsayılanı",
       "multiplier": "Puan çarpanı",
       "scoreboardAfter": "Her sorudan sonra skor tablosu",
+      "settings": "Oyun ayarları",
+      "settingsDefault": "(varsayılan)",
+      "settingsChanged": "({count} değişiklik)",
+      "settingsInvalid": "Bu bölümün oyun ayarlarında geçersiz bir değer var.",
       "moveUp": "Yukarı taşı",
       "moveDown": "Aşağı taşı",
       "selected": "Seçilenler ({count})",
@@ -263,7 +270,8 @@
     "packHeading": "Soru paketi",
     "packQuestions": "{count} soru",
     "noPacks": "Yayında soru paketi yok. Yönetim panelinden bir paket yayınla.",
-    "packsFailed": "Paketler yüklenemedi."
+    "packsFailed": "Paketler yüklenemedi.",
+    "packMinPlayers": "en az {count} oyuncu"
   },
   "play": {
     "enterCode": "Oda kodunu gir",
@@ -350,6 +358,137 @@
         "removeOption": "Kaldır",
         "addOption": "Seçenek ekle",
         "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "baseScore": "Taban puan",
+        "streakStep": "Seri bonusu (adım başına)",
+        "streakStepHint": "{from}. doğrudan itibaren her doğru cevaba eklenir.",
+        "allowAnswerChange": "Cevap değiştirilebilsin",
+        "allowAnswerChangeHint": "Açıkken soru süre bitince kapanır, herkes cevaplasa da beklenir."
+      }
+    },
+    "closestNumber": {
+      "timeLeft": "Kalan süre",
+      "getReady": "Soru geliyor…",
+      "answered": "{count} / {total} oyuncu tahmin etti",
+      "answerIn": "Cevabı {unit} cinsinden tahmin et",
+      "answerYear": "Yılı tahmin et",
+      "answerNumber": "Sayıyı tahmin et",
+      "correctAnswerIs": "Doğru cevap:",
+      "noGuesses": "Kimse tahmin vermedi.",
+      "lookAtScreen": "Soru ekranda!",
+      "yourGuess": "Tahminin",
+      "yourYear": "Tahmin ettiğin yıl",
+      "send": "Gönder",
+      "yourGuessWas": "Tahminin alındı",
+      "waitForOthers": "Diğerleri bekleniyor…",
+      "noAnswer": "Tahmin vermedin",
+      "closest": "En yakın sensin!",
+      "rankOf": "{total} tahmin içinde {rank}. sıradasın",
+      "correctAnswer": "Doğru cevap: {answer}",
+      "yourGuessIs": "Senin tahminin: {guess}",
+      "editor": {
+        "question": "Soru",
+        "answer": "Doğru cevap",
+        "unit": "Birim (isteğe bağlı)",
+        "unitPlaceholder": "ör. m, km², kişi",
+        "displayFormat": "Gösterim",
+        "formatNumber": "Sayı (1.234.567)",
+        "formatYear": "Yıl (1923)",
+        "answerHint": "Ondalık için virgül kullan (ör. 3,14). Yıllar tam sayı olmalı; milattan önce için eksi yaz.",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "baseScore": "Taban puan",
+        "scoring": "Puanlama",
+        "scoringRelative": "Yakınlığa göre (göreli hata)",
+        "scoringRank": "Sıralamaya göre",
+        "maxRelativeError": "Puan alınan en büyük hata (%)",
+        "maxRelativeErrorHint": "Cevaptan bu oranda veya daha fazla uzak tahminler 0 puan alır.",
+        "maxYearError": "Yıl sorularında en büyük hata (yıl)",
+        "maxYearErrorHint": "Bu kadar yıl veya daha fazla uzak tahminler 0 puan alır."
+      }
+    },
+    "sorting": {
+      "timeLeft": "Kalan süre",
+      "getReady": "Sıralama geliyor…",
+      "fromTo": "{first} → {last}",
+      "answered": "{count} / {total} oyuncu sıralamasını gönderdi",
+      "placedRight": "Doğru yere koyanlar: %{percent}",
+      "perfect": "{total} oyuncudan {count} kişi sıralamayı tam doğru yaptı",
+      "lookAtScreen": "Soru ekranda!",
+      "dragHandle": "{item} öğesini sürükle",
+      "moveUp": "{item} öğesini yukarı taşı",
+      "moveDown": "{item} öğesini aşağı taşı",
+      "send": "Gönder",
+      "update": "Güncelle",
+      "sentCanChange": "Sıralaman gönderildi; süre bitene kadar değiştirebilirsin.",
+      "answerLocked": "Sıralaman alındı",
+      "waitForOthers": "Diğerleri bekleniyor…",
+      "noAnswer": "Sıralama göndermedin",
+      "allCorrect": "Tamamı doğru!",
+      "wrongOrder": "Sıralama tam tutmadı",
+      "placedCount": "{total} öğeden {count} tanesi doğru yerde",
+      "rightOrder": "Doğru sıra",
+      "inPlace": "Doğru yerde",
+      "notInPlace": "Yanlış yerde",
+      "editor": {
+        "question": "Soru",
+        "items": "Öğeler (doğru sırada)",
+        "itemsHint": "Öğeleri doğru sırayla yaz; oyunda karışık gösterilir. 3–8 öğe.",
+        "itemPlaceholder": "{number}. öğe",
+        "itemImage": "Öğe görseli",
+        "moveUp": "Yukarı taşı",
+        "moveDown": "Aşağı taşı",
+        "removeItem": "Kaldır",
+        "addItem": "Öğe ekle",
+        "labels": "Uç etiketleri (isteğe bağlı)",
+        "labelFirst": "İlk sıranın etiketi",
+        "labelFirstPlaceholder": "ör. En eski",
+        "labelLast": "Son sıranın etiketi",
+        "labelLastPlaceholder": "ör. En yeni",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "baseScore": "Taban puan",
+        "scoring": "Puanlama",
+        "scoringPosition": "Doğru yerdeki öğe oranı",
+        "scoringKendall": "Doğru sıralı çiftler (Kendall)",
+        "allowAnswerChange": "Sıralama değiştirilebilsin",
+        "allowAnswerChangeHint": "Açıkken soru süre bitince kapanır, herkes gönderse de beklenir."
+      }
+    },
+    "whoWould": {
+      "timeLeft": "Kalan süre",
+      "getReady": "Oylama birazdan başlıyor…",
+      "voted": "{count} / {total} oyuncu oy verdi",
+      "votes": "{count} oy",
+      "noVotes": "Kimse oy vermedi.",
+      "notEnoughPlayers": "Bu soru için en az {min} bağlı oyuncu gerekiyor; puansız geçildi.",
+      "lookAtScreen": "Soru ekranda!",
+      "me": "{nickname} (sen)",
+      "voteLocked": "Oyun alındı",
+      "anonymous": "Oylar gizli; kimin kime oy verdiği gösterilmez.",
+      "noVote": "Oy vermedin",
+      "withMajority": "Çoğunlukla aynı fikirdesin!",
+      "notWithMajority": "Çoğunluk başka birini seçti",
+      "titleGoesTo": "{title}: {names}",
+      "mostVoted": "En çok oy alan: {names}",
+      "youGotTitle": "Unvan senin: {title}",
+      "editor": {
+        "question": "İfade",
+        "questionPlaceholder": "ör. Kim en çok geç kalır?",
+        "title": "Unvan (isteğe bağlı)",
+        "titlePlaceholder": "ör. Geç Kalma Şampiyonu",
+        "titleHint": "Sonuçta en çok oy alan oyuncuya verilir.",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "baseScore": "Çoğunluğu bulma puanı",
+        "baseScoreHint": "En çok oy alanı (eşitlikte birini) seçenlere verilir.",
+        "winnerPoints": "En çok oy alanın puanı",
+        "winnerPointsHint": "En çok oy alan oyuncuya (eşitlikte hepsine) verilir.",
+        "allowSelfVote": "Kendine oy verilebilsin"
       }
     }
   },

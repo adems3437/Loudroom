@@ -13,6 +13,15 @@ describeGameModuleContract(quizModule, {
     { type: 'input', playerId: 'p2', input: { optionId: 'a' }, afterMs: 1_000 },
     { type: 'input', playerId: 'p3', input: { optionId: 'b' }, afterMs: 3_000 },
   ],
+  // Same moments, other choices: nobody may see what the others picked before the reveal.
+  secretScripts: [
+    [
+      { type: 'timer' },
+      { type: 'input', playerId: 'p1', input: { optionId: 'c' }, afterMs: 2_000 },
+      { type: 'input', playerId: 'p2', input: { optionId: 'a' }, afterMs: 1_000 },
+      { type: 'input', playerId: 'p3', input: { optionId: 'd' }, afterMs: 3_000 },
+    ],
+  ],
   invalidInputs: [{ optionId: 'zzz' }, { nope: 1 }, { optionId: 5 }, null],
 });
 

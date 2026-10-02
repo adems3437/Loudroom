@@ -9,10 +9,13 @@ import {
   type PackSummary,
   type PublicPack,
 } from '@loudroom/shared';
+import { z } from 'zod';
 import { findGameModule } from '../game/registry.js';
 import type { Prisma } from '../generated/prisma/client.js';
-import { ApiException, notFound } from '../http/api-exception.js';
+import { ApiException, notFound, zodIssues } from '../http/api-exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+const settingsSchema = z.record(z.string(), z.unknown());
 
 const packInclude = { rounds: { orderBy: { order: 'asc' } } } satisfies Prisma.GamePackInclude;
 type PackRow = Prisma.GamePackGetPayload<{ include: typeof packInclude }>;
@@ -31,6 +34,7 @@ function toRound(row: RoundRow): Pack['rounds'][number] {
     timeLimitMs: row.timeLimitMs,
     scoreMultiplier: row.scoreMultiplier,
     showScoreboardAfter: row.showScoreboardAfter,
+    settings: settingsSchema.safeParse(row.settings).data ?? {},
   };
 }
 
@@ -73,6 +77,18 @@ function normalizeRound(round: PackRoundInput): PackRoundInput {
   };
 }
 
+/**
+ * A round's settings are the changes to its game's defaults; together they must be valid
+ * settings for that game. Rounds of unknown games are reported when publishing.
+ */
+function checkSettings(round: PackRoundInput, index: number): ApiIssue[] {
+  const module = findGameModule(round.gameType);
+  if (!module) return [];
+  const defaults = settingsSchema.parse(module.defaultSettings);
+  const parsed = module.settingsSchema.safeParse({ ...defaults, ...round.settings });
+  return parsed.success ? [] : zodIssues(parsed.error, ['rounds', index, 'settings']);
+}
+
 const issue = (path: ApiIssue['path'], code: PackIssueCode, message: string): ApiIssue => ({
   path,
   code,
@@ -108,6 +124,10 @@ export class PacksService {
       description: row.description,
       questionCount: questionCount(row),
       gameTypes: [...new Set(row.rounds.map((round) => round.gameType))],
+      minPlayers: Math.max(
+        1,
+        ...row.rounds.map((round) => findGameModule(round.gameType)?.capabilities.minPlayers ?? 1),
+      ),
     }));
   }
 
@@ -160,13 +180,21 @@ export class PacksService {
 
   private async prepare(input: PackInput) {
     const rounds = input.rounds.map(normalizeRound);
+    const settingsIssues = rounds.flatMap((round, index) => checkSettings(round, index));
+    if (settingsIssues.length > 0) {
+      throw new ApiException(400, 'VALIDATION_ERROR', 'Invalid game settings', settingsIssues);
+    }
     if (input.status === 'PUBLISHED') {
       const issues = await this.check(rounds);
       if (issues.length > 0) {
         throw new ApiException(400, 'PACK_INVALID', 'The pack cannot be published yet', issues);
       }
     }
-    return rounds.map((round, index) => ({ ...round, order: index + 1, settings: {} }));
+    return rounds.map((round, index) => ({
+      ...round,
+      order: index + 1,
+      settings: round.settings as Prisma.InputJsonObject,
+    }));
   }
 
   /** Every round must be playable with published content when the pack is published. */

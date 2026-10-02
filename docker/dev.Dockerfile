@@ -12,7 +12,9 @@ RUN npm install --global pnpm@12.8.1 && npm cache clean --force
 # created writable for it (they shadow the host's macOS node_modules inside the container).
 RUN mkdir -p /app/node_modules /app/apps/server/node_modules /app/apps/web/node_modules \
     /app/packages/shared/node_modules /app/packages/game-sdk/node_modules \
-    /app/packages/games/quiz/node_modules /pnpm-store /media-data \
+    /app/packages/games/quiz/node_modules /app/packages/games/closest-number/node_modules \
+    /app/packages/games/sorting/node_modules /app/packages/games/who-would/node_modules \
+    /pnpm-store /media-data \
   && chown -R node:node /app /pnpm-store /media-data
 
 USER node

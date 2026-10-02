@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AnyGameModule } from '../module.js';
-import { playRound, type RoundFixture } from './harness.js';
+import { playRound, type Frame, type RoundFixture, type ScriptStep } from './harness.js';
 
 export interface ContractFixture extends RoundFixture {
   /**
@@ -8,9 +8,49 @@ export interface ContractFixture extends RoundFixture {
    * (e.g. another correct answer). Until then, every client must see exactly the same thing
    * whichever variant is played — otherwise the secret is observable.
    */
-  secretVariants: unknown[];
+  secretVariants?: unknown[];
+  /**
+   * Variants of `script` with the same players acting at the same moments, but choosing
+   * differently. Until the round ends, the host and every player whose own inputs did not
+   * change must see exactly the same thing — otherwise one player's choice leaks to others.
+   */
+  secretScripts?: ScriptStep[][];
+  /**
+   * Variants of `script` that give the same overall result (e.g. the same vote counts) from
+   * different players. Even after the round ends, the host and every player whose own inputs did
+   * not change must see the same thing, and get the same score — choices stay anonymous.
+   */
+  anonymousScripts?: ScriptStep[][];
   /** Inputs the module must refuse, either by schema or with a reject effect. */
   invalidInputs: unknown[];
+}
+
+/** When and by whom each step happens, without what was chosen. */
+function timing(script: ScriptStep[]) {
+  return script.map((step) =>
+    step.type === 'timer'
+      ? step
+      : { type: step.type, playerId: step.playerId, afterMs: step.afterMs ?? 0 },
+  );
+}
+
+/** A player's inputs in a script, as JSON (inputs are plain JSON values). */
+function inputsOf(script: ScriptStep[], playerId: string): string {
+  return JSON.stringify(
+    script.flatMap((step) =>
+      step.type === 'input' && step.playerId === playerId ? [step.input] : [],
+    ),
+  );
+}
+
+/** What the host and the given players were shown, frame by frame. */
+function seenBy(frames: Frame[], playerIds: string[]) {
+  return frames.map((frame) => ({
+    phase: frame.phase,
+    ended: frame.ended,
+    hostView: frame.hostView,
+    playerViews: playerIds.map((id) => frame.playerViews[id]),
+  }));
 }
 
 /**
@@ -37,17 +77,62 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
       }
     });
 
-    it('leaks no secret to any client before the round ends', () => {
-      expect(fixture.secretVariants.length).toBeGreaterThan(0);
-      const beforeEnd = (content: unknown) =>
-        playRound(module, { ...fixture, content }).frames.filter((frame) => !frame.ended);
-      const reference = beforeEnd(fixture.content);
-      expect(reference.length).toBeGreaterThan(0);
-      for (const variant of fixture.secretVariants) {
-        expect(module.contentSchema.safeParse(variant).success).toBe(true);
-        expect(beforeEnd(variant)).toEqual(reference);
-      }
+    it('declares what must stay secret', () => {
+      const declared = (fixture.secretVariants?.length ?? 0) + (fixture.secretScripts?.length ?? 0);
+      expect(declared).toBeGreaterThan(0);
     });
+
+    it.runIf(fixture.secretVariants?.length)(
+      'leaks no secret content to any client before the round ends',
+      () => {
+        const beforeEnd = (content: unknown) =>
+          playRound(module, { ...fixture, content }).frames.filter((frame) => !frame.ended);
+        const reference = beforeEnd(fixture.content);
+        expect(reference.length).toBeGreaterThan(0);
+        for (const variant of fixture.secretVariants ?? []) {
+          expect(module.contentSchema.safeParse(variant).success).toBe(true);
+          expect(beforeEnd(variant)).toEqual(reference);
+        }
+      },
+    );
+
+    it.runIf(fixture.secretScripts?.length)(
+      "leaks no player's input to others before the round ends",
+      () => {
+        const reference = playRound(module, fixture).frames;
+        for (const script of fixture.secretScripts ?? []) {
+          expect(timing(script)).toEqual(timing(fixture.script));
+          const unchanged = fixture.players
+            .map((player) => player.id)
+            .filter((id) => inputsOf(script, id) === inputsOf(fixture.script, id));
+          const frames = playRound(module, { ...fixture, script }).frames;
+          const beforeEnd = (list: Frame[]) => list.filter((frame) => !frame.ended);
+          expect(seenBy(beforeEnd(frames), unchanged)).toEqual(
+            seenBy(beforeEnd(reference), unchanged),
+          );
+        }
+      },
+    );
+
+    it.runIf(fixture.anonymousScripts?.length)(
+      'keeps choices anonymous, also after the round',
+      () => {
+        const reference = playRound(module, fixture);
+        expect(reference.results).not.toBeNull();
+        for (const script of fixture.anonymousScripts ?? []) {
+          expect(timing(script)).toEqual(timing(fixture.script));
+          const unchanged = fixture.players
+            .map((player) => player.id)
+            .filter((id) => inputsOf(script, id) === inputsOf(fixture.script, id));
+          expect(unchanged.length).toBeLessThan(fixture.players.length);
+          const played = playRound(module, { ...fixture, script });
+          expect(seenBy(played.frames, unchanged)).toEqual(seenBy(reference.frames, unchanged));
+          const scoresOf = (results: typeof played.results) =>
+            (results ?? []).filter((result) => unchanged.includes(result.playerId));
+          expect(scoresOf(played.results)).toEqual(scoresOf(reference.results));
+        }
+      },
+    );
 
     it('refuses invalid input', () => {
       const { state, context } = playRound(module, fixture, { untilFirstInput: true });

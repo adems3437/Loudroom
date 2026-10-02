@@ -12,8 +12,11 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@loudroom/game-closest-number": "workspace:*",
     "@loudroom/game-quiz": "workspace:*",
     "@loudroom/game-sdk": "workspace:*",
+    "@loudroom/game-sorting": "workspace:*",
+    "@loudroom/game-who-would": "workspace:*",
     "@loudroom/shared": "workspace:*",
     "motion": "13.4.6",
     "next": "16.3.8",
