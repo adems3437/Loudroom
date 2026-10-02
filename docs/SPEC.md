@@ -136,7 +136,8 @@ interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
 }
 
 type Transition<S> = { state: S; effects?: Effect[] };
-// Effect: { type: 'phase', phase, durationMs | null } | { type: 'endRound' }
+// Effect: { type: 'phase', phase, durationMs | null, hidden? } | { type: 'endRound' }
+//   hidden: saat sunucuda kalır, istemciler fazı süresi ve bitişi olmadan görür (Reaction)
 //       | { type: 'reject', playerId, code: 'ROUND_CLOSED' | 'ALREADY_ANSWERED' | 'INVALID_INPUT'
 //                                          | 'TOO_CLOSE' | 'TEXT_REJECTED' }
 ```
@@ -164,6 +165,8 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
   - Image Location: `{ question, mediaId, target: { x, y } (0..1), radius? }` (yarıçap uzun kenarın oranı)
   - Bluff: `{ question, answer, acceptedAnswers?: string[] (≤5), decoys: string[] (2–6) }`
   - Drawing: `{ word, alternatives?: string[] (≤5) }`
+  - Reaction: `{ title, variant: 'classic' | 'goNoGo' }`
+  - Memory: `{ title, items: [{ id, label, emoji?, mediaId? }] (8–24) }` (her öğede emoji ya da görsel)
   - Diğer oyunlar kendi şemalarıyla.
 - **GamePack:** `id, name, description, status (DRAFT|PUBLISHED), settings, rounds[]` — host yalnızca yayındaki paketleri görür; yayınlarken her bölümün oynanabilir olduğu kontrol edilir.
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`

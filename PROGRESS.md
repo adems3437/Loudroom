@@ -4,155 +4,163 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                          |
-| ----------------------------------------------- | ------------------------------ |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)     |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)     |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)     |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)     |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)     |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02)     |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02)     |
-| Phase 8 — Reaction + Memory                     | ⏸ Plan onay bekliyor (aşağıda) |
+| Faz                                             | Durum                      |
+| ----------------------------------------------- | -------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
+| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
 
 ---
 
-## Phase 8 — Reaction + Memory (plan, onay bekliyor)
+## Phase 8 — Reaction + Memory
 
-Plan 2026-10-02'de çıkarıldı. E1–E12 kararları kullanıcının onayını bekliyor. Kullanıcı
-"öneriler tamam" derse uygulamaya geçilir.
+Plan 2026-10-02'de onaylandı (E1–E12: "öneriler tamam") ve aynı gün Mac'te uygulandı.
 
-### 1. Ortak altyapı
+### Yapılanlar
 
-- **Gizli faz saati:** Bugün her fazın bitiş zamanı (`endsAt`) `game:state` ve
-  `round:phase` ile herkese gidiyor. Reaction'da bu, hedefin ne zaman çıkacağını önceden
-  söyler. Faz efektine isteğe bağlı `hidden: true` eklenir. Motor gerçek saati kendinde tutar
-  (zamanlayıcı, duraklatma, `ctx.phase`), istemcilere saati `endsAt: null` ve
-  `durationMs: null` olarak gönderir.
-- **Sözleşme testi:** `secretHolders` özel bir `host` değeri alabilir: host görünümü
-  karşılaştırmalardan çıkarılır. Reaction'da TV denemelerin sonuçlarını canlı gösterir; gizli
-  olan, telefonların birbirinin sonucunu görmemesidir.
-- **Docker:** İki yeni paket için `node_modules` volume'u ve bağlama noktası.
-
-### 2. Oyunlar
-
+- **Gizli faz saati:**
+  - Faz efektine `hidden: true` eklendi (`PhaseClock.hidden`). Motor gerçek saati tutuyor:
+    zamanlayıcı, duraklatma ve `ctx.phase` etkilenmiyor.
+  - İstemcilere saat yalnızca `publicClock` üzerinden gidiyor: gizli fazda `durationMs` ve
+    `endsAt` null. Bu `game:state`, `round:phase` ve duraklatmadaki `pausedRemainingMs` için
+    geçerli.
+- **Sözleşme testi:** `secretHolders` özel `host` değerini alıyor (host görünümü gizlilik
+  karşılaştırmalarından çıkar). Bu değerlerin görünümleri hem `secretVariants` hem
+  `secretScripts` karşılaştırmasından çıkarılıyor.
 - **Reaction** (`reaction`, `@loudroom/game-reaction`):
-  - İçerik: `{ title, variant: 'classic' | 'goNoGo' }`.
-    - `classic`: hedef çıkınca bas.
-    - `goNoGo`: bazı denemelerde hedef yerine bir tuzak çıkar (başka şekil ve renk); tuzağa
-      basmak ceza. Tuzaklı denemeler medyana girmez.
-  - Fazlar: INTRO → her deneme için ARMED (gizli, seed ile 1,5–4 sn) → GO (hedef, en fazla
-    `maxReactionMs` = 1,5 sn) → ATTEMPT_RESULT (~1,5 sn) → … → REVEAL. Deneme sayısı ayar,
-    varsayılan 3. Herkes basınca GO beklemeden biter.
-  - Hedef TV'de değil telefonda gösterilir (SPEC §7.7). TV yalnızca "Hazır ol… / BAS!"
-    durumunu ve deneme sonuçlarını gösterir; referans alınmaz.
-  - Ölçüm telefonda:
-    - Hedefin çizildiği kare (`requestAnimationFrame` zamanı) ile dokunmanın
-      `event.timeStamp`'i arası; ikisi de `performance.now()` saatinde.
-    - Telefon hedef ekrana gelince `shown`, basınca `tap` (ölçülen ms) gönderir.
-  - Sunucunun makullük kontrolü:
-    - 100 ms'den kısa ya da `maxReactionMs`'den uzun süre geçersiz.
-    - `tap`'ten önce `shown` gelmiş olmalı.
-    - `shown` GO'dan sonra en fazla 1,5 sn içinde gelmeli.
-    - İki mesajın sunucuya varış arası ile bildirilen süre en fazla 300 ms farklı olabilir
-      (aynı bağlantının iki mesajı benzer gecikmeyle gelir).
-    - Uymayan deneme geçersiz sayılır ve ceza süresi yazılır.
-  - Erken basma (ARMED'da) ve süresinde basmama: o deneme `maxReactionMs` sayılır.
-  - Oyuncunun sonucu, geçerli denemelerinin medyanı.
-  - Puan: medyana göre sıra; 1000, sıra başına −150, en az 300. Hiç geçerli denemesi yoksa 0.
-    Eşitlikte en iyi tek deneme, sonra katılma sırası. `correct`: medyanı `goodMs`'nin
-    (varsayılan 450 ms) altında.
+  - İçerik `{ title, variant: 'classic' | 'goNoGo' }`.
+  - Denemeler round başında seed ile planlanıyor: hedef denemeleri (varsayılan 3) ve tuzaklı
+    türde `round(deneme × decoyRate)` tuzak (ilk deneme hiç tuzak değil). Her denemenin
+    bekleme süresi 1,5–4 sn.
+  - Fazlar INTRO → [ARMED (gizli) → GO (en fazla `maxReactionMs` + 1 sn) → RESULT (1,5 sn)] ×
+    deneme → REVEAL. Herkesin sonucu belli olunca GO beklemeden kapanıyor.
+  - Telefon: hedef `requestAnimationFrame` karesinde çiziliyor; o kare zamanı ile dokunmanın
+    `event.timeStamp`'i aynı `performance.now()` saatinde. `shown` hemen, `tap` ölçülen süreyle
+    gidiyor.
+  - Makullük (`plausibleTap`): `shown` yoksa, GO'dan 1,5 sn sonra geldiyse, süre 100 ms
+    altındaysa ya da iki mesajın varış arası ölçülen süreden 300 ms'den fazla saptıysa deneme
+    `invalid`. Makul ama `maxReactionMs`'den yavaşsa `missed`.
+  - Erken basma `early`; tuzağa basma `decoyTap`; tuzağa basmamak `held` (puanlanmaz). Ceza
+    alan her deneme `maxReactionMs` (1,5 sn) sayılıyor.
+  - Sonuç: puanlanan denemelerin medyanı; en az bir geçerli dokunuş yoksa sonuç ve puan yok.
+    Sıra: medyan, sonra en iyi tek deneme, sonra katılma sırası.
+  - Puan 1000 / −150 / en az 300. `correct`: medyan < 450 ms; hiç dokunmadıysa null.
+    `responseTimeMs`: medyan (motorun eşitlik bozucu toplamına girer).
+  - TV her denemenin sonuçlarını canlı gösteriyor; telefonlar yalnızca kendi sonuçlarını
+    görüyor. "Atla" o ana kadarki denemelerle bitiriyor (`onSkip`).
 - **Memory** (`memory`, `@loudroom/game-memory`):
-  - İçerik bir nesne seti: `{ title, items: [{ id, label, emoji?, mediaId? }] (8–24) }`.
-    Her öğede emoji ya da görsel olmalı.
-  - Tahta (sunucuda, round seed'iyle): Setten `distinctCount` (varsayılan 6) öğe seçilir ve
-    `boardSize` (varsayılan 9) kutuya tekrarlarla dağıtılır; böylece "kaç tane" sorusu anlamlı
-    olur.
-  - Fazlar: INTRO → SHOW (tahta TV'de `showMs`, varsayılan 8 sn; telefonlarda "Ekrana bak!")
-    → QUESTIONS → REVEAL.
-  - QUESTIONS: Telefonda sırayla `questionCount` (varsayılan 3) soru, 4 seçenekli. Herkes aynı
-    soruları alır. Tahta bu sırada TV'de de gizli.
-    - "Hangisi ekrandaydı?": 1 vardı + 3 yoktu.
-    - "Hangisi ekranda yoktu?": 3 vardı + 1 yoktu.
-    - "Kaç tane {X} vardı?": sayılar.
-    - Soru türleri seed ile karışık sırada. Her soru bir kez cevaplanır; herkes bitirince
-      erken REVEAL.
-  - Puan: doğru cevap başına 400 (ayar), hız yok. `correct`: hepsi doğru.
-  - REVEAL: TV'de tahta, her sorunun doğru cevabı ve kaç kişinin bildiği; telefonda kendi
-    cevapları ve doğruları.
-  - Gizli bilgi: doğru cevaplar ve tahta telefonlara hiç gitmez (yalnızca seçenekler).
-    Oyuncuların cevapları REVEAL'e kadar birbirinden gizli (`secretScripts`). Doğru cevabın
-    sızmadığı ayrıca birim testinde kontrol edilir.
-- Her iki oyun Phase 5–7 kalıbında: `schema.ts`, `server.ts`, `host.tsx`, `player.tsx`,
-  `editor.tsx`, `settings-editor.tsx`, testler; registry'lere birer satır; metinler
-  `games.<id>` altında.
+  - İçerik `{ title, items: [{ id, label, emoji?, mediaId? }] }`, 8–24 öğe; kimlikler ve
+    katlanmış etiketler tekil.
+  - `buildBoard`:
+    - Öğeler id'ye göre dizilip seed ile karıştırılıyor; editördeki sıra tahtayı etkilemiyor.
+    - `distinctCount` öğe seçiliyor (en az 3, setin 3 eksiği en fazla; "yoktu" seçenekleri
+      için). `boardSize` kutuya tekrarlarla dağıtılıyor.
+    - Sorular: vardı (1 doğru + 3 yok), yoktu (1 yok + 3 var), kaç tane (4 ardışık sayı, en
+      az 1). Seçenek id'leri `o1–o4`, sıra seed ile.
+  - Fazlar INTRO → SHOW (8 sn, tahta yalnızca TV'de) → QUESTIONS (30 sn, telefonda sırayla) →
+    REVEAL. Herkes bitirince erken REVEAL.
+  - Puan doğru cevap başına 400; `correct`: hepsi doğru.
+  - Doğru cevaplar ve tahta telefonlara hiç gitmiyor; host'ta yalnızca SHOW ve REVEAL'de.
+- **Admin:** Reaction editörü (başlık, tür), Memory editörü (set adı; emoji, etiket, görsel
+  satırları, 8–24), ikisinin ayar formları.
+- **Seed** (`src/seed/reflex-pack.ts`): Reaction "Klasik" ve "Renk tuzağı"; emoji setleri
+  meyveler (12), hayvanlar (14), eşyalar (13), taşıtlar (12); yayında "Refleks ve Hafıza"
+  paketi (2 Reaction + 3 Memory, en az 1 oyuncu).
+- **room-recovery testi:** Sunucuyu yeniden başlatan bu test, paralel çalışan test
+  paketleri arttıkça 5 sn'lik olay beklemesini aşıyordu (Phase 5'te bir kez, burada yine).
+  Bu testte beklemeler 14 sn, test sınırı 30 sn yapıldı; kod değişikliği yok.
 
-### 3. Admin ve seed
-
-- **Reaction editörü:** başlık ve tür (klasik / tuzaklı).
-- **Memory editörü:** set adı; öğe listesi (etiket, emoji ya da görsel, ekle / çıkar).
-- **Ayar formları:**
-  - Reaction: deneme sayısı, en uzun süre, "iyi" eşiği, puanlar, tuzak oranı.
-  - Memory: tahta boyu, farklı öğe sayısı, gösterim süresi, soru sayısı, soru başı puan.
-- **Seed:**
-  - 2 Reaction içeriği (Klasik, Renk tuzağı).
-  - Emoji ile 4 Memory seti: meyveler, hayvanlar, eşyalar, taşıtlar; 12–16 öğe.
-  - Yayında "Refleks ve Hafıza" paketi: 2 Reaction + 3 Memory, en az 1 oyuncu.
-
-### 4. Testler
+### Testler
 
 - **Unit:**
-  - Reaction: gizli ARMED saati, deneme akışı, erken basma, geçersiz süreler (100 ms altı,
-    üst sınır, `shown` yokken `tap`, varış aralığı uyuşmazlığı), medyan, tuzak, sıra puanı.
-  - Memory: tahta üretimi (tekrarlar, seed ile belirli), soru üretimi (dört seçenek, tek
-    doğru, sayı seçenekleri), puan.
-  - Telefon görünümlerinde tahta ve doğru cevap yok.
-  - Sözleşme testleri: `secretScripts` ve gerektiğinde `secretHolders: ['host']`.
-- **Integration:**
-  - Gizli fazın `endsAt`'i hiçbir socket'e gitmiyor ama zamanlayıcı ve duraklatma doğru
-    çalışıyor.
-  - Reaction denemeleri gerçek varış zamanlarıyla kontrol ediliyor.
-  - Memory'de doğru cevaplar REVEAL öncesi hiçbir payload'da yok; puanlar.
-- **E2E (host + 3 telefon, Chromium + WebKit):**
-  - "Refleks ve Hafıza" oynanır.
-  - Reaction'da telefonlar hedef görününce (en az 150 ms bekleyip) basar; biri bir denemede
-    erken basar ve cezayı görür; TV'de sonuç sıralaması çıkar.
-  - Memory'de tahta TV'de görünür, sonra kaybolur; telefonlar soruları cevaplar; REVEAL'de
-    doğrular gösterilir.
-  - WebSocket çerçevelerinde GO zamanı ve Memory'nin doğru cevapları REVEAL öncesi yok.
+  - Reaction: medyan, `plausibleTap` sınırları, gizli ARMED efekti ve süresinin
+    görünümlerde olmaması, tuzak planı, erken bitiş, geçersiz dokunuşlar (100 ms altı,
+    `shown`suz, varış uyuşmazlığı, erken, kaçırma), retler, medyan + ceza puanları, tuzak
+    cezası, `onSkip`, telefonların yalnızca kendi sonucunu görmesi.
+  - Memory: tahta (tekrarlar, seed ve sıradan bağımsızlık), soru türleri ve seçenekler, küçük
+    set, tahtanın ve cevapların telefonlara gitmemesi, tek cevap, puanlar, REVEAL.
+  - Sözleşme testleri: Reaction `secretScripts` + `secretHolders: ['host']`, Memory
+    `secretScripts`.
+- **Integration** (`test/reflex-memory.test.ts`):
+  - ARMED'in saati istemciye `null` gidiyor; duraklatmada kalan süre de gizli.
+  - Gerçek varış zamanlarıyla `ok` / `invalid` / `early`; medyan ve puanlar.
+  - Memory'de tahta yalnızca host'a, doğru cevaplar REVEAL'e kadar hiçbir payload'da yok;
+    puanlar.
+  - Seed testi.
+- **E2E** (`e2e/reflex-memory.spec.ts`, Chromium + WebKit): "Refleks ve Hafıza" host + 3
+  telefonla.
+  - Telefonlar hedefi görünce 200 ms bekleyip basar, tuzağa basmaz; Zeynep ilk denemede erken
+    basar.
+  - Sıralamada üç oyuncunun da ms'li medyanı var (dokunuşlar makullük kontrolünden geçti).
+  - ARMED'in bitiş zamanı hiçbir çerçevede yok.
+  - Memory'de 9 kartlık tahta TV'de, telefonlarda "Ekrana bak!"; sorular cevaplanıyor;
+    REVEAL'den önce `correctOptionId` hiçbir tarayıcıya gitmiyor.
 
-### Onay bekleyen kararlar
+### Bitti tanımı — son çalıştırma (2026-10-02, Mac)
 
-- **E1:** gameType'lar `reaction` ve `memory`; paketler `@loudroom/game-reaction` ve
-  `@loudroom/game-memory`.
-- **E2:** Faz efektine `hidden: true` (motor saati tutar, istemcilere `endsAt` gitmez).
-- **E3:** Reaction ölçümü telefonda; `shown` + `tap` mesajlarıyla varış aralığı
-  karşılaştırması (±300 ms), 100 ms alt sınırı, 1,5 sn üst sınır.
-- **E4:** Deneme sayısı 3, medyan; erken basma ve kaçırma `maxReactionMs` cezası.
-- **E5:** Reaction'da `classic` ve `goNoGo` (tuzaklı) türleri.
-- **E6:** Reaction puanı sıraya göre (1000 / −150 / en az 300); `correct` = medyan < 450 ms.
-- **E7:** TV'de deneme sonuçları canlı; sözleşme testine `secretHolders: ['host']`.
-- **E8:** Memory içeriği emoji ya da görselli nesne seti; tahta ve sorular sunucuda seed ile.
-- **E9:** Üç soru türü (vardı / yoktu / kaç tane), 4 seçenek, herkes aynı soruları alır.
-- **E10:** Memory puanı doğru cevap başına 400; hız yok; `correct` = hepsi doğru.
-- **E11:** Tahta TV'de yalnızca SHOW ve REVEAL'de; telefonlara hiç gitmez.
-- **E12:** Seed: 2 Reaction + 4 Memory seti, "Refleks ve Hafıza" paketi.
+| Kontrol             | Sonuç                                                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`    | ✅ 24/24 görev                                                                                                                                                                              |
+| `pnpm lint`         | ✅ 24/24 görev                                                                                                                                                                              |
+| `pnpm test`         | ✅ 436 test: shared 45, game-sdk 33, quiz 44, closest-number 60, sorting 24, who-would 18, image-location 20, bluff 19, drawing 25, reaction 24, memory 16, server 108 (18 koşullu atlandı) |
+| `pnpm build`        | ✅ 13/13 görev                                                                                                                                                                              |
+| `pnpm test:e2e`     | ✅ 30/30 (Chromium + WebKit; Phase 1–7 dahil)                                                                                                                                               |
+| `pnpm format:check` | ✅                                                                                                                                                                                          |
 
-**Eklenecek paket:** Yok. Emojiler cihazın kendi yazı tipiyle çiziliyor, ek varlık gerekmiyor.
+İlk tam `pnpm test` koşusunda `room-recovery` zaman aşımına düştü (yukarıda); düzeltmeden
+sonra tam koşu iki kez yeşil.
 
-### Riskler
+### Alınan kararlar (kullanıcı onaylı)
 
-- **Cihaz farkları:** Ekran yenileme hızı (60/120 Hz, ±16 ms) ve dokunmatik gecikmesi
-  telefonlar arasında farklı; ağ üzerinden tam adalet mümkün değil (SPEC §7.7). Ölçüm ağ
-  gecikmesinden bağımsız ama cihazdan bağımsız değil.
-- **Hile:** Süreyi telefon bildiriyor. Kontroller kaba hileyi (çok kısa süre, uydurma zaman)
-  yakalar; ustaca sahte `shown` zamanlamasını yakalayamaz.
-- **Arka plana geçen telefon:** Ekran kapanırsa ya da sekme arka plandaysa `shown` gecikir ve
-  deneme geçersiz sayılır. Wake lock zaten var.
-- **Emoji görünümü:** Cihazdan cihaza değişir (TV'deki ile telefondaki farklı görünebilir).
-  Her öğede etiket de gösterilir.
-- **E2E zamanlaması:** Playwright çok hızlı basarsa 100 ms sınırına takılır; testler bilerek
-  bekleyerek basar.
+- **E1:** `reaction` / `@loudroom/game-reaction`, `memory` / `@loudroom/game-memory`.
+- **E2:** Faz efektinde `hidden: true`.
+- **E3:** Telefonda ölçüm; `shown` + `tap` varış aralığı (±300 ms), 100 ms alt, 1,5 sn üst
+  sınır.
+- **E4:** 3 deneme, medyan; erken basma ve kaçırma 1,5 sn ceza.
+- **E5:** Klasik ve tuzaklı türler.
+- **E6:** Sıraya göre puan; `correct` = medyan < 450 ms.
+- **E7:** TV'de canlı deneme sonuçları; `secretHolders: ['host']`.
+- **E8:** Emoji ya da görselli setler; tahta ve sorular sunucuda seed ile.
+- **E9:** Vardı / yoktu / kaç tane; 4 seçenek; herkese aynı sorular.
+- **E10:** Doğru cevap başına 400; hız yok.
+- **E11:** Tahta yalnızca TV'de, SHOW ve REVEAL'de.
+- **E12:** Seed ve "Refleks ve Hafıza".
+
+### Varsayımlar ve küçük kararlar
+
+- **Tuzağa basmak** medyana bir ceza süresi olarak giriyor; tuzağa basmamak (`held`)
+  puanlanmıyor.
+- **GO penceresi** `maxReactionMs` + 1 sn: geç gelen dokunuşlar ağda kaybolmasın.
+- **Medyanda cezalar da var:** 3 denemede 1 ceza medyanı az etkiler, 2 ceza belirgin etkiler
+  (SPEC'teki "medyan" tanımına uygun).
+- **Kaç tane seçenekleri** doğru sayının çevresinde dört ardışık sayı (en az 1); doğru
+  sayının yeri seed ile değişiyor.
+- **Tahta ayarları uyuşmazsa** (ör. farklı öğe sayısı setten büyük) sessizce sınırlanıyor:
+  en az 3, en fazla set − 3.
+- **Ayar sınırları:** Pack bölümündeki "Soru süresi" alanı Memory'de cevap süresine
+  uygulanıyor; Reaction'da süre ayarı yok (alan yok sayılıyor).
+- **Veritabanına elle yazılmış geçersiz ayarlar** oyunu başlatırken hata veriyor. Admin API
+  bunları zaten kaydetmiyor; testte bir kez görüldü.
+
+### Eklenen paketler
+
+Yok.
+
+### Bilinen sınırlar
+
+- **Adalet:** Ekran yenileme ve dokunmatik gecikmesi cihaza göre değişiyor (SPEC §7.7).
+- **Hile:** Süreyi telefon bildiriyor. Kaba hileler yakalanıyor, ustaca uydurulmuş `shown`
+  zamanlaması yakalanamıyor.
+- **Arka plan:** Ekranı kapanan ya da sekmesi arka planda olan telefonun denemesi geçersiz
+  ya da kaçırılmış sayılıyor.
+- **Emoji:** Görünüm cihaza göre değişiyor; etiket her yerde yanında gösteriliyor.
+- **Memory'de görsel öğeler** desteklenip admin'de seçilebiliyor ama seed'de yok; e2e
+  emojilerle.
 
 ---
 

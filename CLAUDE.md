@@ -84,7 +84,7 @@ packages/games/*   one package per game: schema.ts, server.ts (module), host.tsx
                    editor.tsx (admin content form), settings-editor.tsx (pack round settings);
                    exports ./server and ./client separately. quiz, closest-number, sorting
                    (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff, drawing (round
-                   stream, canvas)
+                   stream, canvas), reaction (hidden phase clock), memory
 docker/            dev image, postgres init (creates loudroom_test)
 ```
 
@@ -117,7 +117,9 @@ docker/            dev image, postgres init (creates loudroom_test)
   `apps/server/src/game/registry.ts` and `apps/web/src/games/registry.ts` + a `node_modules`
   volume in `compose.dev.yml` and its mount point in `docker/dev.Dockerfile`. It must pass
   `describeGameModuleContract` with `secretVariants` (hidden content) and/or `secretScripts`
-  (one player's input hidden from others; an entry may carry other content too); games with
+  (one player's input hidden from others; an entry may carry other content too); players or
+  the host allowed to know a secret go in `secretHolders` (e.g. the drawer, a TV showing live
+  results); games with
   anonymous choices add `anonymousScripts`; games whose reveal is a timed phase set
   `revealPhase`. Its renderer includes an `editor` (admin content form) and usually a
   `settings` editor. Game UI text lives in `messages/tr.json` under `games.<gameType>` (editor
@@ -133,6 +135,9 @@ docker/            dev image, postgres init (creates loudroom_test)
 - Images with pins/targets use `ContainedImage` (object-contain + an overlay exactly over the
   drawn image, positions in percent), so TV, phone and admin editor agree.
 - A host "skip" while PLAYING drops the round unless the module's `onSkip` handles it.
+- A phase effect with `hidden: true` keeps its clock on the server: clients (game:state,
+  round:phase, pausedRemainingMs) never learn when it ends. Publish clocks only through
+  `publicClock`.
 - High-frequency data goes over `round:stream` (no ack, own rate bucket), never `round:input`.
   A module declares `stream` (schema, `accepts`, `cost`, limits); chunks never enter the
   module state. Renderers get a `stream` prop (`subscribe` replays the history, `send`).
