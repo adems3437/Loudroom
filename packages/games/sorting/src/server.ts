@@ -1,4 +1,5 @@
 import type { GameModule, RoundContext, ScoreResult, Transition } from '@loudroom/game-sdk';
+import { sortingImporter } from './import.js';
 import {
   SORTING_DEFAULT_SETTINGS,
   SORTING_GAME_TYPE,
@@ -17,6 +18,7 @@ import {
 import { correctPositions, pairShare, pointsFor } from './scoring.js';
 
 export * from './schema.js';
+export { sortingImporter } from './import.js';
 export * from './scoring.js';
 
 export type SortingPhase = 'INTRO' | 'ANSWERING' | 'REVEAL';
@@ -88,6 +90,7 @@ export const sortingModule: GameModule<
   hostViewSchema: sortingHostViewSchema,
   playerViewSchema: sortingPlayerViewSchema,
   capabilities: { minPlayers: 1, maxPlayers: 20 },
+  importer: sortingImporter,
 
   createRound(ctx) {
     // Sorted by id first, so the starting order never depends on (and never hints at) the

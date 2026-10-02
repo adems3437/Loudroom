@@ -1,4 +1,5 @@
 import type { GameModule, RoundContext, ScoreResult, Transition } from '@loudroom/game-sdk';
+import { whoWouldImporter } from './import.js';
 import {
   WHO_WOULD_DEFAULT_SETTINGS,
   WHO_WOULD_GAME_TYPE,
@@ -16,6 +17,7 @@ import {
 } from './schema.js';
 
 export * from './schema.js';
+export { whoWouldImporter } from './import.js';
 
 export type WhoWouldPhase = 'INTRO' | 'VOTING' | 'REVEAL' | 'SKIPPED';
 
@@ -90,6 +92,7 @@ export const whoWouldModule: GameModule<
   hostViewSchema: whoWouldHostViewSchema,
   playerViewSchema: whoWouldPlayerViewSchema,
   capabilities: { minPlayers: WHO_WOULD_MIN_PLAYERS, maxPlayers: 20 },
+  importer: whoWouldImporter,
 
   createRound(ctx) {
     const candidates = ctx.players.filter((player) => player.connected).map((p) => p.id);

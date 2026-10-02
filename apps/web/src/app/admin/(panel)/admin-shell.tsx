@@ -14,6 +14,7 @@ const NAV = [
   { href: '/admin/content/categories', key: 'categories' },
   { href: '/admin/media', key: 'media' },
   { href: '/admin/game-packs', key: 'packs' },
+  { href: '/admin/sessions', key: 'history' },
   { href: '/admin/users', key: 'users', adminOnly: true },
   { href: '/admin/account', key: 'account' },
 ] as const;

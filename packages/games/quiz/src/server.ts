@@ -1,4 +1,5 @@
 import type { GameModule, RoundContext, ScoreResult, Transition } from '@loudroom/game-sdk';
+import { quizImporter } from './import.js';
 import {
   QUIZ_DEFAULT_SETTINGS,
   QUIZ_GAME_TYPE,
@@ -17,6 +18,7 @@ import {
 import { answerPoints, streakBonus } from './scoring.js';
 
 export * from './schema.js';
+export { quizImporter } from './import.js';
 export { answerPoints, streakBonus } from './scoring.js';
 
 export type QuizPhase = 'INTRO' | 'ANSWERING' | 'REVEAL';
@@ -76,6 +78,7 @@ export const quizModule: GameModule<
   hostViewSchema: quizHostViewSchema,
   playerViewSchema: quizPlayerViewSchema,
   capabilities: { minPlayers: 1, maxPlayers: 20 },
+  importer: quizImporter,
 
   createRound(ctx) {
     const options = ctx.random.shuffle(ctx.content.options).map((option, slot) => ({

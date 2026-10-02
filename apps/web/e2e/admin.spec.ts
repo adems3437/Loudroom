@@ -120,6 +120,8 @@ test('an editor builds a quiz with an image, publishes a pack, and a host plays 
   ).newPage();
   await host.goto('/host/create');
   await host.getByTestId('create-room').click();
+  await expect(host).toHaveURL(/\/host\/room\/\d{6}$/);
+  const roomCode = new URL(host.url()).pathname.split('/').pop() ?? '';
   const joinUrl = (await host.getByTestId('join-url').getAttribute('data-url')) ?? '';
   const phone = await (await browser.newContext({ ...devices['iPhone 15'] })).newPage();
   await phone.goto(new URL(joinUrl).pathname);
@@ -140,6 +142,19 @@ test('an editor builds a quiz with an image, publishes a pack, and a host plays 
   await phone.getByTestId('quiz-answer').first().click();
   await expect(host.locator('[data-testid="quiz-host"][data-phase="REVEAL"]')).toBeVisible();
   await Promise.all([host.context().close(), phone.context().close()]);
+
+  // The game is in the history, with the round as it was played.
+  await admin.getByTestId('nav-history').click();
+  await admin.getByTestId('sessions-search').fill(roomCode);
+  await admin.getByTestId('sessions-search').press('Enter');
+  await admin
+    .locator(`[data-testid="session-row"][data-room-code="${roomCode}"]`)
+    .first()
+    .getByRole('link')
+    .click();
+  await expect(admin.getByTestId('session-player')).toContainText('Editör');
+  await expect(admin.getByTestId('session-round')).toHaveCount(1);
+  await expect(admin.getByTestId('session-round')).toContainText(tag);
 
   // Clean up through the panel: pack, then content, then the now unused image and category.
   await admin.goto(`/admin/game-packs/${packId}`);
@@ -162,6 +177,57 @@ test('an editor builds a quiz with an image, publishes a pack, and a host plays 
   await row.getByTestId('category-delete').click();
   await row.getByTestId('category-delete-confirm').click();
   await expect(row).toBeHidden();
+  await admin.context().close();
+});
+
+test('an editor imports questions from a CSV file, row problems are shown first', async ({
+  browser,
+}) => {
+  const tag = randomUUID().slice(0, 8);
+  const admin = await adminPage(browser);
+  await admin.goto('/admin/content/import');
+  await login(admin, ADMIN_EMAIL, ADMIN_PASSWORD);
+  await expect(admin.getByTestId('import-game')).toHaveValue('quiz');
+
+  const download = admin.waitForEvent('download');
+  await admin.getByTestId('import-template-csv').click();
+  const template = await (await download).createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of template) chunks.push(chunk as Buffer);
+  expect(Buffer.concat(chunks).toString('utf8')).toContain('soru;a;b;c;d;e;f;dogru');
+
+  const csv = [
+    'soru;a;b;c;dogru;zorluk;etiketler',
+    `İçe aktarma ${tag} 1;Kırmızı;Mavi;;a;kolay;${tag}`,
+    `İçe aktarma ${tag} 2;Bir;;;a;;${tag}`,
+    `İçe aktarma ${tag} 3;Bir;İki;Üç;c;zor;${tag}`,
+  ].join('\r\n');
+  await admin.getByTestId('import-file').setInputFiles({
+    name: 'sorular.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`\uFEFF${csv}`, 'utf8'),
+  });
+  await expect(admin.getByTestId('import-row')).toHaveCount(3);
+  const bad = admin.locator('[data-testid="import-row"][data-ok="false"]');
+  await expect(bad).toHaveAttribute('data-row', '3');
+  await expect(bad.locator('[data-code="REQUIRED"]')).toContainText('b sütunu');
+  await admin.getByTestId('import-commit').click();
+  await expect(admin.getByTestId('import-done')).toContainText('2 içerik eklendi');
+
+  // The imported drafts are in the list; delete them again.
+  await admin.goto('/admin/content');
+  await admin.getByTestId('content-search').fill(tag);
+  await admin.getByTestId('content-search').press('Enter');
+  await expect(admin.getByTestId('content-row')).toHaveCount(2);
+  for (let left = 2; left > 0; left--) {
+    await admin.getByTestId('content-row').first().getByRole('link').click();
+    await admin.getByTestId('content-delete').click();
+    await admin.getByTestId('content-delete-confirm').click();
+    await expect(admin).toHaveURL(/\/admin\/content$/);
+  }
+  await admin.getByTestId('content-search').fill(tag);
+  await admin.getByTestId('content-search').press('Enter');
+  await expect(admin.getByTestId('content-row')).toHaveCount(0);
   await admin.context().close();
 });
 

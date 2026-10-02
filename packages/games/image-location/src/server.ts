@@ -1,4 +1,5 @@
 import type { GameModule, RoundContext, ScoreResult, Transition } from '@loudroom/game-sdk';
+import { imageLocationImporter } from './import.js';
 import {
   IMAGE_LOCATION_DEFAULT_SETTINGS,
   IMAGE_LOCATION_GAME_TYPE,
@@ -18,6 +19,7 @@ import {
 import { imageDistance, locationShare, pointsFor } from './scoring.js';
 
 export * from './schema.js';
+export { imageLocationImporter } from './import.js';
 export * from './scoring.js';
 
 export type ImageLocationPhase = 'INTRO' | 'ANSWERING' | 'REVEAL';
@@ -107,6 +109,7 @@ export const imageLocationModule: GameModule<
   hostViewSchema: imageLocationHostViewSchema,
   playerViewSchema: imageLocationPlayerViewSchema,
   capabilities: { minPlayers: 1, maxPlayers: 20 },
+  importer: imageLocationImporter,
 
   createRound(ctx) {
     const state: ImageLocationState = { phase: 'INTRO', pins: {} };

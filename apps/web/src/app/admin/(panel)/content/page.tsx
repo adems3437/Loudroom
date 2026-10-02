@@ -3,7 +3,9 @@
 import {
   categorySchema,
   contentItemSchema,
+  contentStatSchema,
   pageSchema,
+  type ContentStat,
   type ContentStatus,
   type Difficulty,
 } from '@loudroom/shared';
@@ -28,6 +30,7 @@ import { GAME_TYPES } from '@/games/registry';
 
 const contentPageSchema = pageSchema(contentItemSchema);
 const categoriesSchema = categorySchema.array();
+const contentStatsSchema = contentStatSchema.array();
 const PAGE_SIZE = 25;
 
 interface Filters {
@@ -39,6 +42,22 @@ interface Filters {
 }
 
 const NO_FILTERS: Filters = { gameType: '', status: '', categoryId: '', difficulty: '', q: '' };
+
+/** How often the item was played and how many got it right (from game history). */
+function PlayStats({ stat }: { stat: ContentStat | undefined }) {
+  const t = useTranslations('admin.content');
+  if (!stat) return <span className="text-muted text-sm">{t('notPlayed')}</span>;
+  return (
+    <span className="text-sm" data-testid="content-stats">
+      {t('playStats', { rounds: stat.rounds, answers: stat.answers })}
+      {stat.correctRate !== null && (
+        <span className="text-muted block">
+          {t('correctRate', { rate: Math.round(stat.correctRate * 100) })}
+        </span>
+      )}
+    </span>
+  );
+}
 
 export default function ContentListPage() {
   const t = useTranslations('admin');
@@ -52,6 +71,13 @@ export default function ContentListPage() {
   }
   const { state } = useApiData(`/api/admin/content?${query.toString()}`, contentPageSchema);
   const categories = useApiData('/api/admin/categories', categoriesSchema).state;
+  const ids = state.status === 'ready' ? state.data.items.map((item) => item.id) : [];
+  const stats = useApiData(
+    ids.length > 0 ? `/api/admin/stats/content?ids=${ids.join(',')}` : null,
+    contentStatsSchema,
+  ).state;
+  const statOf = (id: string) =>
+    stats.status === 'ready' ? stats.data.find((stat) => stat.contentItemId === id) : undefined;
   const categoryName = (id: string | null) =>
     (categories.status === 'ready' && categories.data.find((c) => c.id === id)?.name) ||
     t('content.noCategory');
@@ -65,16 +91,27 @@ export default function ContentListPage() {
     <>
       <PageHeader
         title={t('content.title')}
-        actions={GAME_TYPES.map((gameType) => (
-          <Link
-            key={gameType}
-            href={`/admin/content/new?gameType=${gameType}`}
-            data-testid={`content-new-${gameType}`}
-            className={smallButton('primary')}
-          >
-            {t('content.new')} · {t(`gameTypes.${gameType}` as 'gameTypes.quiz')}
-          </Link>
-        ))}
+        actions={
+          <>
+            <Link
+              href="/admin/content/import"
+              data-testid="content-import"
+              className={smallButton()}
+            >
+              {t('content.import')}
+            </Link>
+            {GAME_TYPES.map((gameType) => (
+              <Link
+                key={gameType}
+                href={`/admin/content/new?gameType=${gameType}`}
+                data-testid={`content-new-${gameType}`}
+                className={smallButton('primary')}
+              >
+                {t('content.new')} · {t(`gameTypes.${gameType}` as 'gameTypes.quiz')}
+              </Link>
+            ))}
+          </>
+        }
       />
 
       <form
@@ -177,6 +214,7 @@ export default function ContentListPage() {
                 <th className={thClass}>{t('content.category')}</th>
                 <th className={thClass}>{t('content.difficulty')}</th>
                 <th className={thClass}>{t('content.status')}</th>
+                <th className={thClass}>{t('content.played')}</th>
                 <th className={thClass}>{t('content.updatedAt')}</th>
               </tr>
             </thead>
@@ -199,6 +237,9 @@ export default function ContentListPage() {
                   <td className={tdClass}>{t(`difficulty.${item.difficulty}`)}</td>
                   <td className={tdClass}>
                     <StatusBadge status={item.status} />
+                  </td>
+                  <td className={tdClass}>
+                    <PlayStats stat={statOf(item.id)} />
                   </td>
                   <td className={`${tdClass} text-muted text-sm`}>{formatDate(item.updatedAt)}</td>
                 </tr>

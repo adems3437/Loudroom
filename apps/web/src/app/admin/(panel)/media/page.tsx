@@ -53,6 +53,12 @@ function MediaCard({ item, onChanged }: { item: MediaItem; onChanged: () => void
       <Thumbnail id={item.id} alt={item.altText ?? ''} className="h-40 w-full rounded-xl" />
       <div className="text-sm">
         <p className="truncate font-semibold">{item.originalName ?? item.id}</p>
+        <p className="text-muted truncate text-xs" title={t('idHint')}>
+          {t('idLabel')}:{' '}
+          <span className="font-mono select-all" data-testid="media-id">
+            {item.id}
+          </span>
+        </p>
         <p className="text-muted">
           {item.width !== null && item.height !== null
             ? `${t('dimensions', { width: item.width, height: item.height })} · `

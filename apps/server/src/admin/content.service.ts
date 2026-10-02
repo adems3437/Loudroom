@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { collectMediaIds } from '@loudroom/game-sdk';
 import type {
+  ApiIssue,
   ContentItem,
   ContentItemInput,
   ContentListQuery,
@@ -111,6 +112,43 @@ export class ContentService {
       include: contentInclude,
     });
     return toContentItem(row);
+  }
+
+  /**
+   * Creates many items at once (import): every item is checked first, and if any is refused
+   * nothing is saved. Issue paths start with `items.<index>`.
+   */
+  async createMany(inputs: readonly ContentItemInput[], userId: string): Promise<number> {
+    const prepared: { input: ContentItemInput; data: Prisma.InputJsonValue; mediaIds: string[] }[] =
+      [];
+    const issues: ApiIssue[] = [];
+    for (const [index, input] of inputs.entries()) {
+      try {
+        const checked = await this.validate(input);
+        await this.assertCategory(input.categoryId);
+        prepared.push({ input, ...checked });
+      } catch (error) {
+        if (!(error instanceof ApiException)) throw error;
+        const own = error.issues ?? [{ path: [], code: error.code, message: error.message }];
+        issues.push(...own.map((issue) => ({ ...issue, path: ['items', index, ...issue.path] })));
+      }
+    }
+    if (issues.length > 0) {
+      throw new ApiException(400, 'CONTENT_INVALID', 'Some items are invalid', issues);
+    }
+    await this.prisma.$transaction(
+      prepared.map(({ input, data, mediaIds }) =>
+        this.prisma.contentItem.create({
+          data: {
+            ...this.fields(input),
+            data,
+            createdById: userId,
+            media: { connect: mediaIds.map((id) => ({ id })) },
+          },
+        }),
+      ),
+    );
+    return prepared.length;
   }
 
   async update(id: string, input: ContentItemInput): Promise<ContentItem> {

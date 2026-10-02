@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { ContentImporter } from './importer.js';
 import type { Random } from './rng.js';
 
 /** A room member as a game module sees them. */
@@ -168,6 +169,8 @@ export interface GameModule<
   getPlayerView(state: State, playerId: string, ctx: RoundContext<Content, Settings>): PlayerView;
 
   stream?: StreamSpec<State, StreamChunk, Content, Settings>;
+  /** CSV/XLSX columns of this game's content (admin import). */
+  importer?: ContentImporter;
 }
 
 /** A module with its type parameters erased, as registries hold them. */

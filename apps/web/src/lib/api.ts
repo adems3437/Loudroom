@@ -2,6 +2,9 @@ import { apiErrorSchema, CSRF_HEADER, type ApiError } from '@loudroom/shared';
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
 
+/** Waits before repeating a GET that was rate limited (429). */
+const GET_RETRY_DELAYS_MS = [500, 1_000, 2_000];
+
 const NETWORK_ERROR: ApiError = { code: 'INTERNAL_ERROR', message: 'No response from the server' };
 
 /** Any zod schema (the web app does not depend on zod directly). */
@@ -38,6 +41,13 @@ export async function apiRequest<T = undefined>(
   let response: Response;
   try {
     response = await fetch(path, { method, headers, body, credentials: 'same-origin' });
+    // Reads are safe to repeat: wait out a short burst over the rate limit (the bucket refills
+    // within seconds) instead of showing an error or a logged-out panel.
+    for (const delay of method === 'GET' ? GET_RETRY_DELAYS_MS : []) {
+      if (response.status !== 429) break;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      response = await fetch(path, { method, headers, credentials: 'same-origin' });
+    }
   } catch {
     return { ok: false, status: 0, error: NETWORK_ERROR };
   }

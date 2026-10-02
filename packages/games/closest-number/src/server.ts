@@ -1,4 +1,5 @@
 import type { GameModule, RoundContext, ScoreResult, Transition } from '@loudroom/game-sdk';
+import { closestNumberImporter } from './import.js';
 import {
   CLOSEST_NUMBER_DEFAULT_SETTINGS,
   CLOSEST_NUMBER_GAME_TYPE,
@@ -16,6 +17,7 @@ import {
 import { errorScale, pointsFor, rankShare, relativeShare } from './scoring.js';
 
 export * from './schema.js';
+export { closestNumberImporter } from './import.js';
 export * from './scoring.js';
 
 export type ClosestNumberPhase = 'INTRO' | 'ANSWERING' | 'REVEAL';
@@ -101,6 +103,7 @@ export const closestNumberModule: GameModule<
   hostViewSchema: closestNumberHostViewSchema,
   playerViewSchema: closestNumberPlayerViewSchema,
   capabilities: { minPlayers: 1, maxPlayers: 20 },
+  importer: closestNumberImporter,
 
   createRound(ctx) {
     const state: ClosestNumberState = { phase: 'INTRO', guesses: {} };

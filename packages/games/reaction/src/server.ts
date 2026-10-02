@@ -5,6 +5,7 @@ import type {
   ScoreResult,
   Transition,
 } from '@loudroom/game-sdk';
+import { reactionImporter } from './import.js';
 import {
   REACTION_DEFAULT_SETTINGS,
   REACTION_GAME_TYPE,
@@ -24,6 +25,7 @@ import {
 import { median, plausibleTap } from './scoring.js';
 
 export * from './schema.js';
+export { reactionImporter } from './import.js';
 export * from './scoring.js';
 
 export type ReactionPhase = 'INTRO' | 'ARMED' | 'GO' | 'RESULT' | 'REVEAL';
@@ -148,6 +150,7 @@ export const reactionModule: GameModule<
   hostViewSchema: reactionHostViewSchema,
   playerViewSchema: reactionPlayerViewSchema,
   capabilities: { minPlayers: 1, maxPlayers: 20 },
+  importer: reactionImporter,
 
   createRound(ctx) {
     const state: ReactionState = {

@@ -40,7 +40,7 @@ export function PageHeader({ title, actions }: { title: string; actions?: ReactN
   return (
     <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <h1 className="font-display text-3xl font-bold">{title}</h1>
-      {actions && <div className="flex items-center gap-3">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}
     </header>
   );
 }

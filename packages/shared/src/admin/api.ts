@@ -20,6 +20,8 @@ export const apiErrorCodeSchema = z.enum([
   'LAST_ADMIN',
   'SELF_CHANGE',
   'WRONG_PASSWORD',
+  /** An import file that cannot be read; the issue code says why (NOT_UTF8, TOO_LARGE, …). */
+  'IMPORT_INVALID',
   'INTERNAL_ERROR',
 ]);
 export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;

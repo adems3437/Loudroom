@@ -16,6 +16,9 @@ const booleanFlag = z
   .default('false')
   .transform((value) => value === 'true');
 
+/** An empty value (compose's `${VAR:-}`) counts as unset. */
+const blankAsUnset = (value: unknown) => (value === '' ? undefined : value);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   SERVER_HOST: z.string().min(1).default('0.0.0.0'),
@@ -36,6 +39,17 @@ const envSchema = z.object({
   PROFANITY_EXTRA_WORDS_FILE: z.string().optional(),
   /** Where uploaded media files are stored; relative paths start at the working directory. */
   MEDIA_DIR: z.string().min(1).default('data/media'),
+  /** Days game history is kept (SPEC §9 KVKK); 0 keeps it forever. */
+  SESSION_RETENTION_DAYS: z.coerce.number().int().min(0).max(3_650).default(180),
+  /** REST bucket per client address (DEFAULT_RATE_LIMITS.rest when unset). */
+  REST_RATE_LIMIT_CAPACITY: z.preprocess(
+    blankAsUnset,
+    z.coerce.number().int().min(1).max(100_000).optional(),
+  ),
+  REST_RATE_LIMIT_PER_SECOND: z.preprocess(
+    blankAsUnset,
+    z.coerce.number().positive().max(10_000).optional(),
+  ),
   /** Largest accepted upload (SPEC §9). */
   MEDIA_MAX_UPLOAD_BYTES: z.coerce
     .number()
@@ -104,6 +118,8 @@ export interface AppConfig {
   game: GameTimingConfig;
   admin: AdminConfig;
   media: MediaConfig;
+  /** Days game history is kept; 0 = forever. */
+  sessionRetentionDays: number;
 }
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
@@ -146,12 +162,20 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
     ipHashSecret: parsed.IP_HASH_SECRET,
     trustProxy: parsed.TRUST_PROXY,
     profanityExtraWordsFile: parsed.PROFANITY_EXTRA_WORDS_FILE ?? null,
-    rateLimits: DEFAULT_RATE_LIMITS,
+    rateLimits: {
+      ...DEFAULT_RATE_LIMITS,
+      rest: {
+        capacity: parsed.REST_RATE_LIMIT_CAPACITY ?? DEFAULT_RATE_LIMITS.rest.capacity,
+        refillPerSecond:
+          parsed.REST_RATE_LIMIT_PER_SECOND ?? DEFAULT_RATE_LIMITS.rest.refillPerSecond,
+      },
+    },
     game: { startingMs: 3_000, inputGraceMs: 250 },
     admin: {
       sessionTtlMs: 12 * 60 * 60 * 1000,
       secureCookies: new URL(parsed.PUBLIC_URL).protocol === 'https:',
     },
     media: { dir: resolve(parsed.MEDIA_DIR), maxUploadBytes: parsed.MEDIA_MAX_UPLOAD_BYTES },
+    sessionRetentionDays: parsed.SESSION_RETENTION_DAYS,
   };
 }

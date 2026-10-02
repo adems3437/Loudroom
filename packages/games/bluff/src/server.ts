@@ -8,6 +8,7 @@ import {
   type ScoreResult,
   type Transition,
 } from '@loudroom/game-sdk';
+import { bluffImporter } from './import.js';
 import {
   BLUFF_DEFAULT_SETTINGS,
   BLUFF_GAME_TYPE,
@@ -26,6 +27,7 @@ import {
 } from './schema.js';
 
 export * from './schema.js';
+export { bluffImporter } from './import.js';
 
 export type BluffPhase = 'INTRO' | 'WRITE' | 'VOTE' | 'REVEAL';
 
@@ -193,6 +195,7 @@ export const bluffModule: GameModule<
   hostViewSchema: bluffHostViewSchema,
   playerViewSchema: bluffPlayerViewSchema,
   capabilities: { minPlayers: 2, maxPlayers: 20 },
+  importer: bluffImporter,
 
   createRound(ctx) {
     const state: BluffState = { phase: 'INTRO', lies: {}, options: [], votes: {}, done: false };

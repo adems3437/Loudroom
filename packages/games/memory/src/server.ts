@@ -5,6 +5,7 @@ import type {
   ScoreResult,
   Transition,
 } from '@loudroom/game-sdk';
+import { memoryImporter } from './import.js';
 import { buildBoard, type Board } from './board.js';
 import {
   MEMORY_DEFAULT_SETTINGS,
@@ -25,6 +26,7 @@ import {
 
 export * from './board.js';
 export * from './schema.js';
+export { memoryImporter } from './import.js';
 
 export type MemoryPhase = 'INTRO' | 'SHOW' | 'QUESTIONS' | 'REVEAL';
 
@@ -119,6 +121,7 @@ export const memoryModule: GameModule<
   hostViewSchema: memoryHostViewSchema,
   playerViewSchema: memoryPlayerViewSchema,
   capabilities: { minPlayers: 1, maxPlayers: 20 },
+  importer: memoryImporter,
 
   createRound(ctx) {
     const state: MemoryState = {

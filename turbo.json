@@ -38,6 +38,9 @@
         "PROFANITY_EXTRA_WORDS_FILE",
         "MEDIA_DIR",
         "MEDIA_MAX_UPLOAD_BYTES",
+        "SESSION_RETENTION_DAYS",
+        "REST_RATE_LIMIT_CAPACITY",
+        "REST_RATE_LIMIT_PER_SECOND",
         "API_INTERNAL_URL"
       ]
     }

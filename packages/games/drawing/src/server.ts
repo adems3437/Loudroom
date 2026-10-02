@@ -6,6 +6,7 @@ import {
   type ScoreResult,
   type Transition,
 } from '@loudroom/game-sdk';
+import { drawingImporter } from './import.js';
 import { judgeGuess, letterSlots } from './guess.js';
 import {
   chunkCost,
@@ -30,6 +31,7 @@ import {
 
 export * from './guess.js';
 export * from './schema.js';
+export { drawingImporter } from './import.js';
 
 export type DrawingPhase = 'INTRO' | 'DRAWING' | 'REVEAL' | 'SKIPPED';
 
@@ -98,6 +100,7 @@ export const drawingModule: GameModule<
   hostViewSchema: drawingHostViewSchema,
   playerViewSchema: drawingPlayerViewSchema,
   capabilities: { minPlayers: DRAWING_MIN_PLAYERS, maxPlayers: 20, usesStream: true },
+  importer: drawingImporter,
 
   stream: {
     schema: drawingChunkSchema,

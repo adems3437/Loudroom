@@ -21,6 +21,7 @@
       "categories": "Kategoriler",
       "media": "Medya",
       "packs": "Oyun paketleri",
+      "history": "Oyun geçmişi",
       "users": "Kullanıcılar",
       "account": "Hesabım",
       "logout": "Çıkış yap",
@@ -108,7 +109,12 @@
       "baseScore": "Taban puan",
       "updatedAt": "Güncelleme",
       "searchPlaceholder": "Metinde ara",
-      "createdBy": "Ekleyen: {name}"
+      "createdBy": "Ekleyen: {name}",
+      "import": "İçe aktar",
+      "played": "Oynanma",
+      "playStats": "{rounds} tur · {answers} cevap",
+      "correctRate": "%{rate} doğru",
+      "notPlayed": "Henüz oynanmadı"
     },
     "categories": {
       "title": "Kategoriler",
@@ -134,7 +140,9 @@
       "pickerTitle": "Görsel seç",
       "noImage": "Görsel yok",
       "file": "Dosya",
-      "saveAlt": "Açıklamayı kaydet"
+      "saveAlt": "Açıklamayı kaydet",
+      "idHint": "İçe aktarma dosyalarında gorsel_id sütununa yazılır.",
+      "idLabel": "Kimlik"
     },
     "packs": {
       "title": "Oyun paketleri",
@@ -219,7 +227,97 @@
       "LAST_ADMIN": "En az bir yönetici kalmalı.",
       "SELF_CHANGE": "Kendi rolünü değiştiremez, kendini silemezsin.",
       "WRONG_PASSWORD": "Mevcut şifre hatalı.",
-      "INTERNAL_ERROR": "Bir şeyler ters gitti. Tekrar dene."
+      "INTERNAL_ERROR": "Bir şeyler ters gitti. Tekrar dene.",
+      "IMPORT_INVALID": "Dosya içe aktarılamadı."
+    },
+    "import": {
+      "title": "İçerik içe aktar",
+      "intro": "Bir oyun seç, şablonu indir, doldur ve CSV veya Excel (XLSX) olarak yükle. Önce kontrol edilir, onaylamadan hiçbir şey kaydedilmez.",
+      "gameType": "Oyun",
+      "templateXlsx": "Excel şablonu (XLSX)",
+      "templateCsv": "CSV şablonu",
+      "file": "Dosya",
+      "fileHint": "En fazla 2 MB ve 1000 satır. CSV dosyası UTF-8 olmalı; ayraç noktalı virgül, virgül veya sekme olabilir.",
+      "commonHint": "Her oyunda ortak sütunlar: kategori (ad veya kısa ad), zorluk (kolay/orta/zor), etiketler (virgülle) ve durum (taslak/yayında). Boş bırakılırsa orta zorluk ve taslak kullanılır. Görsel sütununa (gorsel_id) Medya sayfasındaki kimliği yaz; görseli önce oraya yükle.",
+      "checking": "Dosya kontrol ediliyor…",
+      "summary": "{valid} satır hazır, {invalid} satırda sorun var.",
+      "missingColumns": "Zorunlu sütunlar eksik: {columns}",
+      "unknownColumns": "Tanınmayan sütunlar yok sayılacak: {columns}",
+      "row": "Satır",
+      "preview": "İçerik",
+      "result": "Durum",
+      "ok": "Hazır",
+      "commit": "{count, plural, one {Geçerli satırı içe aktar} other {Geçerli # satırı içe aktar}}",
+      "committing": "İçe aktarılıyor…",
+      "done": "{count, plural, one {1 içerik eklendi.} other {# içerik eklendi.}}",
+      "showContent": "İçerik listesine git",
+      "column": "{column} sütunu",
+      "rowLevel": "Satır",
+      "issues": {
+        "REQUIRED": "boş olamaz",
+        "INVALID": "geçersiz değer",
+        "CATEGORY_UNKNOWN": "böyle bir kategori yok",
+        "DIFFICULTY_INVALID": "kolay, orta veya zor olmalı",
+        "STATUS_INVALID": "taslak veya yayında olmalı",
+        "TAGS_INVALID": "etiketler geçersiz (en fazla 20, her biri en fazla 32 karakter)",
+        "MEDIA_MISSING": "görsel bulunamadı"
+      },
+      "problems": {
+        "NOT_UTF8": "CSV dosyası UTF-8 değil. Excel’de “CSV UTF-8” olarak kaydet veya XLSX yükle.",
+        "UNREADABLE": "Dosya okunamadı. CSV veya XLSX yükle.",
+        "EMPTY": "Dosyada satır yok.",
+        "TOO_LARGE": "Dosya 2 MB’tan büyük.",
+        "TOO_MANY_ROWS": "Dosyada 1000’den fazla satır var; böl ve ayrı ayrı yükle."
+      }
+    },
+    "sessions": {
+      "title": "Oyun geçmişi",
+      "searchPlaceholder": "Oda kodu veya paket adı",
+      "startedAt": "Başlangıç",
+      "roomCode": "Oda",
+      "pack": "Paket",
+      "players": "Oyuncu",
+      "rounds": "Tur",
+      "winner": "Kazanan",
+      "statuses": {
+        "ACTIVE": "Sürüyor",
+        "FINISHED": "Bitti",
+        "ABORTED": "Yarıda kaldı"
+      },
+      "detailTitle": "{pack} · Oda {roomCode}",
+      "duration": "{start} – {end}",
+      "ranking": "Sıralama",
+      "score": "Puan",
+      "roundTitle": "Soru {number} · {game}",
+      "unknownContent": "İçerik özeti yok",
+      "openContent": "İçeriği aç",
+      "player": "Oyuncu",
+      "correct": "Sonuç",
+      "time": "Süre",
+      "points": "Puan",
+      "right": "Doğru",
+      "wrong": "Yanlış",
+      "noAnswer": "Cevap yok",
+      "answered": "Cevapladı",
+      "seconds": "{value} sn",
+      "deleted": "Oyun geçmişten silindi.",
+      "retention": "Geçmiş, ayarlanan saklama süresi dolunca kendiliğinden silinir."
+    },
+    "stats": {
+      "title": "Son {days} gün",
+      "sessions": "Oyun",
+      "finished": "{count} tamamlandı",
+      "players": "Oyuncu",
+      "rounds": "Oynanan soru",
+      "perDay": "Günlük oyunlar",
+      "packs": "En çok oynanan paketler",
+      "games": "Oyun türleri",
+      "hardest": "En zor içerikler",
+      "hardestHint": "En az 3 cevap almış içerikler, doğru oranına göre.",
+      "sessionCount": "{count, plural, one {1 oyun} other {# oyun}}",
+      "roundCount": "{count, plural, one {1 soru} other {# soru}}",
+      "none": "Bu dönemde oyun oynanmadı.",
+      "seeHistory": "Oyun geçmişi"
     }
   },
   "connection": {

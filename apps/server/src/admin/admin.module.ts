@@ -14,8 +14,17 @@ import { OverviewController } from './overview.controller.js';
 import { PacksController, PublicPacksController } from './packs.controller.js';
 import { PacksService } from './packs.service.js';
 import { UsersController } from './users.controller.js';
+import { SessionsController, StatsController } from '../history/history.controller.js';
+import { RetentionService } from '../history/retention.service.js';
+import { SessionsService } from '../history/sessions.service.js';
+import { StatsService } from '../history/stats.service.js';
+import { ImportController } from '../import/import.controller.js';
+import { ImportService } from '../import/import.service.js';
 
-/** Admin panel API (SPEC §15 Phase 4) and the public pack list for hosts. */
+/**
+ * Admin panel API (SPEC §15 Phase 4, 9): content, media, packs, users, import, game history
+ * and statistics, and the public pack list for hosts.
+ */
 @Module({
   imports: [
     // Uploads stay in memory: they are re-encoded before anything touches the disk.
@@ -35,8 +44,15 @@ import { UsersController } from './users.controller.js';
     PacksController,
     PublicPacksController,
     UsersController,
+    ImportController,
+    SessionsController,
+    StatsController,
   ],
   providers: [
+    ImportService,
+    SessionsService,
+    StatsService,
+    RetentionService,
     AdminSessionStore,
     AdminGuard,
     ContentService,
