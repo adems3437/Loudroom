@@ -4,12 +4,120 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                              | Durum                                                |
-| -------------------------------- | ---------------------------------------------------- |
-| Phase 1 — Altyapı                | ✅ Tamamlandı (2026-10-01)                           |
-| Phase 2 — Oda ve Lobby           | ✅ Tamamlandı (2026-10-01)                           |
-| Phase 3 — Game Engine + Quiz MVP | ✅ Tamamlandı (2026-10-01)                           |
-| Phase 4 — Admin Panel (temel)    | 🟡 Kodlandı; Mac'te iki doğrulama bekliyor (aşağıda) |
+| Faz                                             | Durum                                                |
+| ----------------------------------------------- | ---------------------------------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)                           |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)                           |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)                           |
+| Phase 4 — Admin Panel (temel)                   | 🟡 Kodlandı; Mac'te iki doğrulama bekliyor (aşağıda) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ⏸ Plan onay bekliyor (aşağıda)                       |
+
+---
+
+## Phase 5 — Closest Number + Sorting + Kim Yapar? (plan, onay bekliyor)
+
+Plan bulut oturumunda çıkarıldı. B1–B9 kararları kullanıcının onayını bekliyor. Kullanıcı
+"öneriler tamam" derse uygulamaya geçilir. Önce Phase 4'ün Mac'teki iki doğrulaması yapılmalı:
+`docker compose up -d --build --wait` (sıfırdan) ve WebKit dahil `pnpm test:e2e`.
+
+### 1. Ortak altyapı
+
+- **Sözleşme testi (game-sdk/testing):**
+  - **Gizli girdi kontrolü:** İsteğe bağlı `secretScripts`. Aynı anlarda gelen ama farklı
+    seçimler içeren girdi senaryoları. Round bitene kadar host görünümü ve girdisi değişmeyen
+    oyuncuların görünümleri birebir aynı kalmalı.
+  - **Anonimlik kontrolü:** İsteğe bağlı `anonymousScripts`. Oy dağılımı aynı, oyların sahipleri
+    farklı senaryolar. Round bittikten sonra da hiçbir görünüm değişmemeli.
+  - Her oyun `secretVariants` ya da `secretScripts`'ten en az birini vermeli. Quiz yeni
+    kontrolleri de geçmeli.
+- **Oyun ekranları:** Web'in avatar bileşeni renderer'lara prop olarak verilir (`Avatar`).
+  game-sdk/client'a Türkçe sayı biçimi yardımcısı eklenir (binlik ayırıcı, ondalık virgül).
+- **Bölüme özel oyun ayarları:** `PackRoundInput`'a `settings` alanı eklenir; server bunu
+  modülün `settingsSchema`'sına göre doğrular (bugün sabit `{}`). Her oyun paketi isteğe bağlı
+  bir `settingsEditor` getirir; paket editöründe bölüm başına "Oyun ayarları" bölümü olur.
+- **Docker:** Her yeni paket için compose'a bir `node_modules` volume'u ve Dockerfile'a bir
+  bağlama noktası eklenir.
+
+### 2. Oyunlar
+
+Her biri ayrı bir paket: `schema.ts`, `server.ts`, `host.tsx`, `player.tsx`, `editor.tsx`,
+`settings-editor.tsx`, testler. Server ve web registry'lerine birer satır; metinler
+`games.<id>` altında.
+
+- **Closest Number:** gameType `closestNumber`, paket `@loudroom/game-closest-number`.
+  - İçerik: `{ question, answer, unit?, displayFormat: 'number' | 'year' }`.
+  - Fazlar: INTRO → ANSWERING → REVEAL.
+  - Telefon: sayısal klavye (`inputMode="decimal"`), yazarken Türkçe binlik ayırıcı, gönder
+    butonu.
+  - Puan: varsayılan log ölçekte göreli hata; tam isabet taban puan, `maxRelativeError`
+    (varsayılan %100) ve üstü 0. Ayar olarak sıralama modu (1. tam puan, sonrakiler azalan).
+    Eşitlikte önce cevaplayan önde.
+  - REVEAL: sayı doğrusunda bütün tahminler ve doğru cevap; çok uzak tahminler kenarda okla.
+  - Gizli bilgi: doğru cevap. `correct`: en yakın tahmin(ler).
+- **Sorting:** gameType `sorting`, paket `@loudroom/game-sorting`.
+  - İçerik: `{ question, items: [{ id, text, mediaId? }] (3–8, doğru sırada),
+labels?: { first, last } }`.
+  - Fazlar: INTRO → ANSWERING → REVEAL.
+  - Telefon: `@dnd-kit` ile sürükle-bırak, yanında yukarı/aşağı butonları, gönder butonu.
+  - Puan: varsayılan doğru konumdaki öğe oranı × taban puan; ayar olarak Kendall tau.
+  - REVEAL: doğru sıra ve her öğe için doğru yere koyanların yüzdesi.
+  - Gizli bilgi: doğru sıra. Gösterim sırası, öğeler önce id'ye göre dizilip sonra seed ile
+    karıştırılarak üretilir. `correct`: sıranın tamamı doğru.
+- **Kim Yapar?:** gameType `whoWould`, paket `@loudroom/game-who-would`.
+  - İçerik: `{ question, title? }` (title: "unvan").
+  - Fazlar: INTRO → VOTING → REVEAL.
+  - Telefon: oyuncular avatarlarıyla seçenek olarak listelenir.
+  - Puan: en çok oy alanı (eşitlikte en çok oy alanlardan birini) seçenler puan alır
+    (varsayılan 1000); en çok oy alan kişinin kendi puanı ayarlanabilir (varsayılan 0).
+  - REVEAL: avatarlarla oy dağılımı ve unvan. Kimin kime oy verdiği hiçbir zaman gönderilmez.
+  - Gizli bilgi: oyların sahipleri (anonimlik testi). `correct`: en çok oy alanlardan birini
+    seçti.
+  - Kurallar: seçenekler round başında bağlı olan oyunculardan üretilir; round sırasında kopan
+    oyuncu seçenek olarak kalır; kendine oy verme varsayılan açık (ayar); herkes oy verince
+    erken REVEAL; oyun başlarken en az 3 bağlı oyuncu gerekir; round başında 3'ten az bağlı
+    oyuncu varsa round "yeterli oyuncu yok" mesajıyla puansız biter.
+
+`correct` alanı telefondaki doğru/yanlış sonucunu ve seri bonusunu belirliyor.
+
+### 3. Admin ve seed
+
+- İçerik editörleri kendi paketlerinde: Closest Number (soru, cevap, birim, biçim), Sorting
+  (öğe ekleme/çıkarma/sıralama, isteğe bağlı görsel, ilk/son etiketleri), Kim Yapar? (ifade,
+  unvan). "Yeni içerik" butonu her oyun için registry'den kendiliğinden çıkar.
+- Seed (sabit id'lerle idempotent): 8 Closest Number sorusu, 6 Sorting sorusu, 10 Kim Yapar?
+  ifadesi ve dört oyunu birer bölüm olarak içeren yayında "Parti Karışık" paketi.
+
+### 4. Testler
+
+- **Unit:** puan formülleri, ayarlar, kenar durumlar (0/negatif cevap, eşitlik, kendine oy,
+  3'ün altına düşen oyuncu sayısı), görünümler, sözleşme testi (gizli girdi ve anonimlik dahil).
+- **Integration:** karışık paketle motor üzerinden uçtan uca oyun; bölümler arasında seri ve
+  sıralama; geçersiz girdilerin reddi; REVEAL öncesi payload taraması.
+- **E2E:** host ve 3 telefonla her oyunun akışı ve karışık paket; WebSocket mesajlarında doğru
+  cevabın REVEAL öncesi görünmediği kontrolü. Sorting'de sürükle-bırak Chromium'da; WebKit'te
+  kararlılık için yukarı/aşağı butonları.
+
+### Onay bekleyen kararlar
+
+- **B1:** gameType kimlikleri ve paket adları (yukarıda).
+- **B2:** Closest Number varsayılan puanı log ölçekli göreli hata, sıralama modu ayar; hız
+  yalnızca eşitliği bozar.
+- **B3:** Sorting 3–8 öğe; varsayılan konum oranı, Kendall ayar; hız bonusu yok; cevap
+  gönderilince kilitli (ayarla değiştirilebilir).
+- **B4:** Kim Yapar? kuralları (yukarıda).
+- **B5:** Her oyunda `correct`'in anlamı (yukarıda).
+- **B6:** Bölüme özel oyun ayarları paket editörüne gelsin.
+- **B7:** Sözleşme testine gizli girdi ve anonimlik kontrolleri eklensin.
+- **B8:** Avatar bileşeni renderer'lara prop olarak verilsin.
+- **B9:** Seed'e örnek içerik ve karışık paket eklensin.
+
+**Eklenecek paketler:** `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (SPEC §2'de
+listeli); Sorting paketine, sürümler kurarken sabitlenir.
+
+### Riskler
+
+- iOS Safari'de sürükle-bırak ile sayfa kaydırma çakışabilir: sürükleme bir tutamaçtan ve kısa
+  bir basılı tutma gecikmesiyle başlar; yukarı/aşağı butonları her zaman yedek.
 
 ---
 
