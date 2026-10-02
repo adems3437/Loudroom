@@ -51,6 +51,8 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
   src/admin/       admin REST API: session store + AdminGuard (cookie, CSRF, Origin, roles),
                    auth, categories, content, media, packs (+ public GET /api/packs), users
   src/http/        ApiException + parseRequest (zod), ApiError filter, REST rate-limit guard
+  src/import/      CSV/XLSX content import: spreadsheet reader, preview → commit, templates
+  src/history/     game history (sessions), statistics, retention purge (SESSION_RETENTION_DAYS)
   src/media/       image processing (sniff, sharp → WebP, metadata stripped), MediaStorage
   src/seed/        categories, sample quiz pack, party pack (+ closest number, sorting and
                    "Kim Yapar?" samples), map pack (maps/*.svg → WebP media, Image Location +
@@ -61,8 +63,9 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
   test/            integration tests on real Postgres/Redis (*_test DB, Redis DB 1)
 apps/web           Next.js 16 App Router; next.config rewrites /api and /media to the server
   src/app/{host,play,admin}  separate layouts; host = scaled 1920×1080 stage
-    admin/login, admin/(panel)/…        login; panel shell (nav) + content, categories, media,
-                                        game-packs, users, account (client pages)
+    admin/login, admin/(panel)/…        login; panel shell (nav) + overview (30-day stats),
+                                        content (+ import), categories, media, game-packs,
+                                        sessions (history), users, account (client pages)
     host/create, host/room/[roomCode]   room creation, lobby (QR, code, players, kick, lock)
     play, play/[roomCode]               code entry, join form, phone lobby
   src/realtime/    socket client (handshake token), sendCommand, sendStream, clock sync,
@@ -80,7 +83,8 @@ packages/game-sdk  GameModule contract, seeded RNG, text matching (cleanText, fo
                    isNearMatch); ./testing (contract suite + round harness); ./client
                    (countdown, option shapes, TR number format, settings form fields,
                    ContainedImage + image point mapping, renderer types)
-packages/games/*   one package per game: schema.ts, server.ts (module), host.tsx, player.tsx,
+packages/games/*   one package per game: schema.ts, server.ts (module), import.ts (CSV/XLSX
+                   columns), host.tsx, player.tsx,
                    editor.tsx (admin content form), settings-editor.tsx (pack round settings);
                    exports ./server and ./client separately. quiz, closest-number, sorting
                    (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff, drawing (round
@@ -121,8 +125,9 @@ docker/            dev image, postgres init (creates loudroom_test)
   the host allowed to know a secret go in `secretHolders` (e.g. the drawer, a TV showing live
   results); games with
   anonymous choices add `anonymousScripts`; games whose reveal is a timed phase set
-  `revealPhase`. Its renderer includes an `editor` (admin content form) and usually a
-  `settings` editor. Game UI text lives in `messages/tr.json` under `games.<gameType>` (editor
+  `revealPhase`. Its module has an `importer` (CSV/XLSX columns with Turkish ASCII keys; tested
+  with `importThrough` from `@loudroom/game-sdk/testing`). Its renderer includes an `editor`
+  (admin content form) and usually a `settings` editor. Game UI text lives in `messages/tr.json` under `games.<gameType>` (editor
   texts under `.editor`, settings texts under `.settings`); the admin's game name under
   `admin.gameTypes.<gameType>`.
 - Renderers draw avatars with the `Avatar` prop (never import web code) and are keyed by
@@ -188,5 +193,8 @@ docker/            dev image, postgres init (creates loudroom_test)
 - In the dev stack every browser reaches the server through the web container's address, so
   the whole e2e suite shares one REST rate-limit bucket (120, +4/s): keep e2e tests frugal
   with page loads.
+- All panel and e2e traffic reaches the server through the Next proxy from one address, so it
+  shares one REST bucket; the dev `.env` raises it (`REST_RATE_LIMIT_*`, unset in production).
+  `apiRequest` waits out a 429 on GETs (3 retries).
 - Rate-limit buckets live in Redis. To reset them in the dev stack:
   `docker compose exec redis sh -c "redis-cli --scan --pattern 'rl:*' | xargs -r redis-cli del"`.

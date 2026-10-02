@@ -4,24 +4,190 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                                   | Durum                          |
-| ----------------------------------------------------- | ------------------------------ |
-| Phase 1 — Altyapı                                     | ✅ Tamamlandı (2026-10-01)     |
-| Phase 2 — Oda ve Lobby                                | ✅ Tamamlandı (2026-10-01)     |
-| Phase 3 — Game Engine + Quiz MVP                      | ✅ Tamamlandı (2026-10-01)     |
-| Phase 4 — Admin Panel (temel)                         | ✅ Tamamlandı (2026-10-02)     |
-| Phase 5 — Closest Number + Sorting + Kim Yapar?       | ✅ Tamamlandı (2026-10-02)     |
-| Phase 6 — Image Location + Bluff                      | ✅ Tamamlandı (2026-10-02)     |
-| Phase 7 — Drawing (stream kanalı)                     | ✅ Tamamlandı (2026-10-02)     |
-| Phase 8 — Reaction + Memory                           | ✅ Tamamlandı (2026-10-02)     |
-| Phase 9 — İçe aktarma, geçmiş, video, prod, yedekleme | ⏸ Plan onay bekliyor (aşağıda) |
+| Faz                                             | Durum                      |
+| ----------------------------------------------- | -------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
+| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
+| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02) |
+| Phase 9B — Video, prod, yedekleme               | ⏳ Sırada (plan onaylı)    |
 
 ---
 
-## Phase 9 — İçe aktarma, geçmiş ve istatistikler, video, prod, yedekleme (plan, onay bekliyor)
+## Phase 9A — İçe aktarma, geçmiş ve istatistikler
 
-Plan 2026-10-02'de çıkarıldı. F1–F12 kararları kullanıcının onayını bekliyor. Kullanıcı
-"öneriler tamam" derse uygulamaya geçilir. Kapsam geniş; F1 bölmeyi öneriyor.
+Phase 9 planı 2026-10-02'de onaylandı (F1–F12: "öneriler tamam"). F1 gereği faz ikiye
+bölündü; 9A (F2–F6) aynı gün Mac'te uygulandı. 9B (video, prod, yedekleme) sırada.
+
+### Yapılanlar
+
+- **Oyun içe aktarıcıları** (`GameModule.importer`, `game-sdk/src/importer.ts`):
+  - `columns` (anahtar, zorunlu mu, örnek), `toContent(row)` (saf), `columnFor(path, content)`
+    (şema hatasını sütuna çevirir).
+  - Yardımcılar: `headerKey` ("Doğru Cevap" → `dogru_cevap`), `splitList` (`|`),
+    `parseLocaleNumber` ("1.234.567,5" → 1234567.5).
+  - Dokuz oyunun hepsinde `import.ts` var; sütunlar plandaki gibi. Ayrıntılar: Closest Number
+    `bicim` "yıl" → `year`; Image Location `x`, `y`, `yaricap` yüzde → 0..1; Sorting öğe
+    kimlikleri `s1`…, Memory `i1`…; Reaction `tur` "tuzak…" → `goNoGo`, boş ya da "klasik" →
+    `classic`.
+  - Test yardımcısı `importThrough(module, cells)` (`@loudroom/game-sdk/testing`): satırı
+    içe aktarıcıdan ve şemadan geçirip içeriği ya da hatalı sütunları döner.
+- **Server, içe aktarma** (`src/import/`):
+  - `readSpreadsheet`: XLSX ilk sayfa (`read-excel-file`), CSV (`csv-parse`; BOM atılır,
+    ayraç başlık satırından `;` `,` sekme). UTF-8 değilse `NOT_UTF8`, okunamazsa `UNREADABLE`,
+    boşsa `EMPTY`.
+  - `GET /api/admin/import/:gameType/template?format=csv|xlsx`: sütunlar + örnek satır (CSV
+    `;` ve BOM'lu; Türkçe Excel doğrudan açar).
+  - `POST /api/admin/import/:gameType/preview` (multipart `file`): hiçbir şey kaydetmez. Her
+    satır için `{ row, ok, preview, issues: [{ column, code }], input }`; ayrıca tanınmayan ve
+    eksik zorunlu sütunlar. Sorun kodları: `REQUIRED`, `INVALID`, `CATEGORY_UNKNOWN`,
+    `DIFFICULTY_INVALID`, `STATUS_INVALID`, `TAGS_INVALID`, `MEDIA_MISSING`. Dosya sorunları
+    400 `IMPORT_INVALID` (`issues[0].code`: yukarıdakiler + `TOO_LARGE`, `TOO_MANY_ROWS`).
+  - `POST /api/admin/import/:gameType` (`{ items }`): `ContentService.createMany` hepsini
+    yeniden doğrular (şema, medya, kategori) ve tek transaction'da oluşturur; biri geçersizse
+    400 `CONTENT_INVALID` (`issues` yolu `['items', i, …]`) ve hiçbiri kaydedilmez.
+  - İçe aktarıcısı olmayan ya da bilinmeyen oyun 404.
+- **Server, geçmiş ve istatistik** (`src/history/`, AdminGuard için `AdminModule`'de):
+  - `GET /api/admin/sessions` (sayfalı; `status`, `q` = oda kodu ya da paket adı),
+    `GET /api/admin/sessions/:id` (oyuncular final sırasıyla; her round'da içerik kopyası ve
+    oyuncu başına cevap, doğru mu, süre, puan), `DELETE /api/admin/sessions/:id` (yalnızca
+    ADMIN).
+  - `GET /api/admin/stats?days=30`: oyun, tamamlanan oyun, oyuncu ve round sayısı; dönemin
+    her günü (UTC, boş günler 0); en çok oynanan 10 paket (oyun anındaki adıyla); oyun
+    türlerine göre round sayısı.
+  - `GET /api/admin/stats/content?ids=…` (en fazla 100) ve
+    `GET /api/admin/stats/content/top?order=hardest|mostPlayed&gameType&limit&minAnswers`:
+    içerik başına round, cevap, doğru oranı (doğru/yanlış olabilen cevaplar üzerinden),
+    ortalama cevap süresi.
+  - `RetentionService`: açılıştan 60 sn sonra, sonra günde bir; 1 günden eski `ACTIVE`
+    oturumlar `ABORTED`, `SESSION_RETENTION_DAYS`'ten eski oturumlar (oyuncu, round, cevap ve
+    puanlarıyla, cascade) siliniyor. 0 = süresiz.
+- **Ayarlar:** `SESSION_RETENTION_DAYS` (varsayılan 180), `REST_RATE_LIMIT_CAPACITY` ve
+  `REST_RATE_LIMIT_PER_SECOND` (varsayılan 120 ve 4; dev `.env`'de 600 ve 20, aşağıda). Boş
+  değer ayarsız sayılıyor (compose `${VAR:-}`).
+- **Admin paneli:**
+  - `/admin/content/import`: oyun seçimi, XLSX/CSV şablon bağlantıları, dosya yükleme,
+    önizleme tablosu (satır, ilk hücreler, sütun adıyla sorunlar), "Geçerli N satırı içe
+    aktar", sonuç ve içerik listesine bağlantı. İçerik listesinde "İçe aktar" butonu.
+  - `/admin/sessions` (menüde "Oyun geçmişi"): tarih, paket, oda, oyuncu, round, kazanan,
+    durum; arama ve durum filtresi. Detay: final sıralaması, her round için içeriğin bir
+    satırlık özeti (oyunun editöründeki `summarize`), oyuncu başına doğru/yanlış, süre, puan;
+    ADMIN için silme.
+  - Genel bakışta "Son 30 gün": sayılar, günlük oyun grafiği, en çok oynanan paketler, oyun
+    türleri, en zor 5 içerik.
+  - İçerik listesinde "Oynanma" sütunu (round, cevap, doğru oranı).
+  - Medya kartında görselin kimliği (içe aktarmada `gorsel_id` için seçilip kopyalanabilir).
+- **Web `apiRequest`:** 429 alan GET isteklerini 0,5 / 1 / 2 sn bekleyip yeniden deniyor.
+  Önceden `/auth/me` 429 alınca panel kullanıcıyı giriş sayfasına atıyordu.
+
+### Testler
+
+- **Unit:**
+  - `importer.test.ts`: başlık katlama, liste bölme, Türkçe sayılar.
+  - Her oyunun `import.test.ts`'i: örnek satır şemadan geçiyor, zorunlu sütunlar, hatalı
+    değerlerin doğru sütuna düşmesi, oyuna özel dönüşümler.
+  - `spreadsheet.test.ts`: `;` ve `,` ayraçları, BOM, tırnaklı ayraç, UTF-8 dışı, XLSX
+    (`write-excel-file` ile üretilen dosya).
+  - `app-config.test.ts`: REST limiti ve saklama süresi ayarları, boş değer.
+- **Integration** (`test/import-history.test.ts`):
+  - CSV ve XLSX şablonları; XLSX şablonunun örnek satırı önizlemede geçerli.
+  - Önizleme: Türkçe başlıklar, tanınmayan sütun, kategori adla eşleşmesi, zorunlu alan,
+    geçersiz doğru cevap, bilinmeyen kategori, geçersiz zorluk, tırnak içindeki `;`; önizleme
+    hiçbir şey kaydetmiyor; onayda 2 içerik ekleyen kişiyle oluşuyor.
+  - Elle bozulmuş bir öğe olunca hiçbir şey kaydedilmiyor; başka oyun türü reddediliyor.
+  - UTF-8 dışı dosya, 2 MB üstü, eksik sütunlar, bilinmeyen oyun (404), oturumsuz (401).
+  - Geçmiş listesi ve detayı (cevap, doğru, süre, puan), EDITOR silemiyor (403), ADMIN
+    siliyor (204, sonra 404), cevaplar cascade siliniyor.
+  - İstatistikler: 7 günün hepsi, içerik başına 2 round / 4 cevap / %50 / 2000 ms, en çok
+    oynananlar, geçersiz id 400.
+  - Saklama: eski oturum siliniyor, bayat `ACTIVE` → `ABORTED`, yeni `ACTIVE` kalıyor;
+    `SESSION_RETENTION_DAYS=0` ile hiçbir şey silinmiyor.
+- **E2E** (`e2e/admin.spec.ts`, Chromium + WebKit):
+  - Yeni test: editör CSV şablonunu indiriyor, bir satırı hatalı CSV yüklüyor, önizlemede 3. satırın "b sütunu: boş olamaz" sorununu görüyor, 2 satırı içe aktarıyor, sonra
+    içerikleri panelden siliyor.
+  - İlk admin testine ek: oynanan oyun geçmişte oda koduyla bulunuyor; detayda oyuncu ve
+    sorunun metni var.
+
+### Bitti tanımı — son çalıştırma (2026-10-02, Mac)
+
+| Kontrol             | Sonuç                                                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`    | ✅ 24/24 görev                                                                                                                                                                              |
+| `pnpm lint`         | ✅ 24/24 görev                                                                                                                                                                              |
+| `pnpm test`         | ✅ 477 test: shared 45, game-sdk 44, quiz 46, closest-number 62, sorting 26, who-would 19, image-location 22, bluff 21, drawing 26, reaction 25, memory 18, server 123 (17 koşullu atlandı) |
+| `pnpm build`        | ✅ 13/13 görev                                                                                                                                                                              |
+| `pnpm test:e2e`     | ✅ 32/32 (Chromium + WebKit; önceki fazlar dahil)                                                                                                                                           |
+| `pnpm format:check` | ✅                                                                                                                                                                                          |
+
+Admin e2e ilk denemede 429 aldı: panel ve e2e trafiği Next proxy'si üzerinden tek adresten
+geliyor, admin testleri ~35 sn'de ~200 REST isteği yapıyor (dev'de React StrictMode istekleri
+ikiliyor). REST kovası ayarlanabilir yapıldı, dev `.env`'de büyütüldü ve GET'ler 429'da
+yeniden deneniyor (yukarıda); sonra tam e2e yeşil.
+
+### Alınan kararlar (kullanıcı onaylı)
+
+- **F1:** Faz bölündü: 9A içe aktarma + geçmiş/istatistik + saklama süresi; 9B video + prod +
+  yedekleme.
+- **F2:** Sütunlar oyun paketlerinde (`importer`); Türkçe başlıklar ve şablonlar.
+- **F3:** İki adım (önizleme → onay), 2 MB / 1.000 satır, tek transaction.
+- **F4:** `read-excel-file`, `write-excel-file`, `csv-parse`.
+- **F5:** Oturum geçmişi ve istatistik ekranları.
+- **F6:** `SESSION_RETENTION_DAYS` 180, günlük temizlik; bitmemiş oturumlar işaretleniyor.
+- **F7–F12:** 9B'de uygulanacak.
+
+### Varsayımlar ve küçük kararlar
+
+- **`ABORTED`, `ABANDONED` değil:** Veritabanı enum'unda Phase 3'ten beri `ABORTED` vardı;
+  yeni değer ve migration eklenmedi.
+- **Onaya önizlemedeki `input`'lar gidiyor:** İstemci dosyayı yeniden göndermiyor; server
+  her öğeyi baştan doğruladığı için elle değiştirilmiş öğe de kurallardan geçmek zorunda.
+- **Varsayılanlar:** dil `tr`, taban puan 1000, süre yok (paket/oyun ayarı), zorluk orta,
+  durum taslak. Etiketler küçük harfe çevriliyor (mevcut `tagSchema`).
+- **Kategori eşleşmesi:** kısa ad, ad ya da tireleri boşluk olarak katlanmış hali
+  ("genel-kultur" = "Genel Kültür" = "genel kultur").
+- **Sorun başına bir sütun:** Aynı sütunda birden çok sorun varsa ilki gösteriliyor.
+- **XLSX sayıları** virgüllü yazıya çevrilip oyunun Türkçe sayı ayrıştırıcısından geçiyor;
+  tarih hücreleri `YYYY-AA-GG`.
+- **Dosya sınırı:** Multer'ın genel sınırı medya sınırı (10 MB); içe aktarmanın 2 MB'ı
+  serviste uygulanıyor.
+- **Detayda ham cevap yok:** Cevap biçimi oyuna özel JSON; ekranda doğru/yanlış, süre ve
+  puan var, ham cevap API'de duruyor.
+- **"En zor":** en az 3 değerlendirilmiş cevabı olan içerikler, doğru oranı artan.
+- **Günler UTC:** Günlük grafik ve dönem sınırları UTC gününe göre (Türkiye'de gece 03:00'te
+  gün değişiyor).
+- **Temizlik birden çok sunucuda** aynı anda çalışsa da zararsız (idempotent sorgular).
+
+### Eklenen paketler
+
+| Paket                  | Nerede | Gerekçe                                                                          |
+| ---------------------- | ------ | -------------------------------------------------------------------------------- |
+| read-excel-file 9.3.10 | server | XLSX okuma (bakımı süren, bağımlılığı az; `xlsx` 0.18.5 eski ve güvenlik açıklı) |
+| write-excel-file 4.1.1 | server | XLSX şablonu üretme (aynı yazarın, okuyucuyla uyumlu)                            |
+| csv-parse 7.0.3        | server | CSV ayrıştırma (tırnak, satır sonları, ayraç seçimi)                             |
+
+### Bilinen sınırlar
+
+- **Windows-1254 CSV** reddediliyor (`NOT_UTF8`), kodlama tahmini yok; ekran "CSV UTF-8" ya da
+  XLSX öneriyor.
+- **XLSX'te yalnızca ilk sayfa** okunuyor; formüllerin kayıtlı değeri alınıyor.
+- **Görseller içe aktarmayla yüklenmiyor:** `gorsel_id` medya kütüphanesindeki bir görselin
+  kimliği olmalı.
+- **İstatistikler önbelleksiz:** Her sayfa açılışında toplama sorgusu; büyük geçmişte
+  yavaşlarsa indeks ya da özet tablo gerekecek.
+- **REST kovası paylaşılıyor:** Admin istekleri Next proxy'sinden geldiği için tüm panel
+  kullanıcıları tek kovayı paylaşıyor. 9B'deki Nginx + `TRUST_PROXY` bunu çözecek.
+
+---
+
+## Phase 9 — İçe aktarma, geçmiş ve istatistikler, video, prod, yedekleme (plan)
+
+Plan 2026-10-02'de çıkarıldı ve onaylandı (F1–F12). 9A tamamlandı (yukarıda); 3–5. bölümler
+ve F7–F12 9B'nin kapsamı.
 
 ### 1. CSV/XLSX içe aktarma (önizleme + doğrulama)
 
@@ -66,7 +232,8 @@ Plan 2026-10-02'de çıkarıldı. F1–F12 kararları kullanıcının onayını 
     gerekirse indeks eklenir.
 - **Saklama süresi (KVKK, SPEC §9):** `SESSION_RETENTION_DAYS` (varsayılan 180). Server
   günde bir kez, süresi geçmiş oturumları (oyuncu, cevap ve puanlarıyla) siler. 0 = hiç
-  silme. Bitmeden kalmış "ACTIVE" oturumlar 1 gün sonra "ABANDONED" işaretlenir.
+  silme. Bitmeden kalmış "ACTIVE" oturumlar 1 gün sonra "ABANDONED" işaretlenir (uygulamada
+  mevcut `ABORTED` değeri kullanıldı).
 - **Admin oturum silme:** ADMIN tek bir oturumu elle silebilir.
 
 ### 3. Video desteği
@@ -153,7 +320,7 @@ Plan 2026-10-02'de çıkarıldı. F1–F12 kararları kullanıcının onayını 
     koşar.
   - Yedek alınıp boş bir veritabanına geri yüklenir.
 
-### Onay bekleyen kararlar
+### Kararlar (onaylandı)
 
 - **F1:** Faz ikiye bölünsün: **9A** içe aktarma + geçmiş/istatistik + saklama süresi;
   **9B** video + prod + yedekleme. Her biri ayrı bitti tanımıyla. (Alternatif: tek faz.)

@@ -130,6 +130,9 @@ interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
   stream?: { schema: ZodType<Chunk>; accepts(state, playerId, ctx): boolean;
              cost(chunk): number; limits: { maxChunks: number; maxCost: number } };
   // round:stream kullanan oyunlar (Drawing); paketler modül durumuna girmez
+  importer?: { columns: { key, required, example }[]; toContent(row): unknown;
+               columnFor(path, content): string | null };
+  // CSV/XLSX içe aktarma: Türkçe ASCII sütun anahtarları, satır → içerik, hata → sütun
 
   getHostView(state: State, ctx: RoundContext<Content, Settings>): HostView;
   getPlayerView(state: State, playerId: string, ctx: RoundContext<Content, Settings>): PlayerView;
@@ -172,6 +175,7 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`
   - `settings`: bölümün, oyunun varsayılan ayarlarından farklı olan ayarları (üst düzey anahtarlar). Varsayılanlarla birleştirilip modülün `settingsSchema`'sı ile doğrulanır; paket editöründe oyunun kendi ayar formuyla düzenlenir.
 - Oyun başlarken pack'in o anki hali `GameSession.packSnapshot`'a kopyalanır (sonradan düzenleme geçmiş oyunları bozmaz).
+- **İçe aktarma (CSV/XLSX):** Oyunun `importer`'ı sütunlarını ve satır → içerik dönüşümünü verir; ortak sütunlar `kategori` (ad ya da kısa ad), `zorluk` (kolay/orta/zor), `etiketler` (virgülle), `durum` (taslak/yayında; boşsa taslak). Başlıklar Türkçe katlamayla eşleşir ("Doğru" = `dogru`). CSV UTF-8 (BOM'lu da) ve ayracı otomatik (`;` `,` sekme). En fazla 2 MB ve 1.000 satır. İki adım: önizleme hiçbir şey kaydetmez, satır satır sorunları sütun adıyla döner; onayda geçerli satırlar yeniden doğrulanıp tek transaction'da oluşturulur (biri geçersizse hiçbiri). Şablon her oyun için CSV (`;`, BOM) ve XLSX olarak indirilir.
 
 ---
 
@@ -314,7 +318,7 @@ score:update  game:end  error
 - **Admin auth:** argon2 hash, httpOnly + secure cookie oturum, CSRF koruması, roller `ADMIN` / `EDITOR`.
 - **Upload:** MIME sniff, boyut limiti, görseller `sharp` ile yeniden kodlanır ve EXIF silinir.
 - helmet, CORS kısıtı, secret'lar yalnızca env'de.
-- **KVKK:** Oyuncular hesapsız; yalnızca nickname/avatar tutulur, IP loglanmaz veya kısa saklama süresiyle tutulur; oturum geçmişi için saklama süresi ayarı.
+- **KVKK:** Oyuncular hesapsız; yalnızca nickname/avatar tutulur, IP loglanmaz veya kısa saklama süresiyle tutulur; oturum geçmişi `SESSION_RETENTION_DAYS` (varsayılan 180, 0 = süresiz) günden eskiyse oyuncu, cevap ve puanlarıyla günlük temizlikte silinir; bitmeden kalan oturumlar 1 gün sonra `ABORTED` olur. ADMIN tek bir oturumu elle silebilir.
 
 ---
 
@@ -420,7 +424,8 @@ Auth, rol, Quiz içerik CRUD, kategoriler, medya yükleme, GamePack oluşturma; 
 **Phase 6 —** Image Location + Bluff
 **Phase 7 —** Drawing (stream kanalı)
 **Phase 8 —** Reaction + Memory
-**Phase 9 —** CSV/XLSX import (önizleme + doğrulama), oturum geçmişi ve istatistikler, video desteği, prod sertleştirme, yedekleme.
+**Phase 9A —** CSV/XLSX import (önizleme + doğrulama), oturum geçmişi (`/admin/sessions`) ve istatistikler (genel bakışta son 30 gün, içerik başına oynanma ve doğru oranı), saklama süresi.
+**Phase 9B —** Video desteği, prod sertleştirme, yedekleme.
 
 **Phase 10 —** Tombala + Casus Kim?
 **Phase 11 —** Kart/masa altyapısı (koltuk/izleyici, sıra zaman aşımı, bot) + UNO + Pişti
