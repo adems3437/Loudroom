@@ -108,6 +108,7 @@ export function playRound(
           name: effect.phase,
           durationMs: effect.durationMs,
           endsAt: effect.durationMs === null ? null : now + effect.durationMs,
+          ...(effect.hidden ? { hidden: true } : {}),
         };
       } else if (effect.type === 'endRound') {
         ended = true;

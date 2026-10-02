@@ -29,8 +29,9 @@ export interface ContractFixture extends RoundFixture {
    */
   revealPhase?: string;
   /**
-   * Players allowed to know the secret content (e.g. the drawer and the word). Their views are
-   * left out of the `secretVariants` comparison; everyone else and the host are not.
+   * Who may know the secrets: players (e.g. the drawer and the word) and/or `'host'` (e.g. a
+   * TV that shows every player's result live). Their views are left out of the secrecy
+   * comparisons; everyone else's are not.
    */
   secretHolders?: string[];
   /** Inputs the module must refuse, either by schema or with a reject effect. */
@@ -69,13 +70,13 @@ function hidden(frames: Frame[], revealPhase: string | undefined): Frame[] {
   return until === -1 ? frames : frames.slice(0, until);
 }
 
-/** What the host and the given players were shown, frame by frame. */
-function seenBy(frames: Frame[], playerIds: string[]) {
+/** What the host (unless it may know the secrets) and the given players were shown. */
+function seenBy(frames: Frame[], playerIds: string[], holders: readonly string[] = []) {
   return frames.map((frame) => ({
     phase: frame.phase,
     ended: frame.ended,
-    hostView: frame.hostView,
-    playerViews: playerIds.map((id) => frame.playerViews[id]),
+    hostView: holders.includes('host') ? null : frame.hostView,
+    playerViews: playerIds.filter((id) => !holders.includes(id)).map((id) => frame.playerViews[id]),
   }));
 }
 
@@ -118,6 +119,7 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
           seenBy(
             hidden(playRound(module, { ...fixture, content }).frames, fixture.revealPhase),
             others,
+            fixture.secretHolders,
           );
         const reference = beforeEnd(fixture.content);
         expect(reference.length).toBeGreaterThan(0);
@@ -143,8 +145,8 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
             .filter((id) => inputsOf(script, id) === inputsOf(fixture.script, id));
           const frames = playRound(module, { ...fixture, content, script }).frames;
           const beforeEnd = (list: Frame[]) => hidden(list, fixture.revealPhase);
-          expect(seenBy(beforeEnd(frames), unchanged)).toEqual(
-            seenBy(beforeEnd(reference), unchanged),
+          expect(seenBy(beforeEnd(frames), unchanged, fixture.secretHolders)).toEqual(
+            seenBy(beforeEnd(reference), unchanged, fixture.secretHolders),
           );
         }
       },

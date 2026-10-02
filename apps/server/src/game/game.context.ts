@@ -3,6 +3,7 @@ import {
   type AnyGameModule,
   type GamePlayer,
   type Moderation,
+  type PhaseClock,
   type PlayerStats,
   type RoundContext,
 } from '@loudroom/game-sdk';
@@ -34,6 +35,16 @@ export function moduleFor(round: PlannedRound): AnyGameModule {
   const module = findGameModule(round.gameType);
   if (!module) throw new Error(`No game module for "${round.gameType}"`);
   return module;
+}
+
+/** A phase clock as clients may see it: a hidden one without its duration and end. */
+export function publicClock(clock: PhaseClock): {
+  name: string;
+  durationMs: number | null;
+  endsAt: number | null;
+} {
+  if (clock.hidden) return { name: clock.name, durationMs: null, endsAt: null };
+  return { name: clock.name, durationMs: clock.durationMs, endsAt: clock.endsAt };
 }
 
 /**

@@ -22,6 +22,8 @@ x-app: &app
     - game-image-location-node-modules:/app/packages/games/image-location/node_modules
     - game-bluff-node-modules:/app/packages/games/bluff/node_modules
     - game-drawing-node-modules:/app/packages/games/drawing/node_modules
+    - game-reaction-node-modules:/app/packages/games/reaction/node_modules
+    - game-memory-node-modules:/app/packages/games/memory/node_modules
     - pnpm-store:/pnpm-store
     # Uploaded media (SPEC §13: a Docker volume in the MVP).
     - media-data:/media-data
@@ -116,4 +118,6 @@ volumes:
   game-image-location-node-modules:
   game-bluff-node-modules:
   game-drawing-node-modules:
+  game-reaction-node-modules:
+  game-memory-node-modules:
   pnpm-store:

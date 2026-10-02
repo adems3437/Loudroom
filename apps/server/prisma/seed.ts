@@ -5,6 +5,7 @@ import { seedCategories } from '../src/seed/categories.js';
 import { seedDrawingPack } from '../src/seed/drawing-pack.js';
 import { seedMapPack } from '../src/seed/map-pack.js';
 import { seedPartyPack } from '../src/seed/party-pack.js';
+import { seedReflexPack } from '../src/seed/reflex-pack.js';
 import { seedQuizPack } from '../src/seed/quiz-pack.js';
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -17,6 +18,7 @@ try {
   await seedPartyPack(prisma);
   await seedMapPack(prisma);
   await seedDrawingPack(prisma);
+  await seedReflexPack(prisma);
   const email = process.env.ADMIN_SEED_EMAIL;
   const password = process.env.ADMIN_SEED_PASSWORD;
   if (email && password) {

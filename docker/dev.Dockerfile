@@ -15,7 +15,8 @@ RUN mkdir -p /app/node_modules /app/apps/server/node_modules /app/apps/web/node_
     /app/packages/games/quiz/node_modules /app/packages/games/closest-number/node_modules \
     /app/packages/games/sorting/node_modules /app/packages/games/who-would/node_modules \
     /app/packages/games/image-location/node_modules /app/packages/games/bluff/node_modules \
-    /app/packages/games/drawing/node_modules \
+    /app/packages/games/drawing/node_modules /app/packages/games/reaction/node_modules \
+    /app/packages/games/memory/node_modules \
     /pnpm-store /media-data \
   && chown -R node:node /app /pnpm-store /media-data
 

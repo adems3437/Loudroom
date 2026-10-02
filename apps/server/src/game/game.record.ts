@@ -23,6 +23,8 @@ export type PlannedRound = z.infer<typeof plannedRoundSchema>;
 
 const clockSchema = z.object({
   name: z.string(),
+  /** Kept on the server only: clients get the phase without its end. */
+  hidden: z.boolean().optional(),
   durationMs: z.number().int().nullable(),
   endsAt: z.number().nullable(),
 });

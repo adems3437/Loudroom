@@ -4,6 +4,7 @@ import {
   currentRound,
   moduleFor,
   NO_MODERATION_IN_VIEWS,
+  publicClock,
   roundContext,
   statsOf,
 } from './game.context.js';
@@ -46,7 +47,9 @@ function commonState(snapshot: RoomSnapshot, game: GameRecord) {
       roundIndex: game.roundIndex,
       roundCount: game.rounds.length,
       countdown: effective === 'STARTING' ? game.countdown : null,
-      pausedRemainingMs: status === 'PAUSED' ? (game.paused?.remainingMs ?? null) : null,
+      // A hidden phase clock stays hidden while paused too.
+      pausedRemainingMs:
+        status === 'PAUSED' && !game.phase?.hidden ? (game.paused?.remainingMs ?? null) : null,
       standings: standingsOf(snapshot),
     },
   };
@@ -63,7 +66,12 @@ function roundView(
   if (!round || game.moduleState == null) return null;
   if (effective !== 'PLAYING' && effective !== 'ROUND_RESULT') return null;
   const ctx = roundContext(game, round, snapshot.players, Date.now(), NO_MODERATION_IN_VIEWS);
-  return { roundId: round.roundId, gameType: round.gameType, phase: game.phase, view: view(ctx) };
+  return {
+    roundId: round.roundId,
+    gameType: round.gameType,
+    phase: game.phase ? publicClock(game.phase) : null,
+    view: view(ctx),
+  };
 }
 
 export function hostGameState(snapshot: RoomSnapshot, game: GameRecord): HostGameState {

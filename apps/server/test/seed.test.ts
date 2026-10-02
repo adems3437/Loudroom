@@ -18,6 +18,12 @@ import {
 import { seedQuizPack } from '../src/seed/quiz-pack.js';
 import { DRAWING_PACK_ID, SAMPLE_WORDS, seedDrawingPack } from '../src/seed/drawing-pack.js';
 import {
+  REFLEX_PACK_ID,
+  SAMPLE_MEMORY,
+  SAMPLE_REACTION,
+  seedReflexPack,
+} from '../src/seed/reflex-pack.js';
+import {
   MAP_PACK_ID,
   SAMPLE_BLUFF,
   SAMPLE_IMAGE_LOCATION,
@@ -159,6 +165,33 @@ describe('seedCategories', () => {
     expect(pack).toMatchObject({ name: 'Çiz Bil', status: 'PUBLISHED' });
     expect(pack.rounds.map((round) => [round.gameType, round.questionCount])).toEqual([
       ['drawing', 6],
+    ]);
+  });
+
+  it('seeds the reaction challenges, memory sets and their pack idempotently', async () => {
+    await seedReflexPack(prisma);
+    await seedReflexPack(prisma);
+    for (const [gameType, items] of [
+      ['reaction', SAMPLE_REACTION],
+      ['memory', SAMPLE_MEMORY],
+    ] as const) {
+      const rows = await prisma.contentItem.findMany({
+        where: { id: { in: items.map((item) => item.id) } },
+      });
+      expect(rows).toHaveLength(items.length);
+      for (const row of rows) {
+        expect(row).toMatchObject({ gameType, status: 'PUBLISHED' });
+        expect(findGameModule(gameType)?.contentSchema.safeParse(row.data).success).toBe(true);
+      }
+    }
+    const pack = await prisma.gamePack.findUniqueOrThrow({
+      where: { id: REFLEX_PACK_ID },
+      include: { rounds: { orderBy: { order: 'asc' } } },
+    });
+    expect(pack).toMatchObject({ name: 'Refleks ve Hafıza', status: 'PUBLISHED' });
+    expect(pack.rounds.map((round) => [round.gameType, round.questionCount])).toEqual([
+      ['reaction', 2],
+      ['memory', 3],
     ]);
   });
 

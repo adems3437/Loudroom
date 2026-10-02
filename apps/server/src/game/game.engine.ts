@@ -9,7 +9,7 @@ import { PresenceService } from '../room/presence.service.js';
 import { RoomBroadcaster, type GameNotice } from '../room/room.broadcaster.js';
 import { RoomService } from '../room/room.service.js';
 import type { RoomSnapshot, StoredPlayer, StoredRoom } from '../room/room.store.js';
-import { currentRound, moduleFor, roundContext, statsOf } from './game.context.js';
+import { currentRound, moduleFor, publicClock, roundContext, statsOf } from './game.context.js';
 import type { GameRecord, PlannedRound } from './game.record.js';
 import { standingsOf } from './game.views.js';
 import { GameTimers } from './game-timers.js';
@@ -336,14 +336,19 @@ export class GameEngine implements OnApplicationBootstrap {
     for (const effect of effects ?? []) {
       if (effect.type === 'phase') {
         const endsAt = effect.durationMs === null ? null : draft.now + effect.durationMs;
-        game.phase = { name: effect.phase, durationMs: effect.durationMs, endsAt };
+        game.phase = {
+          name: effect.phase,
+          durationMs: effect.durationMs,
+          endsAt,
+          ...(effect.hidden ? { hidden: true } : {}),
+        };
         game.timer =
           endsAt === null
             ? null
             : { token: newToken(), firesAt: endsAt + this.config.game.inputGraceMs };
         draft.notices.push({
           event: ServerEvent.RoundPhase,
-          payload: { roundId: round.roundId, phase: game.phase },
+          payload: { roundId: round.roundId, phase: publicClock(game.phase) },
         });
       } else if (effect.type === 'endRound') {
         this.finishRound(draft, game, module, round);
@@ -474,7 +479,7 @@ export class GameEngine implements OnApplicationBootstrap {
       game.timer = { token: newToken(), firesAt: endsAt + this.config.game.inputGraceMs };
       draft.notices.push({
         event: ServerEvent.RoundPhase,
-        payload: { roundId: round.roundId, phase: game.phase },
+        payload: { roundId: round.roundId, phase: publicClock(game.phase) },
       });
     }
   }

@@ -78,7 +78,9 @@
       "whoWould": "Kim Yapar?",
       "imageLocation": "Haritada Bul",
       "bluff": "Blöf",
-      "drawing": "Çiz Bil"
+      "drawing": "Çiz Bil",
+      "reaction": "Refleks",
+      "memory": "Hafıza"
     },
     "overview": {
       "title": "Genel bakış",
@@ -620,6 +622,87 @@
         "drawerPoints": "Çizenin puanı",
         "drawerPointsHint": "Bilen her oyuncu için.",
         "showLetterSlots": "Harf kutularını göster"
+      }
+    },
+    "reaction": {
+      "attemptOf": "Deneme {current} / {total}",
+      "attempts": "{count} deneme; sonucun ortanca süren.",
+      "rulesClassic": "Telefonunda hedef çıkınca olabildiğince hızlı dokun. Erken basarsan ceza!",
+      "rulesGoNoGo": "Yeşil hedefe dokun, kırmızı tuzağa dokunma. Erken basarsan ceza!",
+      "getReady": "Hazır ol…",
+      "go": "BAS!",
+      "decoy": "BASMA!",
+      "done": "{count} / {total} kişi bastı",
+      "ms": "{ms} ms",
+      "ranking": "Sıralama (ortanca süre)",
+      "penalties": "{count} ceza",
+      "noValid": "Geçerli deneme yok",
+      "wait": "Bekle…",
+      "waitHint": "Ekran yeşile dönünce dokun.",
+      "earlyHint": "Bu deneme ceza sayılacak; bir sonrakini bekle.",
+      "yourMedian": "Ortanca süren",
+      "rank": "{rank}. sıradasın",
+      "outcome": {
+        "ok": "Kaydedildi",
+        "early": "Erken bastın!",
+        "missed": "Kaçırdın",
+        "invalid": "Geçersiz deneme",
+        "decoyTap": "Tuzağa bastın!",
+        "held": "Tuzağa basmadın, aferin!"
+      },
+      "editor": {
+        "title": "Başlık",
+        "titlePlaceholder": "ör. Klasik",
+        "variant": "Tür",
+        "classic": "Klasik: hedef çıkınca bas",
+        "goNoGo": "Tuzaklı: kırmızıya basma",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "attempts": "Deneme sayısı",
+        "maxReactionMs": "En uzun süre / ceza (ms)",
+        "goodMs": "İyi sayılan ortanca (ms)",
+        "baseScore": "Birincinin puanı",
+        "rankStep": "Sıra başına düşüş",
+        "minScore": "En düşük puan",
+        "decoyRate": "Tuzak oranı (%)",
+        "decoyRateHint": "Tuzaklı türde, hedef denemelerine oranla eklenen tuzak sayısı."
+      }
+    },
+    "memory": {
+      "timeLeft": "Kalan süre",
+      "memorize": "Ezberle!",
+      "answerOnPhones": "Telefonlarınızdan cevaplayın!",
+      "finished": "{count} / {total} oyuncu bitirdi",
+      "gotIt": "{count} kişi bildi",
+      "questionPresent": "Hangisi ekrandaydı?",
+      "questionAbsent": "Hangisi ekranda yoktu?",
+      "questionCount": "Kaç tane {label} vardı?",
+      "lookAtScreen": "Ekrana bak!",
+      "memorizeHint": "Ekrandakileri ezberle; sorular birazdan telefonuna gelecek.",
+      "questionOf": "Soru {current} / {total}",
+      "allAnswered": "Cevapların alındı",
+      "waitForOthers": "Diğerleri bekleniyor…",
+      "score": "{total} sorudan {count} doğru",
+      "editor": {
+        "title": "Set adı",
+        "titlePlaceholder": "ör. Meyveler",
+        "items": "Nesneler",
+        "itemsHint": "8–24 nesne; her birinde emoji ya da görsel olmalı. Oyunda bir kısmı ekranda gösterilir.",
+        "emoji": "Emoji",
+        "labelPlaceholder": "{number}. nesnenin adı",
+        "image": "Görsel",
+        "remove": "Kaldır",
+        "add": "Nesne ekle",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "showSeconds": "Gösterim süresi (sn)",
+        "boardSize": "Tahtadaki kutu sayısı",
+        "distinctCount": "Farklı nesne sayısı",
+        "distinctCountHint": "Kalan kutular bunların tekrarıyla dolar (\"kaç tane\" sorusu için).",
+        "questionCount": "Soru sayısı",
+        "pointsPerQuestion": "Doğru cevap başına puan"
       }
     }
   },

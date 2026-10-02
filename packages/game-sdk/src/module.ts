@@ -24,6 +24,8 @@ export interface PlayerStats {
 /** The phase the engine is timing, as set by the module's last `phase` effect. */
 export interface PhaseClock {
   name: string;
+  /** Clients are not told when it ends (e.g. when Reaction's target appears). */
+  hidden?: boolean | undefined;
   /** Null when the phase waits for an action instead of a timer. */
   durationMs: number | null;
   /** Server epoch ms when the phase ends; shifted by the engine when a game is paused. */
@@ -78,8 +80,11 @@ export type InputRejectCode =
   | 'TEXT_REJECTED';
 
 export type Effect =
-  /** Enter a phase; with a duration the engine calls `onTimer` when it runs out. */
-  | { type: 'phase'; phase: string; durationMs: number | null }
+  /**
+   * Enter a phase; with a duration the engine calls `onTimer` when it runs out. `hidden`:
+   * the clock stays on the server — clients see the phase without its duration or end.
+   */
+  | { type: 'phase'; phase: string; durationMs: number | null; hidden?: boolean }
   /** The round is over: the engine calls `score` and shows the result. */
   | { type: 'endRound' }
   /** Refuse a player's input; the code is returned in their command ack. */
