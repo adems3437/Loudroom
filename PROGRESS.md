@@ -4,16 +4,188 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                      |
-| ----------------------------------------------- | -------------------------- |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
-| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
+| Faz                                                   | Durum                          |
+| ----------------------------------------------------- | ------------------------------ |
+| Phase 1 — Altyapı                                     | ✅ Tamamlandı (2026-10-01)     |
+| Phase 2 — Oda ve Lobby                                | ✅ Tamamlandı (2026-10-01)     |
+| Phase 3 — Game Engine + Quiz MVP                      | ✅ Tamamlandı (2026-10-01)     |
+| Phase 4 — Admin Panel (temel)                         | ✅ Tamamlandı (2026-10-02)     |
+| Phase 5 — Closest Number + Sorting + Kim Yapar?       | ✅ Tamamlandı (2026-10-02)     |
+| Phase 6 — Image Location + Bluff                      | ✅ Tamamlandı (2026-10-02)     |
+| Phase 7 — Drawing (stream kanalı)                     | ✅ Tamamlandı (2026-10-02)     |
+| Phase 8 — Reaction + Memory                           | ✅ Tamamlandı (2026-10-02)     |
+| Phase 9 — İçe aktarma, geçmiş, video, prod, yedekleme | ⏸ Plan onay bekliyor (aşağıda) |
+
+---
+
+## Phase 9 — İçe aktarma, geçmiş ve istatistikler, video, prod, yedekleme (plan, onay bekliyor)
+
+Plan 2026-10-02'de çıkarıldı. F1–F12 kararları kullanıcının onayını bekliyor. Kullanıcı
+"öneriler tamam" derse uygulamaya geçilir. Kapsam geniş; F1 bölmeyi öneriyor.
+
+### 1. CSV/XLSX içe aktarma (önizleme + doğrulama)
+
+- **Her oyunun bir içe aktarıcısı var:** Oyun paketi sütunlarını ve satır → içerik
+  dönüşümünü tanımlıyor (saf fonksiyon, `GameModule.importer`, isteğe bağlı). Ortak sütunlar
+  her oyunda aynı: `kategori` (kısa ad), `zorluk` (kolay/orta/zor), `etiketler`, `durum`.
+  Oyuna özel sütunlar:
+  - Quiz: `soru`, `a`…`f`, `dogru` (harf), `gorsel_id`.
+  - Closest Number: `soru`, `cevap` (Türkçe sayı), `birim`, `bicim`.
+  - Sorting: `soru`, `oge1`…`oge8` (doğru sırada), `ilk_etiket`, `son_etiket`.
+  - Kim Yapar?: `ifade`, `unvan`.
+  - Image Location: `soru`, `gorsel_id`, `x`, `y` (%), `yaricap`.
+  - Bluff: `soru`, `cevap`, `kabul` (`|` ile ayrılmış), `yemler` (`|`).
+  - Drawing: `kelime`, `alternatifler`.
+  - Reaction: `baslik`, `tur`.
+  - Memory: `baslik`, `ogeler` (`🍎 Elma | 🍐 Armut …`).
+- **Akış (admin, EDITOR ve ADMIN):**
+  1. Oyun seçilir; o oyunun CSV ya da XLSX şablonu indirilebilir (örnek satırla).
+  2. Dosya yüklenir (en fazla 2 MB, 1.000 satır).
+  3. Server dosyayı ayrıştırır, her satırı oyunun şemasıyla ve ortak alanlarla doğrular,
+     önizleme döner: satır no, durum, hatalar (sütun adıyla), içerik özeti. Hiçbir şey
+     kaydedilmez.
+  4. Admin geçerli satırları onaylar; server onları yeniden doğrulayıp tek transaction'da
+     oluşturur.
+  - Başlıklar Türkçe-katlamayla eşleşir ("Doğru" = "dogru"). Kodlama UTF-8 (BOM'lu da);
+    ayraç virgül ya da noktalı virgül (Excel TR) otomatik seçilir.
+- **Kütüphaneler:** `read-excel-file` (XLSX okuma), `write-excel-file` (XLSX şablonu),
+  `csv-parse` (CSV). Üçü de bakımı süren paketler. npm'deki `xlsx` 0.18.5 eski ve güvenlik
+  açıklı olduğu için seçilmedi.
+
+### 2. Oturum geçmişi ve istatistikler
+
+- **Admin'de `/admin/sessions`:** Oynanmış oyunların listesi (tarih, paket, oda kodu, oyuncu
+  sayısı, süre, durum; filtre ve sayfalama). Detayda round'lar, oyuncuların cevapları ve
+  puanları, final sıralaması.
+- **İstatistikler:**
+  - Genel bakışta son 30 gün: oyun sayısı, oyuncu sayısı, en çok oynanan paketler ve
+    oyunlar.
+  - İçerik başına: kaç kez oynandı, doğru oranı, ortalama cevap süresi. İçerik listesinde
+    gösterilir ve sıralanabilir ("en zor sorular").
+  - Hepsi mevcut `GameSession` / `SessionRound` / `PlayerAnswer` tablolarından sorguyla;
+    gerekirse indeks eklenir.
+- **Saklama süresi (KVKK, SPEC §9):** `SESSION_RETENTION_DAYS` (varsayılan 180). Server
+  günde bir kez, süresi geçmiş oturumları (oyuncu, cevap ve puanlarıyla) siler. 0 = hiç
+  silme. Bitmeden kalmış "ACTIVE" oturumlar 1 gün sonra "ABANDONED" işaretlenir.
+- **Admin oturum silme:** ADMIN tek bir oturumu elle silebilir.
+
+### 3. Video desteği
+
+- **Yükleme:**
+  - MP4 (H.264/AAC) ve WebM, en fazla 50 MB (ayar), en fazla 60 sn.
+  - Server içeriği baytlarından tanır (uzantıya güvenmez). `ffprobe` ile süre ve boyut
+    okunur. `ffmpeg -c copy -map_metadata -1` ile yeniden paketlenir: konum dahil bütün
+    meta veriler silinir (SPEC §9), yeniden kodlanmaz.
+  - `ffmpeg` dev imajına ve prod imajına eklenir. Host modunda kurulu olması gerekir
+    (`brew install ffmpeg`); yoksa video yükleme açık bir hata verir, görseller etkilenmez.
+- **Quiz'de video soru:**
+  - `media: { type: 'video', mediaId }` (SPEC §7.1'de alan hazırdı).
+  - TV videoyu INTRO'da sesli oynatır; INTRO süresi videonun süresi kadar (en fazla 60 sn).
+    Cevaplama video bitince açılır. Telefonlarda video yok.
+  - Tarayıcı otomatik oynatmayı engellerse TV'de "Oynat" butonu çıkar; süre yine işler.
+- **Admin:** medya kütüphanesinde video yükleme ve önizleme; Quiz editöründe görsel ya da
+  video seçimi. Kullanımdaki video silinemez (mevcut kural).
+- **Prod'da Nginx videoları `Range` istekleriyle sunar** (ileri sarma için).
+
+### 4. Prod sertleştirme
+
+- **İmajlar:**
+  - `docker/server.Dockerfile` ve `docker/web.Dockerfile`: multi-stage, pnpm `deploy` ile
+    yalnızca prod bağımlılıkları.
+  - Web için Next `output: 'standalone'`.
+  - Non-root kullanıcı, `HEALTHCHECK`, `NODE_ENV=production`.
+- **`compose.prod.yml`:**
+  - Servisler: postgres, redis, `migrate` (açılışta `prisma migrate deploy`, bitince
+    kapanır), server, web, nginx, backup.
+  - Postgres ve Redis dışarı açılmaz. Restart politikaları ve kaynak sınırları var.
+- **Nginx:**
+  - `/` web'e; `/api`, `/media` ve `/socket.io` doğrudan server'a (WebSocket upgrade).
+    Phase 4'te kalan "admin isteklerinde server web'in adresini görüyor" sınırı burada
+    kalkar: `TRUST_PROXY` ile gerçek istemci IP'si.
+  - gzip, statik dosyalara uzun cache, medyaya cache ve Range desteği, istek boyutu
+    sınırları.
+  - Güvenlik başlıkları; TLS için hazır yapılandırma (sertifika yolları, 80 → 443
+    yönlendirmesi örnek dosyada).
+- **Server:**
+  - Prod'da JSON log (Nest logger, ek paket yok).
+  - Kapanışta düzgün bitiş: zamanlayıcılar, Redis ve Prisma kapanır; açık oyunlar zaten
+    restart'ta duraklıyor.
+  - `.env`'de zorunlu sırlar yoksa açılmaz (mevcut zod doğrulaması genişletilir).
+- **`.env.prod.example`** ve kurulum belgesi (`docs/DEPLOY.md`): ilk kurulum, admin oluşturma,
+  güncelleme, TLS.
+- **İsteğe bağlı (SPEC §14):** GitHub Actions'ta lint, typecheck, test, build (Postgres ve
+  Redis servis konteynerleriyle). E2E CI'ya girmez (tam stack gerekiyor).
+
+### 5. Yedekleme
+
+- **`backup` servisi (prod):**
+  - Her gece (`BACKUP_HOUR`, varsayılan 03:00) `pg_dump -Fc` ve medya klasörünün `tar`'ını
+    `backups` volume'una yazar.
+  - `BACKUP_KEEP_DAYS` (varsayılan 14) günden eskileri siler.
+  - Basit bir shell döngüsü; ek imaj gerekmez (postgres imajı + coreutils).
+- **`scripts/backup.sh` ve `scripts/restore.sh`:** elle yedek alma ve geri yükleme
+  (veritabanı ve medya). Geri yükleme, belgelenmiş ve test edilmiş bir prova olarak.
+- **Redis yedeklenmez:** canlı odalar geçici (AOF zaten açık).
+
+### 6. Testler
+
+- **Unit:**
+  - İçe aktarıcılar: her oyun için örnek satırlar, hatalı satırlar, Türkçe sayı ve
+    başlıklar.
+  - CSV ayraç tespiti, BOM, XLSX okuma (fixture dosyasıyla).
+  - Saklama süresi hesabı.
+- **Integration:**
+  - Önizleme ve onay (geçerli ve geçersiz satırlar, kategori eşleme, transaction, yetki,
+    boyut sınırı).
+  - Oturum listesi, detayı ve istatistik sorguları; saklama süresi temizliği.
+  - Video yükleme (küçük bir test videosu fixture'ı; `ffprobe` yoksa test atlanır ve
+    raporlanır).
+  - Quiz video sorusunda INTRO süresinin video süresi olması.
+- **E2E:**
+  - Admin şablon indirip CSV yükler, önizlemede bir hatalı satır görür, geçerlileri içe
+    aktarır.
+  - Bir oyun oynanır ve geçmişte görünür.
+  - Video yüklenip quiz sorusuna eklenir, TV'de oynar.
+- **Prod doğrulaması:**
+  - `docker compose -f compose.yml -f compose.prod.yml up --build` ile tam stack ayağa
+    kalkar.
+  - Nginx üzerinden health ve WebSocket çalışır; e2e'nin bir alt kümesi prod stack'e karşı
+    koşar.
+  - Yedek alınıp boş bir veritabanına geri yüklenir.
+
+### Onay bekleyen kararlar
+
+- **F1:** Faz ikiye bölünsün: **9A** içe aktarma + geçmiş/istatistik + saklama süresi;
+  **9B** video + prod + yedekleme. Her biri ayrı bitti tanımıyla. (Alternatif: tek faz.)
+- **F2:** İçe aktarma sütunları oyun paketlerinde (`importer`); Türkçe başlıklar ve
+  şablonlar.
+- **F3:** İki adımlı içe aktarma (önizleme → onay), 2 MB / 1.000 satır, tek transaction.
+- **F4:** Paketler `read-excel-file`, `write-excel-file`, `csv-parse`.
+- **F5:** Oturum geçmişi ve istatistik ekranları (yukarıdaki kapsam).
+- **F6:** `SESSION_RETENTION_DAYS` varsayılan 180 gün, günlük temizlik; bitmemiş oturumlar
+  ABANDONED.
+- **F7:** Video: MP4/WebM, 50 MB, 60 sn; `ffmpeg`/`ffprobe` ile meta veri silme ve süre
+  okuma, yeniden kodlama yok.
+- **F8:** Quiz'de video INTRO'da TV'de oynar; cevaplama video bitince açılır.
+- **F9:** Prod imajları, `compose.prod.yml`, Nginx, `migrate` servisi; `docs/DEPLOY.md`.
+- **F10:** Nginx `/api`, `/media`, `/socket.io` adreslerini doğrudan server'a yönlendirsin.
+- **F11:** Gecelik `pg_dump` + medya `tar`, 14 gün saklama; backup/restore script'leri.
+- **F12:** GitHub Actions CI (lint, typecheck, test, build) eklensin.
+
+### Riskler
+
+- **ffmpeg bağımlılığı:** İmajlar büyür (~100 MB); host modunda ayrıca kurulum gerekir.
+  Video olmadan da her şey çalışmalı (testler ve hata mesajı bunu doğrular).
+- **Excel CSV'leri:** Türkçe Excel noktalı virgül ve Windows-1254 kaydedebilir. UTF-8 dışı
+  dosya açık bir hatayla reddedilir ve şablon UTF-8/XLSX önerir; otomatik kodlama tahmini
+  yok.
+- **Otomatik oynatma:** TV tarayıcıları sesli videoyu kullanıcı etkileşimi olmadan
+  oynatmayabilir. Host oyunu bir tıklamayla başlattığı için çoğu tarayıcıda izin var; yoksa
+  "Oynat" butonu.
+- **İstatistik sorguları:** Büyük geçmişte yavaşlayabilir; indeks ve sayfalama, gerekirse
+  sorgu başına zaman sınırı.
+- **Prod doğrulaması yerel:** Gerçek bir sunucu, alan adı ve TLS sertifikası bu ortamda
+  denenemez; yapılandırma yerelde HTTP ile doğrulanır.
 
 ---
 
