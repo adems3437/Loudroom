@@ -4,21 +4,21 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                                                |
-| ----------------------------------------------- | ---------------------------------------------------- |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)                           |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)                           |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)                           |
-| Phase 4 — Admin Panel (temel)                   | 🟡 Kodlandı; Mac'te iki doğrulama bekliyor (aşağıda) |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ⏸ Plan onay bekliyor (aşağıda)                       |
+| Faz                                             | Durum                          |
+| ----------------------------------------------- | ------------------------------ |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)     |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)     |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)     |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)     |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ⏸ Plan onay bekliyor (aşağıda) |
 
 ---
 
 ## Phase 5 — Closest Number + Sorting + Kim Yapar? (plan, onay bekliyor)
 
 Plan bulut oturumunda çıkarıldı. B1–B9 kararları kullanıcının onayını bekliyor. Kullanıcı
-"öneriler tamam" derse uygulamaya geçilir. Önce Phase 4'ün Mac'teki iki doğrulaması yapılmalı:
-`docker compose up -d --build --wait` (sıfırdan) ve WebKit dahil `pnpm test:e2e`.
+"öneriler tamam" derse uygulamaya geçilir. Phase 4'ün Mac'teki iki doğrulaması 2026-10-02'de
+yapıldı (Phase 4 → "Bitti tanımı — Mac doğrulaması").
 
 ### 1. Ortak altyapı
 
@@ -211,6 +211,13 @@ listeli); Sorting paketine, sürümler kurarken sabitlenir.
   setup için `ADMIN_SEED_*` eklendi.
 - **SPEC:** Admin route'ları (§2), GamePack durumu ve `mediaId` kuralı (§6), admin oturum
   anahtarları (§11) güncellendi.
+- **Giriş formu kilidi (Mac doğrulamasında bulundu):** WebKit, React hydration sırasında
+  server'da render edilmiş kontrollü input'lara önceden yazılan metni siliyor. `/admin/login`
+  açılır açılmaz yazan biri (ya da e2e testi) boş e-postayla kalıyordu; tarayıcının `required`
+  kontrolü gönderimi engellediği için hata mesajı da çıkmıyordu. Form alanları bir
+  `<fieldset disabled>` içinde; oturum durumu `loading` iken (yani hydration ve `/auth/me`
+  bitene kadar) kilitli. Playwright `fill` alanın açılmasını kendisi beklediği için testler
+  değişmedi.
 - **Önceki testlerde düzeltme:** Bu ortam daha hızlı olduğu için iki integration testi her
   seferinde kırmızıya döndü. Server'ın `SESSION_EXPIRED` hatası, test dinlemeye başlamadan
   önce geliyordu. `connectRefused` yardımcı fonksiyonu dinleyiciyi bağlantıdan önce kuruyor.
@@ -242,6 +249,24 @@ listeli); Sorting paketine, sürümler kurarken sabitlenir.
   ```
 
   `--build` gerekli: dev imajına `/media-data` bağlama noktası eklendi.
+
+### Bitti tanımı — Mac doğrulaması (2026-10-02)
+
+Bulut ortamında yapılamayan iki adım Mac'te (Node 24.21.0, pnpm 12.8.1, Docker 29.8.1,
+Playwright 1.63: Chromium 153, WebKit 26.6) temiz bir klonla çalıştırıldı.
+
+| Kontrol                                                         | Sonuç                                                        |
+| --------------------------------------------------------------- | ------------------------------------------------------------ |
+| `docker compose down -v && docker compose up -d --build --wait` | ✅ Sıfır volume; migration, seed, server ve web `healthy`    |
+| `pnpm test:e2e` (ilk çalıştırma)                                | ❌ 19/20: WebKit'te `roles` testi (5 denemede 4 kez kırmızı) |
+| `pnpm typecheck`                                                | ✅ 8/8 görev                                                 |
+| `pnpm lint`                                                     | ✅ 8/8 görev                                                 |
+| `pnpm test`                                                     | ✅ 186 test: shared 44, game-sdk 6, game-quiz 41, server 95  |
+| `pnpm build`                                                    | ✅ 5/5 görev                                                 |
+| `pnpm test:e2e` (düzeltmeden sonra)                             | ✅ 20/20 (Chromium + WebKit; Phase 1–3 dahil)                |
+| `pnpm format:check`                                             | ✅                                                           |
+
+Kırmızı testin nedeni ve düzeltmesi "Yapılanlar → Giriş formu kilidi" altında.
 
 **Kabul kriteri (SPEC §15 Phase 4):** `e2e/admin.spec.ts` şu adımları doğruluyor:
 
@@ -323,7 +348,8 @@ Server integration testleri ayrıca şunları kapsıyor:
 
 ### Bilinen sınırlar
 
-- **Bu ortamda doğrulanamayanlar:** WebKit e2e ve sıfırdan `docker compose up`.
+- **Bulut ortamında doğrulanamayanlar** (WebKit e2e ve sıfırdan `docker compose up`)
+  2026-10-02'de Mac'te doğrulandı.
 - **Next yönlendirme adresi:** `API_INTERNAL_URL`, `next build` sırasında okunuyor. Prod
   ortamında Nginx `/api` ve `/media` adreslerini doğrudan server'a yönlendirecek (Phase 9).
 - **Eşzamanlı işlemler:** Görsel silinirken aynı anda o görsel bir içeriğe eklenirse, içerik
