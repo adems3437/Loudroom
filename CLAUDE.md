@@ -52,8 +52,10 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
   src/http/        ApiException + parseRequest (zod), ApiError filter, REST rate-limit guard
   src/media/       image processing (sniff, sharp → WebP, metadata stripped), MediaStorage
   src/seed/        categories, sample quiz pack, party pack (+ closest number, sorting and
-                   "Kim Yapar?" samples), dev admin (fixed ids → idempotent)
-  scripts/         admin-create.ts (`pnpm admin:create`)
+                   "Kim Yapar?" samples), map pack (maps/*.svg → WebP media, Image Location +
+                   Bluff samples), dev admin (fixed ids → idempotent)
+  scripts/         admin-create.ts (`pnpm admin:create`), build-seed-maps.ts (Natural Earth →
+                   src/seed/maps/*.svg; run by hand, output committed)
   src/generated/   Prisma client (generated, git-ignored)
   test/            integration tests on real Postgres/Redis (*_test DB, Redis DB 1)
 apps/web           Next.js 16 App Router; next.config rewrites /api and /media to the server
@@ -73,13 +75,14 @@ apps/web           Next.js 16 App Router; next.config rewrites /api and /media t
   messages/tr.json all UI text (next-intl)
   e2e/             Playwright (chromium + webkit, multi-context)
 packages/shared    zod schemas, socket event contracts, shared pure logic
-packages/game-sdk  GameModule contract, seeded RNG; ./testing (contract suite + round
-                   harness); ./client (countdown, option shapes, TR number format, settings
-                   form fields, renderer types)
+packages/game-sdk  GameModule contract, seeded RNG, text matching (cleanText, foldText,
+                   isNearMatch); ./testing (contract suite + round harness); ./client
+                   (countdown, option shapes, TR number format, settings form fields,
+                   ContainedImage + image point mapping, renderer types)
 packages/games/*   one package per game: schema.ts, server.ts (module), host.tsx, player.tsx,
                    editor.tsx (admin content form), settings-editor.tsx (pack round settings);
                    exports ./server and ./client separately. quiz, closest-number, sorting
-                   (@dnd-kit), who-would ("Kim Yapar?")
+                   (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff
 docker/            dev image, postgres init (creates loudroom_test)
 ```
 
@@ -112,8 +115,9 @@ docker/            dev image, postgres init (creates loudroom_test)
   `apps/server/src/game/registry.ts` and `apps/web/src/games/registry.ts` + a `node_modules`
   volume in `compose.dev.yml` and its mount point in `docker/dev.Dockerfile`. It must pass
   `describeGameModuleContract` with `secretVariants` (hidden content) and/or `secretScripts`
-  (one player's input hidden from others); games with anonymous choices add
-  `anonymousScripts`. Its renderer includes an `editor` (admin content form) and usually a
+  (one player's input hidden from others; an entry may carry other content too); games with
+  anonymous choices add `anonymousScripts`; games whose reveal is a timed phase set
+  `revealPhase`. Its renderer includes an `editor` (admin content form) and usually a
   `settings` editor. Game UI text lives in `messages/tr.json` under `games.<gameType>` (editor
   texts under `.editor`, settings texts under `.settings`); the admin's game name under
   `admin.gameTypes.<gameType>`.
@@ -121,6 +125,12 @@ docker/            dev image, postgres init (creates loudroom_test)
   round, so local state never leaks into the next round.
 - Pack rounds store only settings that differ from the game's defaults; the server checks
   them with the module's `settingsSchema` on every save.
+- Modules get image sizes from `ctx.media` (filled by the pack loader from Media) and check
+  player text with `ctx.moderation` in `onInput` only — views get a moderation that throws.
+  Text players type is compared with the game-sdk text helpers (Turkish folding, typos).
+- Images with pins/targets use `ContainedImage` (object-contain + an overlay exactly over the
+  drawn image, positions in percent), so TV, phone and admin editor agree.
+- A host "skip" while PLAYING drops the round unless the module's `onSkip` handles it.
 - Game modules are pure and synchronous; the engine does IO, timers, persistence and
   broadcasting. Engine steps run under the room lock (`RoomService.transact`).
 
@@ -160,6 +170,8 @@ docker/            dev image, postgres init (creates loudroom_test)
 - The media volume needs the dev image's `/media-data` mount point: after pulling, run
   `docker compose up -d --build` once.
 - dnd-kit swallows clicks for 50 ms after a drag; e2e tests wait a moment after dragging.
+- The seed writes map images into `MEDIA_DIR` (resolved from the server's working directory,
+  `/media-data` in Docker); `seedMapPack(prisma, { mediaDir })` lets tests use a temp dir.
 - In the dev stack every browser reaches the server through the web container's address, so
   the whole e2e suite shares one REST rate-limit bucket (120, +4/s): keep e2e tests frugal
   with page loads.

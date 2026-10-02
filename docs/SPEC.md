@@ -125,6 +125,8 @@ interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
   onTimer(state: State, ctx: RoundContext<Content, Settings>): Transition<State>;
   score(state: State, ctx: RoundContext<Content, Settings>): ScoreResult[];
   // ScoreResult: { playerId, points, correct, responseTimeMs, answer, breakdown }
+  onSkip?(state: State, ctx: RoundContext<Content, Settings>): Transition<State> | null;
+  // host "atla" dediğinde; yoksa ya da null dönerse round puansız düşer
 
   getHostView(state: State, ctx: RoundContext<Content, Settings>): HostView;
   getPlayerView(state: State, playerId: string, ctx: RoundContext<Content, Settings>): PlayerView;
@@ -132,10 +134,11 @@ interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
 
 type Transition<S> = { state: S; effects?: Effect[] };
 // Effect: { type: 'phase', phase, durationMs | null } | { type: 'endRound' }
-//       | { type: 'reject', playerId, code: 'ROUND_CLOSED' | 'ALREADY_ANSWERED' | 'INVALID_INPUT' }
+//       | { type: 'reject', playerId, code: 'ROUND_CLOSED' | 'ALREADY_ANSWERED' | 'INVALID_INPUT'
+//                                          | 'TOO_CLOSE' | 'TEXT_REJECTED' }
 ```
 
-- `RoundContext`: round id/sırası, içerik, ayarlar, puan çarpanı, oyuncular (bağlı olup olmadıkları dahil), engine'in round'lar arası tuttuğu oyuncu istatistikleri (skor, seri, toplam cevap süresi), aktif faz saati (`endsAt` duraklatmada kaydırılır), `now`, round'a özel seed'li rastgelelik (testte deterministik).
+- `RoundContext`: round id/sırası, içerik, ayarlar, puan çarpanı, oyuncular (bağlı olup olmadıkları dahil), engine'in round'lar arası tuttuğu oyuncu istatistikleri (skor, seri, toplam cevap süresi), aktif faz saati (`endsAt` duraklatmada kaydırılır), `now`, round'a özel seed'li rastgelelik (testte deterministik), içeriğin referans verdiği görsellerin boyutları (`media`, oyun başlarken `Media`'dan okunur) ve oyuncu metinleri için küfür kontrolü (`moderation`).
 - Bir round'un sabit süresi olmak zorunda değildir; zamanlamayı modül faz efektleriyle yönetir (sıra tabanlı oyunlar dahil).
 - **Stream kanalı:** Çizim gibi yüksek frekanslı veriler için `round:stream` — kalıcılığa yazılmaz, throttle edilir, yine server üzerinden geçer ve doğrulanır.
 - **Client tarafı:** Her oyun paketi `HostRenderer` ve `PlayerRenderer` bileşenlerini (faza göre) export eder. Web'de bir registry `gameType → renderer` eşler. Player UI oyun tipine ve faza göre dinamik render edilir.
@@ -155,7 +158,9 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
   - Closest Number: `{ question, answer, unit?, displayFormat: 'number' | 'year' }` (yıl tam sayıdır)
   - Sorting: `{ question, items: [{ id, text, mediaId? }] (3–8, doğru sırada), labels?: { first, last } }`
   - Kim Yapar?: `{ question, title? }` (seçenekler round başında bağlı oyunculardan üretilir)
-  - Image Location vb. kendi şemalarıyla.
+  - Image Location: `{ question, mediaId, target: { x, y } (0..1), radius? }` (yarıçap uzun kenarın oranı)
+  - Bluff: `{ question, answer, acceptedAnswers?: string[] (≤5), decoys: string[] (2–6) }`
+  - Diğer oyunlar kendi şemalarıyla.
 - **GamePack:** `id, name, description, status (DRAFT|PUBLISHED), settings, rounds[]` — host yalnızca yayındaki paketleri görür; yayınlarken her bölümün oynanabilir olduğu kontrol edilir.
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`
   - `settings`: bölümün, oyunun varsayılan ayarlarından farklı olan ayarları (üst düzey anahtarlar). Varsayılanlarla birleştirilip modülün `settingsSchema`'sı ile doğrulanır; paket editöründe oyunun kendi ayar formuyla düzenlenir.

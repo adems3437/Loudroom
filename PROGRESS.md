@@ -4,181 +4,173 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                          |
-| ----------------------------------------------- | ------------------------------ |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)     |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)     |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)     |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)     |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)     |
-| Phase 6 — Image Location + Bluff                | ⏸ Plan onay bekliyor (aşağıda) |
+| Faz                                             | Durum                      |
+| ----------------------------------------------- | -------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
 
 ---
 
-## Phase 6 — Image Location + Bluff (plan, onay bekliyor)
+## Phase 6 — Image Location + Bluff
 
-Plan 2026-10-02'de çıkarıldı. C1–C12 kararları kullanıcının onayını bekliyor. Kullanıcı
-"öneriler tamam" derse uygulamaya geçilir.
+Plan 2026-10-02'de onaylandı (C1–C12: "öneriler tamam") ve aynı gün Mac'te uygulandı.
 
-### 1. Ortak altyapı
+### Yapılanlar
 
-- **Medya boyutları round'a:** Pack loader, oyun başlarken içeriğin referans verdiği
-  görsellerin genişlik/yüksekliğini `Media` tablosundan okur ve round kaydına yazar.
-  Modüller bunu `ctx.media[mediaId] = { width, height }` olarak görür. Modül saf kalır, IO
-  motorda.
-- **Moderasyon round'a:** `ctx.moderation.isBlocked(text)`. Server mevcut `ProfanityFilter`'ı
-  verir (TR/EN listeler + `PROFANITY_EXTRA_WORDS_FILE`). Test harness'ı fixture'dan bir kelime
-  listesi alır.
-- **Yeni ret kodları:** `TOO_CLOSE` (blöf doğru cevaba çok yakın) ve `TEXT_REJECTED` (küfür
-  filtresi). `InputRejectCode`, shared ack kodları ve `errors` çevirileri.
-- **Metin yardımcıları (game-sdk):**
-  - `cleanText`: NFC, kontrol ve sıfır genişlikli karakterleri silme, boşlukları birleştirme.
-  - `foldText`: Türkçe küçük harf (I/ı, İ/i), aksanları ve noktalamayı atma.
-  - `editDistance`, `isNearMatch`: eşleştirme.
-  - Phase 7'deki Drawing tahmin eşleştirmesi de bunları kullanacak.
-- **Görsel yardımcıları (game-sdk/client):** `object-contain` ile çizilen bir görselin
-  kutudaki gerçek alanı ve dokunma noktası ↔ 0..1 koordinat dönüşümü. Host, telefon ve admin
-  editörü aynı hesabı kullanır.
-- **Sözleşme testi:** `secretScripts` öğeleri içerik de taşıyabilir (`{ content, script }`).
-  Blöf'te "doğru cevap X, bir oyuncu Y yazdı" ile "doğru cevap Y, oyuncu X yazdı" karşılaştırılır.
-  Böylece seçeneklerin sırası ve kimliklerinin hangisinin gerçek olduğunu ele vermediği
-  kanıtlanır.
-- **Docker:** İki yeni paket için `node_modules` volume'u ve bağlama noktası.
+- **Motor ve game-sdk:**
+  - `RoundContext.media`: Pack loader, oyun başlarken içeriğin referans verdiği görsellerin
+    boyutlarını `Media` tablosundan okuyup round kaydına yazıyor (`PlannedRound.media`).
+  - `RoundContext.moderation`: Server, nickname'lerdeki küfür filtresini veriyor (TR/EN
+    listeler + `PROFANITY_EXTRA_WORDS_FILE`). Görünüm projeksiyonlarına çağrıldığında hata
+    fırlatan bir moderasyon veriliyor; görünümler metin kontrol etmemeli.
+  - Yeni ret kodları `TOO_CLOSE` ve `TEXT_REJECTED` (sdk, shared ack kodları, çeviriler).
+  - Metin yardımcıları: `cleanText`, `foldText` (Türkçe I/ı–İ/i, aksan ve noktalama atma),
+    `editDistance` (komşu harf takası 1 sayılır), `isNearMatch` (4+ harfte 1, 9+ harfte 2
+    hata; uzun olanın harf sayısına göre).
+  - `containedRect`, `toImagePoint`, `fromImagePoint` ve `ContainedImage` bileşeni:
+    `object-contain` çizilen görselin gerçek alanı ve tam onun üstünde bir katman. TV,
+    telefon ve admin editörü aynı hesabı kullanıyor; ölçeklenen host sahnesinde de doğru.
+  - İsteğe bağlı `GameModule.onSkip`: Host round sırasında "Atla" derse modül karar verebilir.
+    Yoksa ya da `null` dönerse round eskisi gibi puansız düşer.
+  - Sözleşme testi: `secretScripts` öğeleri içerik de taşıyabiliyor (`{ content, script }`);
+    yeni `revealPhase` alanı, gizliliğin round sonuna değil bir fazın başına kadar
+    sürdüğünü söylüyor (Bluff'ın zamanlı açılışı). Harness `media` ve `blockedWords` alıyor.
+- **Image Location** (`imageLocation`, `@loudroom/game-image-location`):
+  - İçerik `{ question, mediaId, target: { x, y }, radius? }`. Fazlar INTRO → ANSWERING →
+    REVEAL. Görüntülerde görselin boyutu da var; bilinmiyorsa kare varsayılıyor.
+  - Mesafe piksel üzerinden hesaplanıp uzun kenara bölünüyor (en-boy düzeltmeli).
+  - Puan: tam puan yarıçapında (varsayılan %3 ya da içerikteki `radius`) taban puan. Sonra
+    smoothstep ile azalıyor, %30'da 0. `correct`: yarıçap içinde.
+  - Telefon: dokun → iğne, tekrar dokun → taşı, "Gönder" → kesin. Görsel ekran genişliğinde,
+    en fazla ekranın %60'ı yüksekliğinde.
+  - REVEAL: host'ta görsel üzerinde avatarlı iğneler, hedef noktası, tam puan halkası ve
+    uzaklık sıralaması (uzun kenarın yüzdesi). Telefonda kendi iğnesi, hedef ve sıra.
+  - Admin editörü: görsel seçilir, önizlemede tıklanarak hedef konur, halka yarıçapı gösterir.
+- **Bluff** (`bluff`, `@loudroom/game-bluff`):
+  - İçerik `{ question, answer, acceptedAnswers?, decoys }`. Yem cevaplar doğru cevaba ya da
+    birbirine benzeyemez (şema kontrolü).
+  - Fazlar INTRO → WRITE → VOTE → REVEAL → (saat bitince) round sonu.
+  - Yazma: Blöf temizlenir, en fazla 40 karakter. Doğru cevaba ya da kabul edilen bir yazılışa
+    çok yakınsa `TOO_CLOSE`, küfürlüyse `TEXT_REJECTED`; oyuncu yeniden yazar. Blöf kesin.
+  - Oylama: Seçenekler doğru cevap + blöfler (aynı katlanmış yazılışlar birleşir) + gerekirse
+    yem cevaplar (en az 4 seçenek). Bir yem cevapla aynı blöf o yem cevabın yerini alır.
+    Seçenekler metne göre dizilip seed ile karıştırılıyor, id'ler sıradan geliyor, hepsi
+    Türkçe büyük harf. Kimse kendi blöfüne oy veremez; oy kesin.
+  - Puan: doğru cevap +1000, blöfünü seçen her oyuncu için yazar(lar)ına +500 (ayar).
+  - REVEAL: Seçilen blöfler en az seçilenden başlayarak, sonra doğru cevap. Her adım ~3 sn
+    (çok adımda kısalıyor, toplam ~25 sn). Adım ve adım içi ilerleme (önce metin, sonra
+    kananlar, sonra yazar) REVEAL fazının saatinden hesaplanıyor. Saat bitince round
+    puanlanıyor; telefonlar o ana kadar "Ekrana bak!" gösteriyor.
+  - Açılış sırasında "Atla": açılışı bitirip puanlıyor (`onSkip`).
+  - En az 2 oyuncu.
+- **Seed** (`src/seed/map-pack.ts`):
+  - `scripts/build-seed-maps.ts` Natural Earth GeoJSON'ından (10m ülkeler + göller ve 50m
+    ülkeler) etiketsiz Türkiye ve dünya haritası SVG'si üretiyor. SVG'ler repoda (~310 KB +
+    ~240 KB).
+  - Seed, SVG'leri `sharp` ile 2000 px genişliğinde WebP'ye çevirip `MEDIA_DIR`'e ve `Media`
+    tablosuna yazıyor (sabit id'ler).
+  - 10 Image Location sorusu: 7 Türkiye (Ankara, İstanbul, İzmir, Trabzon, Göreme, Van Gölü,
+    Ağrı Dağı), 3 dünya (Tokyo, Kahire, Rio de Janeiro). Hedefler enlem/boylamdan haritanın
+    projeksiyonuyla hesaplanıyor (`maps/projection.ts`).
+  - 10 Bluff sorusu (kabul edilen yazılışlar ve yem cevaplarla).
+  - Yayında "Harita ve Blöf" paketi: her oyundan rastgele 3 soru, en az 2 oyuncu.
+- **Web:** registry'lere iki satır, çeviriler, Docker volume'ları.
 
-### 2. Oyunlar
-
-- **Image Location:** gameType `imageLocation`, paket `@loudroom/game-image-location`.
-  - İçerik: `{ question, mediaId, target: { x, y }, radius? }`. Hedef 0..1 aralığında,
-    görselin doğal boyutuna göre. `radius`, büyük hedeflerde (ör. "Karadeniz") tam puan
-    yarıçapını içerik bazında büyütür.
-  - Fazlar: INTRO → ANSWERING → REVEAL.
-  - Telefon: Görsel ekran genişliğinde. Dokununca iğne düşer; tekrar dokununca taşınır.
-    "Gönder" ile kesinleşir.
-  - Mesafe en-boy düzeltmeli: piksel cinsinden hesaplanıp görselin uzun kenarına bölünür.
-  - Puan: tam puan yarıçapı içinde (varsayılan uzun kenarın %3'ü ya da içerikteki `radius`)
-    taban puan. Dışarıda yumuşak (smoothstep) düşüş; `zeroScoreDistance`'ta (varsayılan %30) 0. Hız bonusu yok, hız yalnızca eşitliği bozar.
-  - `correct`: tam puan yarıçapının içinde.
-  - REVEAL: host'ta görsel üzerinde bütün oyuncuların iğneleri (avatarlarıyla), doğru nokta
-    ve tam puan halkası. Telefonda kendi iğnesi, doğru nokta ve uzaklık.
-  - Gizli bilgi: hedef nokta (`secretVariants`) ve oyuncuların iğneleri (`secretScripts`).
-    REVEAL'den önce host yalnızca "kaç kişi işaretledi" bilgisini görür.
-- **Bluff:** gameType `bluff`, paket `@loudroom/game-bluff`.
-  - İçerik: `{ question, answer, acceptedAnswers?: string[] (≤5), decoys: string[] (2–6) }`.
-    `acceptedAnswers` doğru cevabın başka yazılışları ("3" / "üç"). `decoys` "ev yalanları":
-    yeterli blöf gelmezse seçenekleri tamamlar.
-  - Fazlar: INTRO → WRITE → VOTE → REVEAL → round sonu.
-  - WRITE:
-    - Blöf en fazla 40 karakter.
-    - Doğru cevaba ya da bir başka kabul edilen yazılışa çok yakınsa `TOO_CLOSE` ile reddedilir.
-      "Çok yakın": normalize edilmiş hali aynıysa ya da 4+ harfte 1, 9+ harfte 2 harf farkı
-      varsa.
-    - Küfürlüyse `TEXT_REJECTED`. Oyuncu iki durumda da yeniden yazar.
-    - Gönderilen blöf kesindir. Herkes yazınca süre beklenmez.
-  - VOTE:
-    - Seçenekler: doğru cevap + blöfler; gerekirse yem cevaplarla en az `minOptions`
-      (varsayılan 4) seçeneğe tamamlanır.
-    - Aynı blöfler birleşir. Bir yem cevapla aynı olan blöf, o yem cevabın yerini alır.
-    - Seçenekler normalize edilmiş metne göre dizilip seed ile karıştırılır ve hepsi Türkçe
-      büyük harfle gösterilir: yazım biçimi hangisinin gerçek olduğunu ele vermez.
-    - Oyuncu kendi blöfüne (birleşmişse o seçeneğe) oy veremez. Blöf yazmayan da oy verir.
-    - Oy kesindir. Herkes oy verince erken geçilir.
-  - Puan: Gerçek cevabı seçen +1000. Blöfünü seçen her oyuncu için yazarına +500 (birleşik
-    blöfte her yazarına). İkisi de ayar. `correct`: gerçek cevabı seçti.
-  - REVEAL:
-    - Host'ta adım adım: seçilen her blöf, onu seçenlerin avatarları ve yazar(lar)ı, en
-      sonda doğru cevap.
-    - Adımlar REVEAL fazının saatine göre çizilir (adım başına ~3 sn). Duraklatmada saat
-      kaydığı için animasyon da durur. Süre bitince round biter, puanlar o zaman görünür.
-    - Telefonda: kimi kandırdın, kime kandın, doğru cevap.
-  - Gizli bilgi: Doğru seçeneğin hangisi olduğu (içerik + script takası). Blöflerin yazarları
-    ve oyların sahipleri REVEAL'e kadar gizli (`secretScripts`).
-  - En az 2 oyuncu (yem cevaplar sayesinde).
-- Her iki oyun Phase 5 kalıbında: `schema.ts`, `server.ts`, `host.tsx`, `player.tsx`,
-  `editor.tsx`, `settings-editor.tsx`, testler; registry'lere birer satır, metinler
-  `games.<id>` altında.
-
-### 3. Admin ve seed
-
-- **Image Location editörü:** Görsel seçilir, önizlemede tıklanarak hedef konur, isteğe bağlı
-  yarıçap halkasıyla görülür.
-- **Bluff editörü:** soru, cevap, kabul edilen yazılışlar ve yem cevap listeleri.
-- **Ayar formları:**
-  - Image Location: taban puan, tam puan yarıçapı, sıfır puan uzaklığı.
-  - Bluff: doğru cevap puanı, kandırma puanı, oylama süresi, en az seçenek sayısı.
-  - Bölümün "Soru süresi" alanı Bluff'ta yazma süresine uygulanır.
-- **Seed haritaları:**
-  - Natural Earth (public domain) verisinden Türkiye ve dünya haritası.
-  - Sadeleştirilmiş SVG repoya girer. Seed, `sharp` ile WebP'ye çevirip medya volume'una ve
-    `Media` tablosuna yazar (sabit id'ler).
-  - Hedef noktalar enlem/boylamdan aynı projeksiyonla kodda hesaplanır, elle tıklanmaz.
-- **Seed içerikleri:**
-  - 10 Image Location sorusu: ~7 Türkiye (iller, göller, dağlar), ~3 dünya.
-  - 10 Türkçe Bluff sorusu (az bilinen, doğrulanabilir bilgiler, kabul edilen yazılışlar ve
-    yem cevaplarla).
-  - Yayında yeni paket "Harita ve Blöf": her oyundan rastgele 3 soru.
-  - "Parti Karışık" değişmez.
-
-### 4. Testler
+### Testler
 
 - **Unit:**
-  - Image Location: en-boy düzeltmeli mesafe, puan eğrisi, içerik yarıçapı, letterbox
-    dönüşümleri (yatay/dikey görsel, farklı kutular).
-  - Bluff: `TOO_CLOSE` sınırları (Türkçe İ/ı, aksan, 1–2 harf), küfür reddi, birleştirme, yem
-    cevapla eşleşme, kendi blöfüne oy verememe, puanlar (birleşik yazarlar dahil), aşamalı
-    REVEAL süresi.
-  - İkisi de sözleşme testinden geçer: Bluff içerik + script takası, Image Location gizli
-    hedef ve iğneler.
-- **Integration:**
-  - Motor üzerinden iki oyunlu paket, `ctx.media`'nın pack loader'dan dolması, moderasyonun
-    server filtresiyle çalışması.
-  - Ret kodlarının ack'e dönmesi, REVEAL öncesi payload taraması: hedef koordinat yok,
-    yazarlar yok, doğru cevap metni seçenekler dışında yok.
-- **E2E:**
-  - "Harita ve Blöf" host + 3 telefonla oynanır.
-  - Image Location: telefonda görselin üzerinde bir noktaya dokunup gönderme.
-  - Bluff: blöf yazma, doğru cevabı yazınca uyarı alma, oylama, aşamalı REVEAL.
-  - WebSocket çerçevelerinde REVEAL öncesi hedef ve yazar bilgisi yok.
-  - Admin: hedef noktası tıklayarak Image Location içeriği oluşturma.
+  - game-sdk: metin katlama (İ/ı, aksan), düzenleme mesafesi, yakınlık eşiği, letterbox
+    dönüşümleri.
+  - Image Location: mesafe, puan eğrisi, içerik yarıçapı, sıralama, bilinmeyen boyut.
+  - Bluff: `TOO_CLOSE`/`TEXT_REJECTED`/uzunluk, birleştirme, yem cevap doldurma ve yer
+    değiştirme, kendi blöfüne oy, puanlar (birleşik yazarlar), açılış adımları ve süresi,
+    `onSkip`.
+  - Sözleşme testi: Image Location gizli hedef + gizli iğneler. Bluff yazar takası ve doğru
+    cevap ↔ blöf takası. Doğru cevabı ilk sıraya koyan geçici bir sızdırıcı modül bu kontrole
+    takıldı (deneme silindi).
+- **Integration** (`test/location-bluff.test.ts`):
+  - Görsel boyutu `Media`'dan görünüme ulaşıyor. Hedef REVEAL'den önce hiçbir socket'e
+    gitmiyor.
+  - Server'ın kendi listesiyle küfür reddi; `TOO_CLOSE` ("ÜÇ!", "3"), kendi blöfüne oy.
+    Açılıştan önce `truth`/`authors`/`voters` hiçbir payload'da yok.
+  - Puanlar açılış saati bitince geliyor. İkinci soruda açılış atlanınca puanlar korunuyor.
+  - Seed testi: haritalar geçici bir klasöre çiziliyor, içerik şemaları, paket.
+- **E2E** (`e2e/map-bluff.spec.ts`, Chromium + WebKit):
+  - "Harita ve Blöf" host + 3 telefonla.
+  - Image Location: telefonda dokun, taşı, gönder; TV'de 3 iğne ve hedef.
+  - Bluff: her telefon önce doğru cevabı yazıp "çok yakın" uyarısı alıyor, sonra blöf
+    yazıyor; kendi blöfü kapalı; aşamalı açılış doğru cevapla bitiyor, sonra telefonlarda
+    sonuç.
+  - REVEAL öncesi çerçevelerde `"target"`, `"truth"`, `"authors"` yok.
+  - Admin senaryosuna Image Location (görsel yükle, tıklayarak hedef koy) ve Bluff (cevaba
+    benzeyen yem cevabın reddi) eklendi.
 
-### Onay bekleyen kararlar
+### Bitti tanımı — son çalıştırma (2026-10-02, Mac)
 
-- **C1:** gameType kimlikleri ve paket adları: `imageLocation` /
-  `@loudroom/game-image-location`, `bluff` / `@loudroom/game-bluff`.
-- **C2:** Görsel boyutları pack loader'dan `ctx.media` ile modüllere verilsin (içerikte
-  saklanmasın).
-- **C3:** Image Location puanı: tam puan yarıçapı (%3 / içerikte `radius`) + smoothstep
-  düşüş, %30'da 0; `correct` = yarıçap içinde.
-- **C4:** Telefonda dokun–taşı–gönder; iğne gönderilince kesin. Bu fazda iki parmakla
-  yakınlaştırma yok.
-- **C5:** Bluff içeriği (`acceptedAnswers`, `decoys`), en az 4 seçenek, büyük harfle gösterim.
-- **C6:** Bluff akışı ve kuralları: `TOO_CLOSE` eşiği, birleştirme, kendi blöfüne oy yok,
-  erken geçişler.
-- **C7:** Bluff puanı 1000 / 500 (ayar); en az 2 oyuncu.
-- **C8:** Moderasyon `ctx.moderation` ile modüllere verilsin; yeni ret kodları `TOO_CLOSE`,
-  `TEXT_REJECTED`.
-- **C9:** Metin eşleştirme yardımcıları game-sdk'de (Drawing'de de kullanılacak).
-- **C10:** Sözleşme testinde içerikli `secretScripts` (doğru cevap ↔ blöf takası).
-- **C11:** Seed haritaları Natural Earth (public domain) verisinden üretilsin; yeni paket
-  "Harita ve Blöf"; "Parti Karışık" değişmesin.
-- **C12:** Bluff REVEAL'i faz saatiyle adım adım; puanlar animasyon bitince gelsin.
+Stack `docker compose up -d --build --wait` ile yeni imajla kuruldu; seed haritaları ve
+"Harita ve Blöf"ü ekledi.
 
-**Eklenecek paket:** Yok. Harita SVG'si bir kerelik bir betikle Natural Earth GeoJSON'ından
-üretilip repoya girer (betik de repoda, bağımlılıksız). `sharp` server'da zaten var.
+| Kontrol             | Sonuç                                                                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`    | ✅ 18/18 görev                                                                                                                                          |
+| `pnpm lint`         | ✅ 18/18 görev                                                                                                                                          |
+| `pnpm test`         | ✅ 365 test: shared 45, game-sdk 33, quiz 44, closest-number 60, sorting 24, who-would 18, image-location 20, bluff 19, server 102 (11 koşullu atlandı) |
+| `pnpm build`        | ✅ 10/10 görev                                                                                                                                          |
+| `pnpm test:e2e`     | ✅ 26/26 (Chromium + WebKit; Phase 1–5 dahil)                                                                                                           |
+| `pnpm format:check` | ✅                                                                                                                                                      |
 
-### Riskler
+Yol boyunca: Ekran görüntülerinde Bluff açılışı sırasında host'ta "Atla" butonunun
+durduğu ve motorun bunu "round'u puansız düşür" olarak uyguladığı görüldü. `onSkip`
+bunun için eklendi (planda yoktu; C12'nin "Atla ile geçilebilir" sözünü tutmak için).
 
-- **Küçük ekranda isabet:** Yakınlaştırma olmadan telefonda ince hedefler zor. Sorular buna
-  göre seçilecek; iki parmakla yakınlaştırma sonraki faza bırakılabilir.
-- **Letterbox hesabı:** Host, telefon ve editör aynı yardımcıyı kullanmazsa iğneler kayar.
-  Tek fonksiyon ve birim testleriyle önlenecek.
-- **Benzerlik eşiği:** Kısa cevaplarda (ör. "üç") 1 harf toleransı yanlış pozitif verebilir.
-  Bu yüzden tolerans 4+ harfte başlıyor. Sayı ↔ kelime eşleşmesi otomatik değil;
-  `acceptedAnswers` ile çözülür.
-- **Küfür filtresi yanlış pozitifi:** Masum bir blöf reddedilebilir; oyuncu yeniden yazabilir.
-- **Aşamalı REVEAL süresi:** Çok oyuncuda uzar. Adım süresi seçenek sayısıyla kısalır ve
-  toplam süre sınırlanır (ör. en fazla 25 sn). Host "Atla" ile geçebilir.
-- **Seed boyutu:** Sadeleştirilmiş harita SVG'si hedefi birkaç yüz KB altı; WebP'ler repoya
-  değil volume'a yazılır.
+### Alınan kararlar (kullanıcı onaylı)
+
+- **C1:** `imageLocation` / `@loudroom/game-image-location`, `bluff` / `@loudroom/game-bluff`.
+- **C2:** Görsel boyutları pack loader'dan `ctx.media` ile.
+- **C3:** Image Location puanı: %3 (ya da `radius`) tam puan, smoothstep, %30'da 0.
+- **C4:** Dokun–taşı–gönder; yakınlaştırma yok.
+- **C5:** Bluff içeriği `acceptedAnswers` + `decoys`, en az 4 seçenek, büyük harf.
+- **C6:** `TOO_CLOSE` eşiği, birleştirme, kendi blöfüne oy yok, erken geçişler.
+- **C7:** 1000 / 500 puan, en az 2 oyuncu.
+- **C8:** `ctx.moderation`, `TOO_CLOSE`, `TEXT_REJECTED`.
+- **C9:** Metin eşleştirme game-sdk'de.
+- **C10:** İçerikli `secretScripts`.
+- **C11:** Natural Earth haritaları, "Harita ve Blöf" paketi; "Parti Karışık" değişmedi.
+- **C12:** Faz saatiyle adım adım açılış; puanlar animasyondan sonra.
+
+### Varsayımlar ve küçük kararlar
+
+- **`onSkip`** sözleşmeye isteğe bağlı eklendi (yukarıda). Diğer oyunlarda "Atla" eskisi gibi.
+- **Yakınlık eşiği** iki metnin uzun olanının harf sayısına göre (kısa olana göre
+  "kaplumbağa" ile "kaplmbaa" eşleşmiyordu).
+- **Benzerlik boşluksuz karşılaştırılıyor:** "New York" = "newyork".
+- **Bluff seçenek birleştirmesi** katlanmış metnin tam eşitliğiyle (yakınlıkla değil):
+  "Sekiz" ve "sekiz!" birleşir, "Sekiz" ve "Sekis" ayrı kalır.
+- **Açılış süresi:** adım = 24 sn / adım sayısı (1,5–3 sn arası), sonuna 1,5 sn bekleme.
+- **Görsel boyutu bilinmiyorsa** (eski kayıt, silinmiş satır) Image Location kare varsayar.
+- **Harita projeksiyonu** eşdikdörtgen (Türkiye'de boylamlar cos 39° ile kısaltılmış).
+  Hedefler aynı fonksiyonla hesaplandığı için görselle birebir uyumlu.
+- **Dünya sorularında** tam puan yarıçapı %2 (uzun kenar ~40.000 km → ~800 km).
+- **Bluff'ta blöf yazmayan oyuncu da oy verebilir;** blöf yazıp oy vermeyen de
+  kandırdıkları için puan alır.
+
+### Eklenen paketler
+
+Yok. Harita betiği bağımlılıksız (Node `fetch`); `sharp` server'da zaten vardı.
+
+### Bilinen sınırlar
+
+- **Yakınlaştırma yok:** Küçük telefonlarda ince hedefler zor; seed soruları buna göre seçildi.
+- **Duraklatmada Bluff açılışı:** Host ekranındaki animasyon, duraklatma örtüsünün altında
+  ilerlemeye devam ediyor; devam edilince saat geri kayıp aynı adımdan sürüyor.
+- **Bluff sayı ↔ kelime eşleşmesi otomatik değil:** "7" ve "yedi" için içerikte
+  `acceptedAnswers` gerekiyor.
+- **Küfür filtresi yanlış pozitif verebilir:** Oyuncu yeniden yazabiliyor.
+- **Seed haritaları sabit:** Değiştirmek için betik elle çalıştırılıp SVG'ler commit'lenmeli.
 
 ---
 
