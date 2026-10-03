@@ -59,7 +59,9 @@ describe('content import, session history and statistics', () => {
         .replace(/^\uFEFF/, '')
         .trim()
         .split('\r\n');
-      expect(header).toBe('soru;a;b;c;d;e;f;dogru;gorsel_id;kategori;zorluk;etiketler;durum');
+      expect(header).toBe(
+        'soru;a;b;c;d;e;f;dogru;gorsel_id;video_id;kategori;zorluk;etiketler;durum',
+      );
       expect(example).toContain('Ankara');
 
       const response = await fetch(

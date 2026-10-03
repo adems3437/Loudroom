@@ -44,6 +44,17 @@ function since(all: string[][], marks: number[]): string {
   return all.map((frames, index) => frames.slice(marks[index] ?? 0).join('\n')).join('\n');
 }
 
+/** Frames since `marks`, each browser's cut before the first one in a REVEAL phase. */
+function beforeReveal(all: string[][], marks: number[]): string {
+  return all
+    .map((frames, index) => {
+      const recent = frames.slice(marks[index] ?? 0);
+      const reveal = recent.findIndex((frame) => /"(name|phase)":"REVEAL"/.test(frame));
+      return (reveal < 0 ? recent : recent.slice(0, reveal)).join('\n');
+    })
+    .join('\n');
+}
+
 test('maps and bluffs: pins on the image, lies refused when too close, staged reveal', async ({
   browser,
 }) => {
@@ -132,8 +143,11 @@ test('maps and bluffs: pins on the image, lies refused when too close, staged re
           await expect(page.getByTestId('bluff-player-voted')).toBeVisible();
         }
       }
-      // Before the reveal no browser learns the truth or who wrote which lie.
-      if (first) expect(since(allFrames, marks)).not.toMatch(/"truth"|"authors"|"fooled/);
+      // Before the reveal no browser learns the truth or who wrote which lie. The last vote
+      // starts the reveal at once, so each browser's frames count only up to its first REVEAL.
+      if (first) {
+        expect(beforeReveal(allFrames, marks)).not.toMatch(/"truth"|"authors"|"fooled/);
+      }
       await expect(host.locator('[data-testid="bluff-host"][data-phase="REVEAL"]')).toBeVisible();
       await expect(host.getByTestId('bluff-reveal-step')).toBeVisible();
       for (const { page } of phones) {
