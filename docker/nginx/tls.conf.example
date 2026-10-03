@@ -1,0 +1,29 @@
+# HTTPS site: copy to docker/nginx/sites/tls.conf, delete sites/http.conf, set PUBLIC_URL to
+# https://your-domain and mount the certificates (docs/DEPLOY.md). Example uses Let's Encrypt
+# paths; any certificate pair works.
+server {
+  listen 80 default_server;
+  server_name example.com;
+  # Let's Encrypt HTTP-01 challenges, if certbot serves them from this directory.
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl default_server;
+  http2 on;
+  server_name example.com;
+
+  ssl_certificate /etc/nginx/certs/fullchain.pem;
+  ssl_certificate_key /etc/nginx/certs/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_prefer_server_ciphers off;
+  ssl_session_cache shared:SSL:10m;
+  ssl_session_timeout 1d;
+
+  include /etc/nginx/loudroom/locations.conf;
+}

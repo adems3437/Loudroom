@@ -5,5 +5,11 @@
 **/coverage
 **/test-results
 **/playwright-report
+**/src/generated
+apps/server/data
+backups
 .git
 .env
+.env.*
+!.env.example
+!.env.prod.example

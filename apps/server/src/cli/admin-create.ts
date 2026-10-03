@@ -5,6 +5,10 @@
  *   pnpm admin:create --email ada@example.com --name "Ada"
  *   pnpm admin:create --email ada@example.com --reset
  *
+ * In production it runs from the built server image (docs/DEPLOY.md):
+ *
+ *   docker compose … run --rm server node dist/cli/admin-create.js --email ada@example.com
+ *
  * The password is asked for twice without echo; ADMIN_PASSWORD supplies it non-interactively.
  */
 import { createInterface } from 'node:readline';
@@ -16,11 +20,11 @@ import {
   passwordSchema,
 } from '@loudroom/shared';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { hashPassword } from '../src/admin/password.js';
-import { PrismaClient } from '../src/generated/prisma/client.js';
+import { hashPassword } from '../admin/password.js';
+import { PrismaClient } from '../generated/prisma/client.js';
 
 try {
-  process.loadEnvFile(new URL('../../../.env', import.meta.url));
+  process.loadEnvFile(new URL('../../../../.env', import.meta.url));
 } catch {
   // no .env file — rely on the process environment
 }

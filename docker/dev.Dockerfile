@@ -1,5 +1,10 @@
 # Development image: toolchain only. Source code is bind-mounted by compose.dev.yml.
+# Static ffmpeg/ffprobe builds for video uploads (same as the production image).
+FROM mwader/static-ffmpeg:7.1.1 AS ffmpeg
+
 FROM node:24-slim
+
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
 
 # curl: container healthchecks. openssl + ca-certificates: Prisma's migration engine.
 RUN apt-get update \

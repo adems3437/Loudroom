@@ -1,0 +1,63 @@
+# Lint, typecheck, unit + integration tests and build on every push to main and every pull
+# request (SPEC §14, Phase 9 F12). E2E needs the full stack and runs locally
+# (pnpm test:e2e, scripts/prod-smoke.sh).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: loudroom
+          POSTGRES_PASSWORD: loudroom
+          POSTGRES_DB: loudroom_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U loudroom -d loudroom_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgresql://loudroom:loudroom@localhost:5432/loudroom_test
+      REDIS_URL_TEST: redis://localhost:6379/1
+      TURBO_TELEMETRY_DISABLED: 1
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v5
+      # Version from packageManager in package.json.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      # Video upload tests need ffmpeg/ffprobe; without them they are skipped.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Development settings
+        run: cp .env.example .env
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @loudroom/server db:generate
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm format:check

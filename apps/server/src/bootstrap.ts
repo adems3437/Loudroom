@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import type { INestApplication } from '@nestjs/common';
+import { ConsoleLogger, type INestApplication, type NestApplicationOptions } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { MEDIA_URL_PREFIX } from '@loudroom/game-sdk';
@@ -10,11 +10,18 @@ import type { AppConfig } from './config/app-config.js';
 import { RedisIoAdapter, socketAdapterKey } from './realtime/redis-io.adapter.js';
 import { RedisService } from './redis/redis.service.js';
 
+/** Production logs one JSON object per line (for log collectors); tests only problems. */
+function loggerOptions(config: AppConfig): NestApplicationOptions {
+  if (config.nodeEnv === 'test') return { logger: ['error', 'warn'] };
+  if (config.nodeEnv === 'production') return { logger: new ConsoleLogger({ json: true }) };
+  return {};
+}
+
 /** Builds the fully configured app without listening; shared by main.ts and the tests. */
 export async function createApp(config: AppConfig): Promise<INestApplication> {
   const app = await NestFactory.create<NestExpressApplication>(
     AppModule.register(config),
-    config.nodeEnv === 'test' ? { logger: ['error', 'warn'] } : {},
+    loggerOptions(config),
   );
   app.use(helmet());
   app.use(cookieParser());

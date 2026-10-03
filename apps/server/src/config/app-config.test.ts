@@ -27,4 +27,20 @@ describe('loadAppConfig', () => {
     expect(config.sessionRetentionDays).toBe(0);
     expect(() => loadAppConfig({ ...BASE, REST_RATE_LIMIT_CAPACITY: '0' })).toThrow();
   });
+
+  it('refuses development shortcuts in production', () => {
+    const production = { ...BASE, NODE_ENV: 'production', IP_HASH_SECRET: 'x'.repeat(48) };
+    expect(loadAppConfig(production).nodeEnv).toBe('production');
+    expect(() => loadAppConfig({ ...production, IP_HASH_SECRET: 'short-but-16-chars' })).toThrow(
+      /IP_HASH_SECRET/,
+    );
+    expect(() =>
+      loadAppConfig({ ...production, IP_HASH_SECRET: 'dev-only-ip-hash-secret-change-me' }),
+    ).toThrow(/IP_HASH_SECRET/);
+    expect(() => loadAppConfig({ ...production, ADMIN_SEED_EMAIL: 'a@b.co' })).toThrow(
+      /ADMIN_SEED/,
+    );
+    // Development keeps working with the example values.
+    expect(loadAppConfig({ ...BASE, ADMIN_SEED_EMAIL: 'a@b.co' }).nodeEnv).toBe('development');
+  });
 });

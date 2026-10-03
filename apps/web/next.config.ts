@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
@@ -20,6 +21,10 @@ const publicHost = process.env.PUBLIC_URL ? new URL(process.env.PUBLIC_URL).host
 const apiUrl = (process.env.API_INTERNAL_URL || 'http://localhost:4000').replace(/\/$/, '');
 
 const config: NextConfig = {
+  // Production image: a self-contained server (docker/web.Dockerfile). The trace starts at the
+  // repo root so the workspace packages are included.
+  output: 'standalone',
+  outputFileTracingRoot: fileURLToPath(new URL('../../', import.meta.url)),
   reactStrictMode: true,
   poweredByHeader: false,
   ...(publicHost ? { allowedDevOrigins: [publicHost] } : {}),

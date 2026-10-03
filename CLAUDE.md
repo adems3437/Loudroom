@@ -57,7 +57,8 @@ apps/server        NestJS 12 (ESM) — REST + Socket.IO gateway
   src/seed/        categories, sample quiz pack, party pack (+ closest number, sorting and
                    "Kim Yapar?" samples), map pack (maps/*.svg → WebP media, Image Location +
                    Bluff samples), dev admin (fixed ids → idempotent)
-  scripts/         admin-create.ts (`pnpm admin:create`), build-seed-maps.ts (Natural Earth →
+  src/cli/         admin-create.ts (`pnpm admin:create`), seed-categories.ts (prod seed)
+  scripts/         build-seed-maps.ts (Natural Earth →
                    src/seed/maps/*.svg; run by hand, output committed)
   src/generated/   Prisma client (generated, git-ignored)
   test/            integration tests on real Postgres/Redis (*_test DB, Redis DB 1)

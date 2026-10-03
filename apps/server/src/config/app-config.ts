@@ -155,6 +155,26 @@ export const DEFAULT_RATE_LIMITS: RateLimitConfig = {
   adminLoginFailure: { capacity: 5, refillPerSecond: 5 / 900 },
 };
 
+/** The IP_HASH_SECRET shipped in .env.example; never acceptable in production. */
+const EXAMPLE_IP_HASH_SECRET = 'dev-only-ip-hash-secret-change-me';
+
+/**
+ * Production refuses development shortcuts (SPEC §9, G8): a weak or example IP hash secret, and
+ * the seeded development admin, whose password sits in .env.example.
+ */
+function assertProductionSafe(parsed: z.infer<typeof envSchema>, env: NodeJS.ProcessEnv): void {
+  const problems: string[] = [];
+  if (parsed.IP_HASH_SECRET.length < 32 || parsed.IP_HASH_SECRET === EXAMPLE_IP_HASH_SECRET) {
+    problems.push('IP_HASH_SECRET must be a random value of at least 32 characters');
+  }
+  if (env.ADMIN_SEED_EMAIL || env.ADMIN_SEED_PASSWORD) {
+    problems.push('ADMIN_SEED_EMAIL/ADMIN_SEED_PASSWORD must not be set (use admin:create)');
+  }
+  if (problems.length > 0) {
+    throw new Error(`Unsafe production environment:\n- ${problems.join('\n- ')}`);
+  }
+}
+
 /** Parses the environment once at startup; an invalid environment stops the process. */
 export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
   const result = envSchema.safeParse(env);
@@ -162,6 +182,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
     throw new Error(`Invalid environment:\n${z.prettifyError(result.error)}`);
   }
   const parsed = result.data;
+  if (parsed.NODE_ENV === 'production') assertProductionSafe(parsed, env);
   const origins = new Set([
     new URL(parsed.PUBLIC_URL).origin,
     ...parsed.CORS_ORIGINS.map((url) => new URL(url).origin),
