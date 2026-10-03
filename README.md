@@ -112,5 +112,6 @@ testi dahil). Ayrıntılar [CLAUDE.md](CLAUDE.md) ve SPEC §5'te.
 ## Durum
 
 Phase 1–8 ve 9A tamamlandı: altyapı, oda ve lobby, oyun motoru, yönetim paneli, dokuz oyun,
-içe aktarma, oyun geçmişi ve istatistikler. Phase 9B (video desteği, prod kurulumu, yedekleme,
-CI) sürüyor. Faz listesi ve ayrıntılar [PROGRESS.md](PROGRESS.md) içinde.
+içe aktarma, oyun geçmişi ve istatistikler. Phase 9B (videolu sorular, prod kurulumu,
+yedekleme, CI) kodlandı; son doğrulamalar bekliyor. Prod kurulumu için
+[docs/DEPLOY.md](docs/DEPLOY.md). Faz listesi ve ayrıntılar [PROGRESS.md](PROGRESS.md) içinde.

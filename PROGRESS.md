@@ -4,18 +4,196 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                      |
-| ----------------------------------------------- | -------------------------- |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
-| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
-| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02) |
-| Phase 9B — Video, prod, yedekleme               | ⏳ Sırada (plan onaylı)    |
+| Faz                                             | Durum                                               |
+| ----------------------------------------------- | --------------------------------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)                          |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)                          |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)                          |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)                          |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)                          |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02)                          |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02)                          |
+| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02)                          |
+| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02)                          |
+| Phase 9B — Video, prod, yedekleme               | 🟡 Kodlandı; Mac'te üç doğrulama bekliyor (aşağıda) |
+
+---
+
+## Phase 9B — Video, prod, yedekleme
+
+9B planı (G1–G8) 2026-10-03'te onaylandı ("öneriler tamam") ve bulut oturumunda uygulandı.
+F7–F12 Phase 9 planında onaylıydı.
+
+### Yapılanlar
+
+- **Video yükleme (F7):**
+  - Kabul edilenler: MP4 (H.264 + AAC) ve WebM (VP8/VP9/AV1 + Opus/Vorbis); en fazla 60 sn ve
+    `MEDIA_MAX_VIDEO_BYTES` (varsayılan 50 MB). Ses isteğe bağlı. H.264'lü Matroska (.mkv),
+    HEVC, MP3 ve video akışı olmayan dosyalar reddediliyor.
+  - Dosyanın türü baytlarından anlaşılıyor (`ftyp` / EBML başlığı), ardından `ffprobe` ile
+    kurallar kontrol ediliyor (`evaluateProbe`, saf fonksiyon). `ffmpeg -c copy
+-map_metadata -1 -map_chapters -1 -dn -sn` ile yeniden kodlanmadan paketleniyor; konum,
+    başlık, cihaz gibi bütün meta veriler, bölümler, veri ve altyazı akışları siliniyor. MP4'e
+    `+faststart` ekleniyor.
+  - Araçlar shell'siz, argüman listesiyle ve süre sınırıyla, özel bir geçici klasörde
+    çalışıyor; klasör iş bitince siliniyor.
+  - ffmpeg açılışta bir kez aranıyor (`FFMPEG_PATH`, `FFPROBE_PATH`). Yoksa video yükleme
+    `VIDEO_UNAVAILABLE` (503) dönüyor; görseller etkilenmiyor.
+  - Görsel ve videonun ayrı boyut sınırı var; multer'ın sınırı ikisinin büyüğü.
+- **Medya bilgisi (G1, G2):**
+  - `MediaInfo` artık `type`, `format` ve `durationMs` taşıyor; `mediaUrl(id, format)`.
+    Video kendi biçiminde (`{id}.mp4` / `{id}.webm`) saklanıyor.
+  - Redis'teki eski oyun kayıtları (yalnızca boyut) okunurken görsel sayılıyor.
+  - Tür uyumu: `{ type: 'video', mediaId }` bir videoya, diğer her `mediaId` bir görsele
+    işaret etmeli (`collectMediaRefs`). İçerik kaydında ve içe aktarmada kontrol ediliyor;
+    seçenek görseli, Image Location ve Sorting video kabul etmiyor.
+- **Quiz sürüm 3 (F8, G7):**
+  - `media: { type: 'video', mediaId }`. Videolu soruda INTRO süresi videonun süresi;
+    cevaplama video bitince açılıyor. Dosyası silinmiş bir video gösterilmiyor, normal INTRO
+    süresi kullanılıyor.
+  - TV'de video, konumu faz saatinden (süre − kalan) hesaplanarak oynatılıyor; 0,6 sn'den
+    fazla kayarsa düzeltiliyor. Duraklatma, yenileme ve geç bağlanma doğru yere geliyor.
+    Oyun duraklayınca video da duruyor (host renderer'lara `paused` eklendi).
+  - Tarayıcı sesi engellerse video sessiz başlıyor ve "Sesi aç" butonu çıkıyor.
+  - Telefonlara video gitmiyor (testle doğrulandı).
+  - İçe aktarmada `video_id` sütunu (G3). Bir satırda hem `gorsel_id` hem `video_id` varsa
+    `video_id` sütununda hata gösteriliyor.
+- **Admin:**
+  - Medya kütüphanesinde video yükleme, oynatılabilir önizleme ve süre.
+  - Medya seçici türe göre süzüyor (`GET /api/admin/media?type=`); `MediaFieldProps`'a
+    `accept` eklendi ve seçilen türü bildiriyor. Quiz editöründe soruya görsel ya da video
+    eklenebiliyor.
+- **Sözleşme testi:** Test düzeneğinin kareleri artık istemcilere söylenen faz süresini de
+  içeriyor (gizli fazlarda null). Böylece faz süresinden bir sır çıkarılabiliyorsa sızıntı
+  testi yakalıyor.
+- **Prod imajları (F9, G6):**
+  - `docker/server.Dockerfile`: `build` aşaması tam workspace'i derliyor ve `migrate`
+    imajı olarak da kullanılıyor (Prisma CLI; OpenSSL tam Debian imajında). `runtime`:
+    slim imaj, `pnpm deploy --prod` (otomatik peer kurulumu kapalı; Prisma CLI ve TypeScript
+    imaja girmiyor: uygulama 460 MB → 151 MB), non-root, statik ffmpeg, `HEALTHCHECK`.
+  - `docker/web.Dockerfile`: Next `output: 'standalone'`, non-root, `HEALTHCHECK`.
+  - ffmpeg `apt` yerine sabit sürümlü statik imajdan kopyalanıyor (`mwader/static-ffmpeg`),
+    dev imajında da.
+  - Proxy arkasında derleme için isteğe bağlı `extra_ca` build secret'ı
+    (`EXTRA_CA_CERTS`); CA imajlarda kalmıyor.
+- **`compose.prod.yml`:**
+  - Postgres ve Redis'in portları ve test DB script'i `!reset`/`!override` ile kaldırıldı.
+  - `migrate`: migration'lar ve kategori seed'i (G4), sonra kapanıyor.
+  - server, web, nginx (dışarı açık tek servis), backup; restart politikaları, bellek
+    sınırları, server için 30 sn kapanma süresi.
+  - `scripts/prod.sh` her zaman `.env.prod` ile çalışıyor (`.env.prod.example`).
+- **Nginx (F10, G5):**
+  - `/` web'e; `/api`, `/media`, `/socket.io` (WebSocket) ve `/health` server'a. Docker DNS'i
+    yeniden çözümleniyor (yeniden başlayan konteynerler bulunuyor).
+  - `X-Forwarded-For` istemcinin adresiyle üzerine yazılıyor; server `TRUST_PROXY=true`.
+    Phase 4'ten kalan "tek ortak REST/login kovası" sınırı prod'da kalktı.
+  - JSON erişim logu, istemci IP'si yok (KVKK). gzip; medya yüklemede 55 MB, diğer
+    isteklerde 3 MB gövde sınırı.
+  - Sayfalarda nosniff, Referrer-Policy, X-Frame-Options, `frame-ancestors`,
+    Permissions-Policy; HSTS yalnızca HTTPS'te. Tam CSP yok (G5). TLS için örnek site
+    dosyası.
+- **Server (G8):** Prod'da JSON log (Nest `ConsoleLogger`). Prod'da zayıf ya da örnek
+  `IP_HASH_SECRET` veya tanımlı `ADMIN_SEED_*` ile açılmıyor. `admin-create` ve kategori
+  seed'i `dist/cli` altına derleniyor (prod imajında tsx yok).
+- **Yedekleme (F11):** `backup` servisi her gün `BACKUP_HOUR`'da `pg_dump -Fc` ve medya
+  arşivi alıyor, `BACKUP_KEEP_DAYS` gün saklıyor; yarım dosyalar geçici adla yazılıyor.
+  `scripts/backup.sh` (hemen yedek + `./backups`'a kopya), `scripts/restore.sh` (onaylı;
+  server ve web durur, Redis temizlenir).
+- **Doğrulama:** `scripts/prod-smoke.sh`: derle ve başlat, Nginx üzerinden health ve
+  WebSocket upgrade (101), son yedeği geçici bir veritabanına geri yükleyip her tablonun satır
+  sayısını ve medya dosyalarını karşılaştır; `E2E=1` ile e2e alt kümesi.
+- **CI (F12):** `.github/workflows/ci.yml`: Node 24, pnpm, Postgres 16 ve Redis 7 servisleri,
+  ffmpeg; typecheck, lint, test, build, format:check. `main`'e push ve PR'larda çalışıyor.
+- **Belgeler:** `docs/DEPLOY.md` (kurulum, HTTPS, CDN arkası, güncelleme, yedek, doğrulama,
+  sorun giderme), README, SPEC §6/§7.1/§9/§13, CLAUDE.md.
+- **Önceki testlerde düzeltmeler:**
+  - `map-bluff.spec.ts`: Son oy REVEAL'i hemen başlattığı için bu hızlı ortamda REVEAL
+    mesajı sızıntı kontrolünden önce kayda giriyordu. Kontrol artık her tarayıcının
+    mesajlarını ilk REVEAL'e kadar inceliyor.
+  - İçe aktarma şablonu testi yeni `video_id` sütununa göre güncellendi.
+
+### Testler
+
+- **Unit:** ffprobe kuralları (kabul/ret, süre toleransı, başlık tanıma), medya referansları
+  ve URL'ler, Quiz video INTRO süresi ve görünümü, `video_id` içe aktarma, prod ortam
+  kontrolleri, videolu içerikle sözleşme testi.
+- **Integration (gerçek ffmpeg; yoksa atlanıyor):** MP4 ve WebM yükleme ve meta veri silme
+  (başlık ve GPS etiketi gömülü test videosu, test sırasında üretiliyor), `Range` → 206, 61 sn
+  video / .mkv / bozuk dosya / boyut sınırı reddi, ffmpeg yokken `VIDEO_UNAVAILABLE`, tür
+  uyumu, videolu quiz round'unun motor üzerinden oynatılması.
+- **E2E:** `video.spec.ts`: admin WebM yükler ve soruya ekler, paket yayınlar; TV'de video
+  oynar (konum ilerler), telefonda video yok, video bitince cevaplama açılır.
+- **Prod:** `scripts/prod-smoke.sh` ve `restore.sh` bu oturumda çalıştırıldı (aşağıda).
+
+### Bitti tanımı — son çalıştırma (2026-10-03, bulut ortamı)
+
+| Kontrol                                  | Sonuç                                                                                                                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`                         | ✅ 24/24 görev                                                                                                                                                            |
+| `pnpm lint`                              | ✅ 24/24 görev                                                                                                                                                            |
+| `pnpm test`                              | ✅ 501 test: shared 45, game-sdk 45, quiz 58, closest-number 62, sorting 26, who-would 19, image-location 22, bluff 21, drawing 26, reaction 25, memory 18, server 134    |
+| `pnpm build`                             | ✅ 13/13 görev                                                                                                                                                            |
+| `pnpm test:e2e`                          | 🟡 Chromium'da 17/17 (önceki fazlar dahil). **WebKit çalıştırılamadı**                                                                                                    |
+| `pnpm format:check`                      | ✅                                                                                                                                                                        |
+| `scripts/prod-smoke.sh` (`E2E=1`)        | ✅ İmajlar derlendi, stack sağlıklı; Nginx üzerinden health ve WebSocket 101; 13 tablo aynı satır sayısıyla geri yüklendi; e2e alt kümesi Chromium'da 11/11 (video dahil) |
+| `scripts/restore.sh`                     | ✅ Yedek geri yüklendi, server ve web yeniden ayağa kalktı                                                                                                                |
+| Sıfırdan dev `docker compose up --build` | ❌ **Doğrulanamadı:** dev imajındaki `apt-get` (`deb.debian.org`) bu ortamda engelli                                                                                      |
+| GitHub Actions                           | ❌ **Henüz çalışmadı:** iş akışı `main`'e push ve PR'larda tetikleniyor; bu dal `main-xyqt1n`                                                                             |
+
+**Mac'te yapılacak üç doğrulama:**
+
+```bash
+docker compose down -v && docker compose up -d --build --wait   # dev imajı ffmpeg ile
+pnpm test:e2e                                                    # WebKit dahil
+# main'e alındıktan sonra GitHub'da Actions sekmesinde CI'ın yeşil olduğu
+```
+
+### Alınan kararlar (kullanıcı onaylı)
+
+- **F7–F12:** Phase 9 planında onaylandı (video, prod, Nginx, yedekleme, CI).
+- **G1:** Video kendi biçiminde saklanıyor; `MediaInfo`'da `type`, `format`, `durationMs`;
+  `mediaUrl(id, format)`.
+- **G2:** `{ type, mediaId }` referansı medyanın türüyle eşleşmeli; yalın `mediaId` görsel.
+- **G3:** Quiz içe aktarmada `video_id` sütunu.
+- **G4:** Prod seed'i yalnızca kategoriler; ilk admin `admin-create` ile.
+- **G5:** Tam CSP yok; `frame-ancestors` ve diğer güvenlik başlıkları.
+- **G6:** ffmpeg statik imajdan kopyalanıyor.
+- **G7:** TV'de video faz saatine senkron; ses engellenirse sessiz + "Sesi aç".
+- **G8:** Prod'da zayıf `IP_HASH_SECRET` ya da `ADMIN_SEED_*` server'ı açtırmıyor.
+
+### Varsayımlar ve küçük kararlar
+
+- **Süre toleransı:** Konteynerler son kareyi yuvarlayabildiği için 60 sn'ye 250 ms tolerans
+  var; kayıtlı süre en fazla 60 sn.
+- **Video yalnızca INTRO'da:** Cevaplama ve sonuç ekranlarında video gösterilmiyor
+  (seçeneklere yer kalsın diye).
+- **Video önizleme görseli yok:** Kütüphane ve seçici videonun ilk karesini tarayıcıya
+  çizdiriyor; ayrıca kapak görseli üretilmiyor.
+- **Docker Hub limiti:** Bu ortamda Docker Hub anonim çekme limitine (429) takıldı; daemon'a
+  Google'ın herkese açık aynası (`mirror.gcr.io`) eklendi. Repo'ya giren bir değişiklik değil.
+- **Prod e2e için admin:** `prod-smoke.sh` e2e alt kümesi, `.env` içindeki `ADMIN_SEED_*` ile
+  aynı bilgilerle `admin-create` çalıştırılmış olmasını bekliyor (DEPLOY.md'de yazılı).
+- **Nginx'te `X-Forwarded-For` üzerine yazılıyor:** Nginx'in önünde başka bir proxy varsa
+  `real_ip` ayarı gerekiyor (DEPLOY.md).
+
+### Eklenen paketler
+
+Yeni npm paketi yok. Yeni imajlar: `nginx:1.29-alpine` (prod) ve `mwader/static-ffmpeg:7.1.1`
+(dev ve prod imajlarına ffmpeg/ffprobe kopyalamak için; ikisi de sabit sürüm).
+
+### Bilinen sınırlar
+
+- **Bu ortamda doğrulanamayanlar:** WebKit e2e, sıfırdan dev `docker compose up`, GitHub
+  Actions çalışması.
+- **Gerçek alan adı ve TLS** denenmedi; TLS yapılandırması örnek dosya ve belge olarak
+  duruyor. Prod stack yerelde HTTP ile doğrulandı.
+- **Video kodlanmıyor:** Tarayıcının çalamayacağı bir kodlama yüklenemiyor; dönüştürme yok.
+  H.264, Playwright'ın Chromium'unda çalmıyor (test videoları WebM); gerçek Chrome ve Safari
+  çalıyor.
+- **Prod imaj boyutu:** server runtime imajı ~900 MB (taban imaj + ffmpeg + bağımlılıklar);
+  `migrate` imajı tam workspace olduğu için ~4 GB.
+- **Yedekler aynı sunucuda:** `backups` volume'u sunucu dışına kopyalanmıyor; DEPLOY.md
+  düzenli kopyalamayı öneriyor.
 
 ---
 

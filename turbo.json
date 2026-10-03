@@ -41,7 +41,10 @@
         "SESSION_RETENTION_DAYS",
         "REST_RATE_LIMIT_CAPACITY",
         "REST_RATE_LIMIT_PER_SECOND",
-        "API_INTERNAL_URL"
+        "API_INTERNAL_URL",
+        "MEDIA_MAX_VIDEO_BYTES",
+        "FFMPEG_PATH",
+        "FFPROBE_PATH"
       ]
     }
   }

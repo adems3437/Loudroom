@@ -31,6 +31,15 @@ pnpm admin:create --email a@b.c [--name N]   # first admin / --reset a password 
 pnpm --filter @loudroom/server db:generate   # regenerate the client after schema edits
 ```
 
+Production (docs/DEPLOY.md; `.env.prod` from `.env.prod.example`, never the dev `.env`):
+
+```bash
+scripts/prod.sh up -d --build --wait   # compose.yml + compose.prod.yml with .env.prod
+scripts/prod.sh run --rm server node dist/cli/admin-create.js --email a@b.c
+scripts/prod-smoke.sh                  # build, health + WebSocket via Nginx, restore rehearsal
+scripts/backup.sh                      # backup now → ./backups;  scripts/restore.sh <dump> <tar>
+```
+
 ## Layout
 
 ```
@@ -90,7 +99,13 @@ packages/games/*   one package per game: schema.ts, server.ts (module), import.t
                    exports ./server and ./client separately. quiz, closest-number, sorting
                    (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff, drawing (round
                    stream, canvas), reaction (hidden phase clock), memory
-docker/            dev image, postgres init (creates loudroom_test)
+docker/            dev image, postgres init (creates loudroom_test); server.Dockerfile (build stage =
+                   migrate image, slim runtime + static ffmpeg), web.Dockerfile (standalone),
+                   nginx/ (nginx.conf, locations.conf, sites/http.conf, tls.conf.example),
+                   backup/backup.sh, extra-ca.sh (optional proxy CA for builds)
+compose.prod.yml   production services on top of compose.yml (nginx is the only public one)
+scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
+.github/workflows/ CI: typecheck, lint, test (Postgres, Redis, ffmpeg), build, format
 ```
 
 ## Code rules
@@ -195,5 +210,16 @@ docker/            dev image, postgres init (creates loudroom_test)
   the whole e2e suite shares one REST rate-limit bucket. The dev `.env` raises it
   (`REST_RATE_LIMIT_*`: 600, +20/s; unset in production = 120, +4/s) and `apiRequest` waits
   out a 429 on GETs (3 retries); still keep e2e tests frugal with page loads.
+- Videos need ffmpeg/ffprobe (`brew install ffmpeg` in host mode; bundled in the images). The
+  server checks for them once at startup; without them video uploads answer
+  `VIDEO_UNAVAILABLE` and the video tests are skipped (`hasFfmpeg`).
+- Playwright's Chromium has no H.264 decoder: e2e test videos are WebM.
+- Host renderers get `paused` (media must stop); `MediaFieldProps` take `accept`
+  (`'image' | 'video' | 'any'`) and report the picked kind. Harness frames include the
+  `durationMs` clients are told (null for hidden phases), so phase lengths are leak-tested too.
+- Docker builds of the web app run `pnpm --filter @loudroom/web... run build`, not turbo:
+  turbo's strict env mode would hide the proxy CA variables (`docker/extra-ca.sh`).
+- Production-only config checks (`assertProductionSafe`): a weak `IP_HASH_SECRET` or any
+  `ADMIN_SEED_*` stops the server when `NODE_ENV=production`.
 - Rate-limit buckets live in Redis. To reset them in the dev stack:
   `docker compose exec redis sh -c "redis-cli --scan --pattern 'rl:*' | xargs -r redis-cli del"`.

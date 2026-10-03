@@ -160,8 +160,8 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
 
 - `ContentItem { id, gameType, data (JSONB), categoryId, difficulty, tags[], locale, status (DRAFT|PUBLISHED), mediaIds[], defaultTimeLimit, baseScore, createdBy, timestamps }`
 - `data`, ilgili modülün `contentSchema`'sı ile hem kayıt hem okuma sırasında doğrulanır.
-  - Quiz: `{ question, options: [{ id, text, mediaId? }], correctOptionId, media?: { type: 'image', mediaId } }` (2–6 seçenek)
-  - Yüklenen dosyaya referans veren her alan `mediaId` adını taşır; server varlığını kontrol eder ve kullanımdaki dosyanın silinmesini engeller.
+  - Quiz: `{ question, options: [{ id, text, mediaId? }], correctOptionId, media?: { type: 'image' | 'video', mediaId } }` (2–6 seçenek)
+  - Yüklenen dosyaya referans veren her alan `mediaId` adını taşır; server varlığını ve türünü kontrol eder (`type: 'video'` yanındaki `mediaId` bir video, diğer her `mediaId` bir görsel olmalı) ve kullanımdaki dosyanın silinmesini engeller.
   - Closest Number: `{ question, answer, unit?, displayFormat: 'number' | 'year' }` (yıl tam sayıdır)
   - Sorting: `{ question, items: [{ id, text, mediaId? }] (3–8, doğru sırada), labels?: { first, last } }`
   - Kim Yapar?: `{ question, title? }` (seçenekler round başında bağlı oyunculardan üretilir)
@@ -184,7 +184,8 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
 Genel: tüm skor formülleri modül ayarlarından yapılandırılabilir; eşitliklerde deterministik kural (önce cevaplayan önde).
 
 ### 7.1 Quiz (MVP)
-- 2–6 seçenek, süre limiti, görselli soru; video için `media.type` alanı hazır ama oynatıcı sonraki faz.
+- 2–6 seçenek, süre limiti, görselli ya da videolu soru.
+- **Video:** TV'de INTRO'da sesli oynar; INTRO süresi videonun süresidir (en fazla 60 sn), cevaplama video bitince açılır. Video konumu server'ın faz saatine göre hesaplanır (duraklatma, yenileme, yeniden bağlanma). Tarayıcı sesi engellerse sessiz oynar ve "Sesi aç" butonu çıkar. Telefonlara video gitmez.
 - Cevap gönderilince kilitlenir (ayar: değiştirilebilir).
 - Herkes cevaplayınca süre beklenmeden erken bitiş.
 - Skor: `points = round(baseScore * (0.5 + 0.5 * remaining/total)) * multiplier`, yanlış = 0; seri bonusu (ör. 3+ doğru serisinde +100/adım, üst sınırlı).
@@ -316,7 +317,7 @@ score:update  game:end  error
 - **Oda kodu brute-force:** deneme limiti, yalnızca aktif odalar geçerli, kısa TTL, "oda bulunamadı" ile "limit aşıldı" dışında bilgi sızdırmayan hata.
 - **Input:** nickname 2–16 karakter, Unicode NFC normalize, kontrol karakterleri ve zero-width karakterler temizlenir; TR/EN küfür listesi (yapılandırılabilir). React escaping; `dangerouslySetInnerHTML` yasak.
 - **Admin auth:** argon2 hash, httpOnly + secure cookie oturum, CSRF koruması, roller `ADMIN` / `EDITOR`.
-- **Upload:** MIME sniff, boyut limiti, görseller `sharp` ile yeniden kodlanır ve EXIF silinir.
+- **Upload:** MIME sniff, boyut limiti, görseller `sharp` ile yeniden kodlanır ve EXIF silinir. Videolar (MP4 H.264/AAC ya da WebM VP8/VP9/AV1 + Opus/Vorbis, en fazla 60 sn) `ffprobe` ile tanınır, `ffmpeg -c copy` ile yeniden kodlanmadan paketlenir; konum dahil bütün meta veriler silinir.
 - helmet, CORS kısıtı, secret'lar yalnızca env'de.
 - **KVKK:** Oyuncular hesapsız; yalnızca nickname/avatar tutulur, IP loglanmaz veya kısa saklama süresiyle tutulur; oturum geçmişi `SESSION_RETENTION_DAYS` (varsayılan 180, 0 = süresiz) günden eskiyse oyuncu, cevap ve puanlarıyla günlük temizlikte silinir; bitmeden kalan oturumlar 1 gün sonra `ABORTED` olur. ADMIN tek bir oturumu elle silebilir.
 
@@ -384,7 +385,11 @@ rl:{scope}:{key}          # rate limit
 
 - `compose.yml` (ortak) + `compose.dev.yml` + `compose.prod.yml`.
 - **Dev:** hot reload, postgres, redis; Nginx yok. Telefonla test için servisler `0.0.0.0`'a bağlanır, `PUBLIC_URL` LAN IP'sine ayarlanabilir, QR bu adresi kullanır.
-- **Prod:** multi-stage build, non-root kullanıcı, healthcheck'ler, açılışta `prisma migrate deploy`, Nginx (WebSocket upgrade, gzip, statik cache, TLS için hazır yapı).
+- **Prod:** multi-stage build, non-root kullanıcı, healthcheck'ler, açılışta `prisma migrate deploy` (`migrate` servisi; prod seed'i yalnızca kategoriler), Nginx (WebSocket upgrade, gzip, statik cache, TLS için hazır yapı). Ayrıntılar ve kurulum: [docs/DEPLOY.md](DEPLOY.md).
+  - Nginx dışarı açık tek servistir: `/` web'e; `/api`, `/media`, `/socket.io`, `/health` doğrudan server'a. `X-Forwarded-For` istemcinin adresiyle üzerine yazılır, server `TRUST_PROXY=true` ile buna güvenir. Erişim logunda istemci IP'si yoktur.
+  - Server prod'da JSON log yazar; zayıf `IP_HASH_SECRET` ya da tanımlı `ADMIN_SEED_*` ile açılmaz. İlk admin `admin-create` ile oluşturulur.
+  - **Yedekleme:** `backup` servisi her gece `pg_dump` + medya arşivi alır, `BACKUP_KEEP_DAYS` gün saklar; `scripts/backup.sh`, `scripts/restore.sh`. `scripts/prod-smoke.sh` stack'i derleyip başlatır, Nginx üzerinden health ve WebSocket'i kontrol eder ve yedeği geçici bir veritabanına geri yükleyerek prova eder. Redis yedeklenmez.
+  - **CI:** GitHub Actions'ta typecheck, lint, test (Postgres, Redis, ffmpeg) ve build; e2e yerelde.
 - Medya: MVP'de Docker volume; `StorageService` arayüzü ile ileride S3/MinIO'ya geçilebilir.
 - `.env.example` tüm değişkenleri açıklamalarıyla içerir.
 
