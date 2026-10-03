@@ -16,8 +16,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   altTextSchema,
+  mediaListQuerySchema,
   mediaUpdateSchema,
-  paginationQuerySchema,
   type MediaItem,
 } from '@loudroom/shared';
 import { z } from 'zod';
@@ -34,8 +34,8 @@ export class MediaController {
 
   @Get()
   list(@Query() query: unknown) {
-    const { page, pageSize } = parseRequest(paginationQuerySchema, query);
-    return this.media.list(page, pageSize);
+    const { page, pageSize, type } = parseRequest(mediaListQuerySchema, query);
+    return this.media.list(page, pageSize, type);
   }
 
   @Get(':id')
@@ -43,7 +43,10 @@ export class MediaController {
     return this.media.get(id);
   }
 
-  /** multipart/form-data: `file` plus an optional `altText`. Size limit from MEDIA_MAX_UPLOAD_BYTES. */
+  /**
+   * multipart/form-data: `file` plus an optional `altText`. An image (MEDIA_MAX_UPLOAD_BYTES) or
+   * a video (MEDIA_MAX_VIDEO_BYTES, needs ffmpeg), told apart by the file's bytes.
+   */
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   upload(

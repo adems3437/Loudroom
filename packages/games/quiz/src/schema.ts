@@ -8,16 +8,31 @@ export const QUIZ_MAX_OPTIONS = 6;
 const optionIdSchema = z.string().min(1).max(64);
 
 /**
- * An image shown with the question. `type` leaves room for video (SPEC §7.1: the field is
- * ready, the player comes in a later phase).
+ * An image or a video shown with the question (SPEC §7.1). A video plays on the TV during
+ * INTRO and answering opens when it ends; phones never get it.
  */
-export const quizMediaSchema = z.strictObject({ type: z.literal('image'), mediaId: mediaIdSchema });
+export const quizMediaSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('image'), mediaId: mediaIdSchema }),
+  z.strictObject({ type: z.literal('video'), mediaId: mediaIdSchema }),
+]);
 export type QuizMedia = z.infer<typeof quizMediaSchema>;
+
+/** The question's media on the TV; a video carries what the player needs. */
+export const quizMediaViewSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('image'), mediaId: mediaIdSchema }),
+  z.strictObject({
+    type: z.literal('video'),
+    mediaId: mediaIdSchema,
+    format: z.enum(['mp4', 'webm']),
+    durationMs: z.number().int().positive(),
+  }),
+]);
+export type QuizMediaView = z.infer<typeof quizMediaViewSchema>;
 
 /**
  * Content of one question (SPEC §6: stored as ContentItem.data, validated on write and read).
- * Version 2 added the optional question image and option images; version 1 content is valid
- * version 2 content. An option keeps its text even with an image: it is the image's label.
+ * Version 2 added the optional question image and option images, version 3 question videos;
+ * older content stays valid. An option keeps its text even with an image: it is its label.
  */
 export const quizContentSchema = z
   .strictObject({
@@ -92,7 +107,7 @@ export type QuizOptionView = z.infer<typeof optionViewSchema>;
 
 const hostCommon = {
   question: z.string(),
-  media: quizMediaSchema.nullable(),
+  media: quizMediaViewSchema.nullable(),
   options: z.array(optionViewSchema),
   answeredCount: z.number().int().nonnegative(),
   /** Connected players who can answer. */

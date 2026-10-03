@@ -219,7 +219,7 @@ export function GameStage({ room, game }: { room: HostRoomState; game: HostGameS
   } else if (status === 'FINISHED') {
     main = <Podium standings={game.standings} players={room.players} />;
   } else if (game.round) {
-    main = <HostRound round={game.round} players={room.players} />;
+    main = <HostRound round={game.round} players={room.players} paused={status === 'PAUSED'} />;
   } else if (status === 'PAUSED') {
     main = <Scoreboard standings={game.standings} players={room.players} />;
   }

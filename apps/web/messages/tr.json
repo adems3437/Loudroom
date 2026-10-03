@@ -127,7 +127,7 @@
     },
     "media": {
       "title": "Medya",
-      "upload": "Görsel yükle",
+      "upload": "Yükle",
       "uploading": "Yükleniyor…",
       "uploadHint": "JPEG, PNG, WebP veya GIF; en fazla 10 MB. Görseller WebP'ye çevrilir, konum gibi bilgiler silinir.",
       "altText": "Açıklama (alt metin)",
@@ -141,8 +141,9 @@
       "noImage": "Görsel yok",
       "file": "Dosya",
       "saveAlt": "Açıklamayı kaydet",
-      "idHint": "İçe aktarma dosyalarında gorsel_id sütununa yazılır.",
-      "idLabel": "Kimlik"
+      "idHint": "İçe aktarma dosyalarında gorsel_id (görsel) ya da video_id (video) sütununa yazılır.",
+      "idLabel": "Kimlik",
+      "videoHint": "Videolar: MP4 (H.264) ya da WebM, en fazla 50 MB ve 60 saniye; yeniden kodlanmaz, konum gibi bilgiler silinir."
     },
     "packs": {
       "title": "Oyun paketleri",
@@ -228,7 +229,8 @@
       "SELF_CHANGE": "Kendi rolünü değiştiremez, kendini silemezsin.",
       "WRONG_PASSWORD": "Mevcut şifre hatalı.",
       "INTERNAL_ERROR": "Bir şeyler ters gitti. Tekrar dene.",
-      "IMPORT_INVALID": "Dosya içe aktarılamadı."
+      "IMPORT_INVALID": "Dosya içe aktarılamadı.",
+      "VIDEO_UNAVAILABLE": "Bu sunucuda video yükleme kapalı (ffmpeg kurulu değil). Görseller yüklenebilir."
     },
     "import": {
       "title": "İçerik içe aktar",
@@ -238,7 +240,7 @@
       "templateCsv": "CSV şablonu",
       "file": "Dosya",
       "fileHint": "En fazla 2 MB ve 1000 satır. CSV dosyası UTF-8 olmalı; ayraç noktalı virgül, virgül veya sekme olabilir.",
-      "commonHint": "Her oyunda ortak sütunlar: kategori (ad veya kısa ad), zorluk (kolay/orta/zor), etiketler (virgülle) ve durum (taslak/yayında). Boş bırakılırsa orta zorluk ve taslak kullanılır. Görsel sütununa (gorsel_id) Medya sayfasındaki kimliği yaz; görseli önce oraya yükle.",
+      "commonHint": "Her oyunda ortak sütunlar: kategori (ad veya kısa ad), zorluk (kolay/orta/zor), etiketler (virgülle) ve durum (taslak/yayında). Boş bırakılırsa orta zorluk ve taslak kullanılır. Görsel (gorsel_id) ve video (video_id) sütunlarına Medya sayfasındaki kimliği yaz; dosyayı önce oraya yükle.",
       "checking": "Dosya kontrol ediliyor…",
       "summary": "{valid} satır hazır, {invalid} satırda sorun var.",
       "missingColumns": "Zorunlu sütunlar eksik: {columns}",
@@ -452,7 +454,6 @@
       "questionImage": "Soru görseli",
       "editor": {
         "question": "Soru",
-        "questionImage": "Soru görseli (isteğe bağlı)",
         "options": "Seçenekler",
         "correctHint": "Doğru cevabı işaretle. Seçeneğin metni, görseli olsa da gerekli.",
         "correct": "Doğru",
@@ -460,7 +461,8 @@
         "optionImage": "Seçenek görseli",
         "removeOption": "Kaldır",
         "addOption": "Seçenek ekle",
-        "invalid": "Bu alanı kontrol et."
+        "invalid": "Bu alanı kontrol et.",
+        "questionMedia": "Soru görseli ya da videosu (isteğe bağlı)"
       },
       "settings": {
         "baseScore": "Taban puan",
@@ -468,7 +470,9 @@
         "streakStepHint": "{from}. doğrudan itibaren her doğru cevaba eklenir.",
         "allowAnswerChange": "Cevap değiştirilebilsin",
         "allowAnswerChangeHint": "Açıkken soru süre bitince kapanır, herkes cevaplasa da beklenir."
-      }
+      },
+      "questionVideo": "Soru videosu",
+      "soundOn": "Sesi aç"
     },
     "closestNumber": {
       "timeLeft": "Kalan süre",

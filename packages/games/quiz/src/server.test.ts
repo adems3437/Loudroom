@@ -1,6 +1,13 @@
 import { playRound, type ScriptStep } from '@loudroom/game-sdk/testing';
 import { describe, expect, it } from 'vitest';
-import { content, contentWithImages, players } from './fixtures.test-support.js';
+import {
+  content,
+  contentWithImages,
+  contentWithVideo,
+  players,
+  VIDEO_ID,
+  videoMedia,
+} from './fixtures.test-support.js';
 import { quizContentSchema, quizModule, type QuizHostView, type QuizPlayerView } from './server.js';
 
 const open: ScriptStep = { type: 'timer' };
@@ -174,5 +181,42 @@ describe('quiz images (version 2)', () => {
 
     const plain = play([open]).frames.at(-1)?.hostView as QuizHostView;
     expect(plain.media).toBeNull();
+  });
+});
+
+describe('quiz videos (version 3)', () => {
+  it('plays the video during INTRO: answering opens when it has played', () => {
+    const { frames } = playRound(quizModule, {
+      content: contentWithVideo,
+      media: videoMedia,
+      players,
+      script: [],
+      settings: { introMs: 0 },
+    });
+    const intro = frames[0];
+    expect(intro?.phase).toBe('INTRO');
+    expect(intro?.durationMs).toBe(7_500);
+    expect((intro?.hostView as QuizHostView).media).toEqual({
+      type: 'video',
+      mediaId: VIDEO_ID,
+      format: 'webm',
+      durationMs: 7_500,
+    });
+    // Phones never get the video.
+    expect(JSON.stringify(intro?.playerViews)).not.toContain(VIDEO_ID);
+  });
+
+  it('shows the question without a video whose file is gone', () => {
+    const { frames } = playRound(quizModule, { content: contentWithVideo, players, script: [] });
+    expect((frames[0]?.hostView as QuizHostView).media).toBeNull();
+    expect(frames[0]?.durationMs).toBe(3_000);
+  });
+
+  it('accepts video media in content, but no other media types', () => {
+    expect(quizContentSchema.safeParse(contentWithVideo).success).toBe(true);
+    expect(
+      quizContentSchema.safeParse({ ...content, media: { type: 'audio', mediaId: VIDEO_ID } })
+        .success,
+    ).toBe(false);
   });
 });

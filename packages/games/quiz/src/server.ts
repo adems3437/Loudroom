@@ -11,6 +11,7 @@ import {
   type QuizContent,
   type QuizHostView,
   type QuizInput,
+  type QuizMediaView,
   type QuizOptionView,
   type QuizPlayerView,
   type QuizSettings,
@@ -54,6 +55,24 @@ function reveal(state: QuizState): Transition<QuizState> {
   };
 }
 
+/**
+ * The question's media as the TV gets it. A video without known media info (its file is gone)
+ * cannot be timed or played, so the question is shown without it.
+ */
+function mediaView(ctx: Ctx): QuizMediaView | null {
+  const media = ctx.content.media;
+  if (!media) return null;
+  if (media.type === 'image') return media;
+  const info = ctx.media[media.mediaId];
+  if (info?.type !== 'video' || info.format === 'webp' || !info.durationMs) return null;
+  return {
+    type: 'video',
+    mediaId: media.mediaId,
+    format: info.format,
+    durationMs: info.durationMs,
+  };
+}
+
 /** Answers of players still in the room. */
 function countedAnswers(state: QuizState, ctx: Ctx): [string, QuizAnswer][] {
   const present = new Set(ctx.players.map((player) => player.id));
@@ -70,7 +89,7 @@ export const quizModule: GameModule<
 > = {
   id: QUIZ_GAME_TYPE,
   name: 'Quiz',
-  version: 2,
+  version: 3,
   contentSchema: quizContentSchema,
   settingsSchema: quizSettingsSchema,
   defaultSettings: QUIZ_DEFAULT_SETTINGS,
@@ -88,11 +107,11 @@ export const quizModule: GameModule<
       slot,
     }));
     const state: QuizState = { phase: 'INTRO', options, answers: {} };
-    if (ctx.settings.introMs === 0) return answering(state, ctx);
-    return {
-      state,
-      effects: [{ type: 'phase', phase: 'INTRO', durationMs: ctx.settings.introMs }],
-    };
+    // A question video replaces the intro: answering opens when it has played (SPEC §7.1).
+    const video = mediaView(ctx);
+    const introMs = video?.type === 'video' ? video.durationMs : ctx.settings.introMs;
+    if (introMs === 0) return answering(state, ctx);
+    return { state, effects: [{ type: 'phase', phase: 'INTRO', durationMs: introMs }] };
   },
 
   onTimer(state, ctx) {
@@ -179,7 +198,7 @@ export const quizModule: GameModule<
     const answers = countedAnswers(state, ctx);
     const common = {
       question: ctx.content.question,
-      media: ctx.content.media ?? null,
+      media: mediaView(ctx),
       options: state.options,
       answeredCount: answers.length,
       playerCount: ctx.players.filter((player) => player.connected).length,

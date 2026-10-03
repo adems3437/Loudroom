@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { ContentImporter } from './importer.js';
+import type { MediaFormat, MediaKind } from './media.js';
 import type { Random } from './rng.js';
 
 /** A room member as a game module sees them. */
@@ -33,10 +34,15 @@ export interface PhaseClock {
   endsAt: number | null;
 }
 
-/** Size of an uploaded image the content refers to (Media width/height, in pixels). */
+/** An uploaded file the content refers to, as recorded in Media. */
 export interface MediaInfo {
+  type: MediaKind;
+  format: MediaFormat;
+  /** Pixels. */
   width: number;
   height: number;
+  /** Videos only. */
+  durationMs: number | null;
 }
 
 /** Checks player-written text against the server's blocked-word lists (SPEC §9). */
@@ -59,7 +65,7 @@ export interface RoundContext<Content, Settings> {
   now: number;
   /** Seeded per round: identical inputs give identical rounds (tests, replays). */
   random: Random;
-  /** Sizes of the images this round's content refers to, by media id. */
+  /** The media files this round's content refers to (sizes, video lengths), by media id. */
   media: Readonly<Record<string, MediaInfo>>;
   /** Blocked-word check for text players write. */
   moderation: Moderation;

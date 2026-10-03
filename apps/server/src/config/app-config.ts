@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { VIDEO_MAX_DURATION_MS } from '@loudroom/shared';
 import { z } from 'zod';
 
 const csv = z
@@ -50,12 +51,21 @@ const envSchema = z.object({
     blankAsUnset,
     z.coerce.number().positive().max(10_000).optional(),
   ),
-  /** Largest accepted upload (SPEC §9). */
+  /** Largest accepted image upload (SPEC §9). */
   MEDIA_MAX_UPLOAD_BYTES: z.coerce
     .number()
     .int()
     .positive()
     .default(10 * 1024 * 1024),
+  /** Largest accepted video upload. */
+  MEDIA_MAX_VIDEO_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(50 * 1024 * 1024),
+  /** ffmpeg and ffprobe executables (video uploads); found on PATH by default. */
+  FFMPEG_PATH: z.string().min(1).default('ffmpeg'),
+  FFPROBE_PATH: z.string().min(1).default('ffprobe'),
 });
 
 export interface TokenBucketConfig {
@@ -92,7 +102,13 @@ export interface AdminConfig {
 export interface MediaConfig {
   /** Absolute directory of stored media files. */
   dir: string;
+  /** Images. */
   maxUploadBytes: number;
+  maxVideoBytes: number;
+  /** Longest accepted video. */
+  maxVideoMs: number;
+  ffmpegPath: string;
+  ffprobePath: string;
 }
 
 export interface GameTimingConfig {
@@ -175,7 +191,14 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
       sessionTtlMs: 12 * 60 * 60 * 1000,
       secureCookies: new URL(parsed.PUBLIC_URL).protocol === 'https:',
     },
-    media: { dir: resolve(parsed.MEDIA_DIR), maxUploadBytes: parsed.MEDIA_MAX_UPLOAD_BYTES },
+    media: {
+      dir: resolve(parsed.MEDIA_DIR),
+      maxUploadBytes: parsed.MEDIA_MAX_UPLOAD_BYTES,
+      maxVideoBytes: parsed.MEDIA_MAX_VIDEO_BYTES,
+      maxVideoMs: VIDEO_MAX_DURATION_MS,
+      ffmpegPath: parsed.FFMPEG_PATH,
+      ffprobePath: parsed.FFPROBE_PATH,
+    },
     sessionRetentionDays: parsed.SESSION_RETENTION_DAYS,
   };
 }

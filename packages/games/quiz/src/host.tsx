@@ -7,10 +7,11 @@ import {
   optionStyle,
   type HostRendererProps,
 } from '@loudroom/game-sdk/client';
+import { QuestionVideo } from './question-video.js';
 import type { QuizHostView } from './schema.js';
 
 /** TV screen of a quiz question: question, clock, options; in REVEAL the answer and spread. */
-export function QuizHost({ view, phase, serverNow, t }: HostRendererProps<QuizHostView>) {
+export function QuizHost({ view, phase, paused, serverNow, t }: HostRendererProps<QuizHostView>) {
   const reveal = view.phase === 'REVEAL' ? view : null;
   const counts = new Map(reveal?.distribution.map((entry) => [entry.optionId, entry.count]));
   const maxCount = Math.max(1, ...counts.values());
@@ -37,7 +38,22 @@ export function QuizHost({ view, phase, serverNow, t }: HostRendererProps<QuizHo
         )}
       </div>
 
-      {view.media && (
+      {view.media?.type === 'video' && view.phase === 'INTRO' && (
+        <div className="min-h-0 flex-1">
+          <QuestionVideo
+            mediaId={view.media.mediaId}
+            format={view.media.format}
+            durationMs={view.media.durationMs}
+            phase={phase}
+            paused={paused}
+            serverNow={serverNow}
+            label={t('questionVideo')}
+            unmuteLabel={t('soundOn')}
+          />
+        </div>
+      )}
+
+      {view.media?.type === 'image' && (
         <div className="flex min-h-0 flex-1 justify-center">
           <img
             data-testid="quiz-question-image"
@@ -51,7 +67,11 @@ export function QuizHost({ view, phase, serverNow, t }: HostRendererProps<QuizHo
       )}
 
       {view.phase !== 'INTRO' && (
-        <ul className={`grid grid-cols-2 content-end gap-6 ${view.media ? 'shrink-0' : 'flex-1'}`}>
+        <ul
+          className={`grid grid-cols-2 content-end gap-6 ${
+            view.media?.type === 'image' ? 'shrink-0' : 'flex-1'
+          }`}
+        >
           {view.options.map((option) => {
             const style = optionStyle(option.slot);
             const isCorrect = reveal?.correctOptionId === option.id;
@@ -63,7 +83,7 @@ export function QuizHost({ view, phase, serverNow, t }: HostRendererProps<QuizHo
                 data-option-id={option.id}
                 data-correct={reveal ? isCorrect : undefined}
                 className={`relative flex items-center gap-6 overflow-hidden rounded-[32px] px-8 transition-[opacity,transform] duration-500 ${
-                  view.media ? 'min-h-[120px] py-3' : 'min-h-[150px] py-6'
+                  view.media?.type === 'image' ? 'min-h-[120px] py-3' : 'min-h-[150px] py-6'
                 } ${
                   reveal && !isCorrect ? 'scale-[0.97] opacity-35' : ''
                 } ${isCorrect ? 'ring-ink ring-8' : ''}`}

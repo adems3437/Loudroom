@@ -49,7 +49,15 @@ function useRoundStream(roundId: string, realtime: RealtimeState): RoundStream {
  * The current round on the host screen, drawn by the game's own renderer. Keyed by round, so a
  * renderer's local state (a half-sorted list, a typed number) never carries into the next round.
  */
-export function HostRound({ round, players }: { round: Round; players: RendererPlayer[] }) {
+export function HostRound({
+  round,
+  players,
+  paused,
+}: {
+  round: Round;
+  players: RendererPlayer[];
+  paused: boolean;
+}) {
   const realtime = useRealtime();
   const { serverNow } = realtime;
   const stream = useRoundStream(round.roundId, realtime);
@@ -68,6 +76,7 @@ export function HostRound({ round, players }: { round: Round; players: RendererP
       t={t}
       Avatar={GameAvatar}
       stream={stream}
+      paused={paused}
     />
   );
 }

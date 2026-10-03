@@ -1,6 +1,9 @@
 import type { ComponentType } from 'react';
 import type { z } from 'zod';
+import type { MediaKind } from '../media.js';
 import type { PhaseClock } from '../module.js';
+
+export type { PhaseClock };
 
 /** Translates a key under the game's own message namespace (`games.<id>.*` in the web app). */
 export type Translate = (key: string, values?: Record<string, string | number>) => string;
@@ -52,7 +55,10 @@ interface RendererBase<View> {
   stream: RoundStream;
 }
 
-export type HostRendererProps<View> = RendererBase<View>;
+export interface HostRendererProps<View> extends RendererBase<View> {
+  /** The game is paused (host controls or a lost host): media must stop too. */
+  paused: boolean;
+}
 
 export type SubmitOutcome = { ok: true } | { ok: false; code: string };
 
@@ -66,12 +72,15 @@ export interface PlayerRendererProps<View> extends RendererBase<View> {
   describeError: (code: string) => string;
 }
 
-/** Picks an uploaded image (or none). Provided by the admin panel. */
+/** Picks an uploaded file (or none). Provided by the admin panel. */
 export interface MediaFieldProps {
   value: string | null;
-  onChange: (mediaId: string | null) => void;
+  /** `kind` says what was picked (null when cleared). */
+  onChange: (mediaId: string | null, kind: MediaKind | null) => void;
   label: string;
   testId?: string;
+  /** What may be picked; images by default. */
+  accept?: MediaKind | 'any';
 }
 
 /** A problem the server found in the content; `path` is relative to the content. */

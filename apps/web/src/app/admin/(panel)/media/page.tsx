@@ -3,7 +3,7 @@
 import type { ApiError, MediaItem } from '@loudroom/shared';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { mediaPageSchema, Thumbnail, UploadForm } from '@/admin/media';
+import { formatDuration, mediaPageSchema, Thumbnail, UploadForm } from '@/admin/media';
 import { useAdminSession } from '@/admin/session';
 import {
   ConfirmDelete,
@@ -50,7 +50,13 @@ function MediaCard({ item, onChanged }: { item: MediaItem; onChanged: () => void
       data-media-id={item.id}
       className="bg-surface border-line flex flex-col gap-3 rounded-2xl border p-3"
     >
-      <Thumbnail id={item.id} alt={item.altText ?? ''} className="h-40 w-full rounded-xl" />
+      <Thumbnail
+        id={item.id}
+        alt={item.altText ?? ''}
+        mimeType={item.mimeType}
+        controls
+        className="h-40 w-full rounded-xl"
+      />
       <div className="text-sm">
         <p className="truncate font-semibold">{item.originalName ?? item.id}</p>
         <p className="text-muted truncate text-xs" title={t('idHint')}>
@@ -63,6 +69,7 @@ function MediaCard({ item, onChanged }: { item: MediaItem; onChanged: () => void
           {item.width !== null && item.height !== null
             ? `${t('dimensions', { width: item.width, height: item.height })} · `
             : ''}
+          {item.durationMs !== null ? `${formatDuration(item.durationMs)} · ` : ''}
           {formatSize(item.sizeBytes)} · {formatDate(item.createdAt)}
         </p>
         <p className={item.usageCount > 0 ? 'text-accent' : 'text-muted'}>

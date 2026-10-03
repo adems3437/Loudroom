@@ -87,12 +87,13 @@ export function QuizEditor({
       </label>
 
       <MediaField
-        label={t('editor.questionImage')}
+        label={t('editor.questionMedia')}
         testId="quiz-editor-question-image"
+        accept="any"
         value={value.media?.mediaId ?? null}
-        onChange={(mediaId) => {
+        onChange={(mediaId, kind) => {
           const next = { ...value };
-          if (mediaId) next.media = { type: 'image', mediaId };
+          if (mediaId) next.media = { type: kind ?? 'image', mediaId };
           else delete next.media;
           onChange(next);
         }}

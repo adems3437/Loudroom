@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { collectMediaIds } from '@loudroom/game-sdk';
+import { collectMediaRefs } from '@loudroom/game-sdk';
 import type {
   ApiIssue,
   ContentItem,
@@ -213,7 +213,10 @@ export class ContentService {
     }
   }
 
-  /** Module schema check, then every referenced media file must exist and be an image. */
+  /**
+   * Module schema check, then every referenced media file must exist with the kind the
+   * content expects: a video next to `type: 'video'`, an image everywhere else.
+   */
   private async validate(
     input: ContentItemInput,
   ): Promise<{ data: Prisma.InputJsonValue; mediaIds: string[] }> {
@@ -232,12 +235,18 @@ export class ContentService {
         zodIssues(parsed.error, ['data']),
       );
     }
-    const mediaIds = collectMediaIds(parsed.data);
+    const refs = collectMediaRefs(parsed.data);
+    const mediaIds = [...new Set(refs.map((ref) => ref.mediaId))];
     const found = await this.prisma.media.findMany({
-      where: { id: { in: mediaIds }, type: 'IMAGE' },
-      select: { id: true },
+      where: { id: { in: mediaIds } },
+      select: { id: true, type: true },
     });
-    const missing = mediaIds.filter((id) => !found.some((media) => media.id === id));
+    const missing = refs
+      .filter((ref) => {
+        const media = found.find((candidate) => candidate.id === ref.mediaId);
+        return media?.type !== (ref.kind === 'video' ? 'VIDEO' : 'IMAGE');
+      })
+      .map((ref) => ref.mediaId);
     if (missing.length > 0) {
       throw new ApiException(
         400,

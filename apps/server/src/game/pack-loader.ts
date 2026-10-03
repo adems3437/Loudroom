@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   collectMediaIds,
   createRandom,
+  mediaFormatOf,
   seedFromString,
   type AnyGameModule,
   type MediaInfo,
@@ -134,16 +135,32 @@ export class PackLoader {
     };
   }
 
-  /** Image sizes from Media, so modules can work in image proportions (SPEC §7.4). */
+  /**
+   * Media info from Media: image proportions (SPEC §7.4) and video lengths (quiz video
+   * questions), with the stored format for building URLs.
+   */
   private async mediaSizes(ids: string[]): Promise<Map<string, MediaInfo>> {
     if (ids.length === 0) return new Map();
     const rows = await this.prisma.media.findMany({
       where: { id: { in: [...new Set(ids)] } },
-      select: { id: true, width: true, height: true },
+      select: { id: true, type: true, mimeType: true, width: true, height: true, durationMs: true },
     });
     return new Map(
-      rows.flatMap((row) =>
-        row.width && row.height ? [[row.id, { width: row.width, height: row.height }]] : [],
+      rows.flatMap((row): [string, MediaInfo][] =>
+        row.width && row.height && row.type !== 'AUDIO'
+          ? [
+              [
+                row.id,
+                {
+                  type: row.type === 'VIDEO' ? 'video' : 'image',
+                  format: mediaFormatOf(row.mimeType),
+                  width: row.width,
+                  height: row.height,
+                  durationMs: row.durationMs,
+                },
+              ],
+            ]
+          : [],
       ),
     );
   }

@@ -1,4 +1,4 @@
-import type { GamePlayer } from '@loudroom/game-sdk';
+import type { GamePlayer, MediaInfo } from '@loudroom/game-sdk';
 import type { ScriptStep } from '@loudroom/game-sdk/testing';
 import type { ImageLocationContent } from './schema.js';
 
@@ -10,7 +10,9 @@ export const players: GamePlayer[] = [
 
 export const MEDIA_ID = '0b6f7c2e-3d4a-4e5f-8a9b-1c2d3e4f5a6b';
 /** A 2:1 map. */
-export const media = { [MEDIA_ID]: { width: 2000, height: 1000 } };
+export const media: Record<string, MediaInfo> = {
+  [MEDIA_ID]: { type: 'image', format: 'webp', width: 2000, height: 1000, durationMs: null },
+};
 
 export const content: ImageLocationContent = {
   question: 'Ankara nerede?',

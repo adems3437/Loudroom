@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
-  collectMediaIds,
+  collectMediaRefs,
+  type MediaKind,
   foldText,
   headerKey,
   type AnyGameModule,
@@ -24,6 +25,9 @@ import { findGameModule } from '../game/registry.js';
 import { ApiException } from '../http/api-exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { readSpreadsheet, SpreadsheetError } from './spreadsheet.js';
+
+/** Spreadsheet columns that name media by id, per kind (Quiz: `gorsel_id`, `video_id`). */
+const MEDIA_COLUMNS: Record<MediaKind, string> = { image: 'gorsel_id', video: 'video_id' };
 
 const DIFFICULTIES: Record<string, Difficulty> = {
   kolay: 'EASY',
@@ -118,11 +122,10 @@ export class ImportService {
           flag(importer.columnFor(path, candidate), 'INVALID');
         }
       } else {
-        const mediaColumn = importer.columns.some((c) => c.key === 'gorsel_id')
-          ? 'gorsel_id'
-          : null;
-        if (collectMediaIds(parsed.data).some((id) => !existingMedia.has(id))) {
-          flag(mediaColumn, 'MEDIA_MISSING');
+        for (const ref of collectMediaRefs(parsed.data)) {
+          if (existingMedia.get(ref.mediaId) === ref.kind) continue;
+          const column = MEDIA_COLUMNS[ref.kind];
+          flag(importer.columns.some((c) => c.key === column) ? column : null, 'MEDIA_MISSING');
         }
       }
 
@@ -219,18 +222,19 @@ export class ImportService {
     return lookup;
   }
 
-  /** Media ids named in the file that exist (images). */
-  private async existingMedia(body: string[][], keys: string[]): Promise<Set<string>> {
-    const column = keys.indexOf('gorsel_id');
-    if (column < 0) return new Set();
+  /** Media ids named in the file's media columns that exist, with their kind. */
+  private async existingMedia(body: string[][], keys: string[]): Promise<Map<string, MediaKind>> {
+    const columns = Object.values(MEDIA_COLUMNS)
+      .map((key) => keys.indexOf(key))
+      .filter((column) => column >= 0);
     const ids = body
-      .map((cells) => (cells[column] ?? '').trim())
+      .flatMap((cells) => columns.map((column) => (cells[column] ?? '').trim()))
       .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
-    if (ids.length === 0) return new Set();
+    if (ids.length === 0) return new Map();
     const rows = await this.prisma.media.findMany({
-      where: { id: { in: [...new Set(ids)] }, type: 'IMAGE' },
-      select: { id: true },
+      where: { id: { in: [...new Set(ids)] }, type: { in: ['IMAGE', 'VIDEO'] } },
+      select: { id: true, type: true },
     });
-    return new Set(rows.map((row) => row.id));
+    return new Map(rows.map((row) => [row.id, row.type === 'VIDEO' ? 'video' : 'image']));
   }
 }

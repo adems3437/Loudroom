@@ -17,6 +17,8 @@ export const apiErrorCodeSchema = z.enum([
   'PACK_INVALID',
   'MEDIA_UNSUPPORTED',
   'MEDIA_TOO_LARGE',
+  /** Video uploads need ffmpeg/ffprobe on the server, which this installation lacks. */
+  'VIDEO_UNAVAILABLE',
   'LAST_ADMIN',
   'SELF_CHANGE',
   'WRONG_PASSWORD',

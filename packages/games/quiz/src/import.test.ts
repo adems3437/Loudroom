@@ -35,4 +35,18 @@ describe('quiz import', () => {
       columns: ['a'],
     });
   });
+
+  it('takes a video id, and refuses a row naming both an image and a video', () => {
+    const video = '0b6f7c2e-3d4a-4e5f-8a9b-1c2d3e4f5a6b';
+    const image = '1c7a8d3f-4e5b-4f6a-9b0c-2d3e4f5a6b70';
+    const row = { soru: 'S', a: 'x', b: 'y', dogru: 'a' };
+    expect(importThrough(quizModule, { ...row, video_id: video })).toMatchObject({
+      ok: true,
+      content: { media: { type: 'video', mediaId: video } },
+    });
+    expect(importThrough(quizModule, { ...row, gorsel_id: image, video_id: video })).toEqual({
+      ok: false,
+      columns: ['video_id'],
+    });
+  });
 });

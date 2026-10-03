@@ -1,4 +1,4 @@
-export { mediaUrl } from '../media.js';
+export { mediaFormatOf, mediaUrl, type MediaFormat, type MediaKind } from '../media.js';
 export * from './contained-image.js';
 export * from './contained-rect.js';
 export * from './countdown.js';

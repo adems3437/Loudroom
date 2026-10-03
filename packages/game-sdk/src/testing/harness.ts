@@ -34,6 +34,8 @@ export interface RoundFixture {
 
 export interface Frame {
   phase: string | null;
+  /** The phase's length as clients are told (null: waits for an action, or hidden). */
+  durationMs: number | null;
   ended: boolean;
   hostView: unknown;
   playerViews: Record<string, unknown>;
@@ -122,6 +124,7 @@ export function playRound(
     const ctx = context();
     frames.push({
       phase: phase?.name ?? null,
+      durationMs: phase?.hidden ? null : (phase?.durationMs ?? null),
       ended,
       hostView: module.getHostView(state, ctx),
       playerViews: Object.fromEntries(

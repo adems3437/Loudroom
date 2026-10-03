@@ -96,6 +96,8 @@ export const mediaItemSchema = z.strictObject({
   sizeBytes: z.number().int().nonnegative(),
   width: z.number().int().nullable(),
   height: z.number().int().nullable(),
+  /** Videos only. */
+  durationMs: z.number().int().nullable(),
   altText: z.string().nullable(),
   originalName: z.string().nullable(),
   /** Content items using this file; media in use cannot be deleted. */
@@ -104,6 +106,12 @@ export const mediaItemSchema = z.strictObject({
 });
 export type MediaItem = z.infer<typeof mediaItemSchema>;
 
+/** Media library listing; `type` narrows it (the picker shows only what a field accepts). */
+export const mediaListQuerySchema = paginationQuerySchema.extend({
+  type: z.enum(['IMAGE', 'VIDEO']).optional(),
+});
+export type MediaListQuery = z.infer<typeof mediaListQuerySchema>;
+
 export const altTextSchema = z.string().trim().max(200);
 
 export const mediaUpdateSchema = z.strictObject({ altText: altTextSchema.nullable() });
@@ -111,6 +119,12 @@ export type MediaUpdate = z.infer<typeof mediaUpdateSchema>;
 
 /** Accepted upload formats; every image is re-encoded to WebP without metadata (SPEC §9). */
 export const UPLOAD_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+/** Videos are only remuxed (metadata stripped): MP4 (H.264/AAC) or WebM (VP8/VP9/AV1). */
+export const UPLOAD_VIDEO_MIME_TYPES = ['video/mp4', 'video/webm'];
+
+/** Longest accepted video (SPEC §7.1). */
+export const VIDEO_MAX_DURATION_MS = 60_000;
 
 // ── Game packs (SPEC §6) ────────────────────────────────────────────────────
 

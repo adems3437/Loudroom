@@ -27,11 +27,16 @@ import { ImportService } from '../import/import.service.js';
  */
 @Module({
   imports: [
-    // Uploads stay in memory: they are re-encoded before anything touches the disk.
+    // Uploads stay in memory until checked; each kind's own limit is applied by its service.
     MulterModule.registerAsync({
       inject: [APP_CONFIG],
       useFactory: (config: AppConfig) => ({
-        limits: { fileSize: config.media.maxUploadBytes, files: 1, fields: 5, parts: 6 },
+        limits: {
+          fileSize: Math.max(config.media.maxUploadBytes, config.media.maxVideoBytes),
+          files: 1,
+          fields: 5,
+          parts: 6,
+        },
       }),
     }),
   ],

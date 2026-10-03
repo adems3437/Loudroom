@@ -1,10 +1,16 @@
 'use client';
 
-import { mediaUrl, type MediaFieldProps } from '@loudroom/game-sdk/client';
+import {
+  mediaFormatOf,
+  mediaUrl,
+  type MediaFieldProps,
+  type MediaKind,
+} from '@loudroom/game-sdk/client';
 import {
   mediaItemSchema,
   pageSchema,
   UPLOAD_IMAGE_MIME_TYPES,
+  UPLOAD_VIDEO_MIME_TYPES,
   type ApiError,
   type MediaItem,
 } from '@loudroom/shared';
@@ -17,6 +23,26 @@ import { ErrorBanner, Pagination, smallButton, useApiData } from './ui';
 
 export const mediaPageSchema = pageSchema(mediaItemSchema);
 
+type Accept = MediaKind | 'any';
+
+export function kindOf(item: Pick<MediaItem, 'type'>): MediaKind {
+  return item.type === 'VIDEO' ? 'video' : 'image';
+}
+
+function acceptAttribute(accept: Accept): string {
+  const types = {
+    image: UPLOAD_IMAGE_MIME_TYPES,
+    video: UPLOAD_VIDEO_MIME_TYPES,
+    any: [...UPLOAD_IMAGE_MIME_TYPES, ...UPLOAD_VIDEO_MIME_TYPES],
+  };
+  return types[accept].join(',');
+}
+
+export function formatDuration(ms: number): string {
+  const seconds = Math.round(ms / 1000);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
 export function useUpload() {
   const { api } = useAdminSession();
   return (file: File, altText: string): Promise<ApiResult<MediaItem>> => {
@@ -28,7 +54,13 @@ export function useUpload() {
 }
 
 /** File input + upload button; reports the stored item. */
-export function UploadForm({ onUploaded }: { onUploaded: (item: MediaItem) => void }) {
+export function UploadForm({
+  onUploaded,
+  accept = 'any',
+}: {
+  onUploaded: (item: MediaItem) => void;
+  accept?: Accept;
+}) {
   const t = useTranslations('admin.media');
   const upload = useUpload();
   const [file, setFile] = useState<File | null>(null);
@@ -72,7 +104,7 @@ export function UploadForm({ onUploaded }: { onUploaded: (item: MediaItem) => vo
             key={inputKey}
             data-testid="media-file"
             type="file"
-            accept={UPLOAD_IMAGE_MIME_TYPES.join(',')}
+            accept={acceptAttribute(accept)}
             required
             className="file:bg-surface-raised file:text-ink file:border-line text-sm file:mr-3 file:rounded-lg file:border file:px-3 file:py-2"
             onChange={(event) => {
@@ -101,21 +133,45 @@ export function UploadForm({ onUploaded }: { onUploaded: (item: MediaItem) => vo
           {busy ? t('uploading') : t('upload')}
         </button>
       </div>
-      <p className="text-muted text-sm">{t('uploadHint')}</p>
+      <p className="text-muted text-sm">
+        {accept === 'image' ? t('uploadHint') : `${t('uploadHint')} ${t('videoHint')}`}
+      </p>
       <ErrorBanner error={error} />
     </form>
   );
 }
 
+/**
+ * A media file's preview: the image, or the video (first frame; `controls` to play it).
+ * `mimeType` says which; without it the file is assumed to be an image.
+ */
 export function Thumbnail({
   id,
   alt,
+  mimeType = 'image/webp',
+  controls = false,
   className = '',
 }: {
   id: string;
   alt: string;
+  mimeType?: string;
+  controls?: boolean;
   className?: string;
 }) {
+  const format = mediaFormatOf(mimeType);
+  if (format !== 'webp') {
+    return (
+      <video
+        src={mediaUrl(id, format)}
+        aria-label={alt}
+        preload="metadata"
+        muted={!controls}
+        controls={controls}
+        playsInline
+        className={`bg-canvas object-contain ${className}`}
+      />
+    );
+  }
   return (
     // Uploaded images are already resized WebP files; next/image would only add a second copy.
     // eslint-disable-next-line @next/next/no-img-element
@@ -125,12 +181,21 @@ export function Thumbnail({
 
 const PICKER_PAGE_SIZE = 24;
 
-function MediaPicker({ onPick, onClose }: { onPick: (id: string) => void; onClose: () => void }) {
+function MediaPicker({
+  accept,
+  onPick,
+  onClose,
+}: {
+  accept: Accept;
+  onPick: (item: MediaItem) => void;
+  onClose: () => void;
+}) {
   const t = useTranslations('admin.media');
   const tc = useTranslations('admin.common');
   const [page, setPage] = useState(1);
+  const type = accept === 'any' ? '' : `&type=${accept === 'video' ? 'VIDEO' : 'IMAGE'}`;
   const { state, reload } = useApiData(
-    `/api/admin/media?page=${page}&pageSize=${PICKER_PAGE_SIZE}`,
+    `/api/admin/media?page=${page}&pageSize=${PICKER_PAGE_SIZE}${type}`,
     mediaPageSchema,
   );
 
@@ -151,9 +216,11 @@ function MediaPicker({ onPick, onClose }: { onPick: (id: string) => void; onClos
           </button>
         </header>
         <UploadForm
+          accept={accept}
           onUploaded={(item) => {
             reload();
-            onPick(item.id);
+            // An upload of a kind this field does not take stays in the library only.
+            if (accept === 'any' || kindOf(item) === accept) onPick(item);
           }}
         />
         {state.status === 'ready' && (
@@ -165,12 +232,18 @@ function MediaPicker({ onPick, onClose }: { onPick: (id: string) => void; onClos
                     type="button"
                     data-testid="media-pick"
                     data-media-id={item.id}
+                    data-kind={kindOf(item)}
                     className="border-line hover:border-brand block w-full overflow-hidden rounded-xl border"
                     onClick={() => {
-                      onPick(item.id);
+                      onPick(item);
                     }}
                   >
-                    <Thumbnail id={item.id} alt={item.altText ?? ''} className="h-28 w-full" />
+                    <Thumbnail
+                      id={item.id}
+                      alt={item.altText ?? ''}
+                      mimeType={item.mimeType}
+                      className="h-28 w-full"
+                    />
                     <span className="text-muted block truncate px-2 py-1 text-xs">
                       {item.originalName ?? item.id}
                     </span>
@@ -192,14 +265,29 @@ function MediaPicker({ onPick, onClose }: { onPick: (id: string) => void; onClos
   );
 }
 
-/** Image slot in content editors: a thumbnail plus choose/remove (MediaFieldProps contract). */
-export function MediaField({ value, onChange, label, testId }: MediaFieldProps) {
+/**
+ * Media slot in content editors: a preview plus choose/remove (MediaFieldProps contract). The
+ * current file is looked up to know whether it is an image or a video.
+ */
+export function MediaField({ value, onChange, label, testId, accept = 'image' }: MediaFieldProps) {
   const t = useTranslations('admin.media');
   const [open, setOpen] = useState(false);
+  const current = useApiData(value ? `/api/admin/media/${value}` : null, mediaItemSchema).state;
+  const item = current.status === 'ready' && current.data.id === value ? current.data : null;
   return (
-    <div className="flex items-center gap-3" data-testid={testId} data-media-id={value ?? ''}>
+    <div
+      className="flex items-center gap-3"
+      data-testid={testId}
+      data-media-id={value ?? ''}
+      data-kind={item ? kindOf(item) : ''}
+    >
       {value ? (
-        <Thumbnail id={value} alt={label} className="border-line h-14 w-20 rounded-lg border" />
+        <Thumbnail
+          id={value}
+          alt={label}
+          mimeType={item?.mimeType ?? 'image/webp'}
+          className="border-line h-14 w-20 rounded-lg border"
+        />
       ) : (
         <span className="border-line text-muted grid h-14 w-20 place-items-center rounded-lg border border-dashed text-xs">
           {t('noImage')}
@@ -223,7 +311,7 @@ export function MediaField({ value, onChange, label, testId }: MediaFieldProps) 
               type="button"
               className={smallButton('ghost', 'px-3 py-1 text-sm')}
               onClick={() => {
-                onChange(null);
+                onChange(null, null);
               }}
             >
               {t('remove')}
@@ -233,12 +321,13 @@ export function MediaField({ value, onChange, label, testId }: MediaFieldProps) 
       </span>
       {open && (
         <MediaPicker
+          accept={accept}
           onClose={() => {
             setOpen(false);
           }}
-          onPick={(id) => {
+          onPick={(picked) => {
             setOpen(false);
-            onChange(id);
+            onChange(picked.id, kindOf(picked));
           }}
         />
       )}

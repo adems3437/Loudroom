@@ -1,5 +1,11 @@
 import { describeGameModuleContract } from '@loudroom/game-sdk/testing';
-import { content, contentWithImages, players } from './fixtures.test-support.js';
+import {
+  content,
+  contentWithImages,
+  contentWithVideo,
+  players,
+  videoMedia,
+} from './fixtures.test-support.js';
 import { quizModule } from './server.js';
 
 describeGameModuleContract(quizModule, {
@@ -30,6 +36,24 @@ describeGameModuleContract(quizModule, {
   content: contentWithImages,
   secretVariants: ['a', 'c', 'd'].map((correctOptionId) => ({
     ...contentWithImages,
+    correctOptionId,
+  })),
+  players,
+  script: [
+    { type: 'timer' },
+    { type: 'input', playerId: 'p1', input: { optionId: 'b' }, afterMs: 2_000 },
+    { type: 'input', playerId: 'p2', input: { optionId: 'a' }, afterMs: 1_000 },
+    { type: 'input', playerId: 'p3', input: { optionId: 'c' }, afterMs: 1_000 },
+  ],
+  invalidInputs: [{ optionId: 'zzz' }],
+});
+
+// A question video: the same checks with version 3 content.
+describeGameModuleContract(quizModule, {
+  content: contentWithVideo,
+  media: videoMedia,
+  secretVariants: ['a', 'c', 'd'].map((correctOptionId) => ({
+    ...contentWithVideo,
     correctOptionId,
   })),
   players,

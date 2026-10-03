@@ -14,9 +14,21 @@ const plannedRoundSchema = z.object({
   showScoreboardAfter: z.boolean(),
   lastInSegment: z.boolean(),
   seed: z.number().int(),
-  /** Sizes of the images the content refers to (from Media), for modules that need them. */
+  /**
+   * The media the content refers to (from Media), for modules that need sizes or video lengths.
+   * Games stored before videos existed only have sizes: they were images.
+   */
   media: z
-    .record(z.string(), z.object({ width: z.number().int(), height: z.number().int() }))
+    .record(
+      z.string(),
+      z.object({
+        type: z.enum(['image', 'video']).default('image'),
+        format: z.enum(['webp', 'mp4', 'webm']).default('webp'),
+        width: z.number().int(),
+        height: z.number().int(),
+        durationMs: z.number().int().nullable().default(null),
+      }),
+    )
     .optional(),
 });
 export type PlannedRound = z.infer<typeof plannedRoundSchema>;
