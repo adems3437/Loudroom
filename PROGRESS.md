@@ -4,18 +4,197 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                      |
-| ----------------------------------------------- | -------------------------- |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
-| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
-| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02) |
-| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04) |
+| Faz                                             | Durum                          |
+| ----------------------------------------------- | ------------------------------ |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)     |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)     |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)     |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)     |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)     |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02)     |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02)     |
+| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02)     |
+| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02)     |
+| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04)     |
+| Phase 10 — Tombala + Casus Kim?                 | ⏸ Plan onay bekliyor (aşağıda) |
+
+---
+
+## Phase 10 — Tombala + Casus Kim? (plan, onay bekliyor)
+
+Plan 2026-10-04'te çıkarıldı. H1–H17 kararları kullanıcının onayını bekliyor. Kullanıcı
+"öneriler tamam" derse uygulamaya geçilir.
+
+### 1. Ortak altyapı
+
+- **Host girdisi:** Bugün yalnızca oyuncular `round:input` gönderebiliyor; Tombala'da host
+  elle sayı çekebilmeli (SPEC §7.10). Modül sözleşmesine isteğe bağlı `hostInputSchema` ve
+  `onHostInput(state, input, ctx)` eklenir. `packages/shared`'e yeni `round:hostInput` komutu
+  (yalnızca host, zod, ack) gelir. Motor bunu oda kilidi altında çalıştırır; host girdisi
+  olmayan oyunlarda `INVALID_INPUT` ile reddeder. Host renderer'larına `sendHostInput` verilir.
+- **Sözleşme testi:** Host girdisi tanımlayan modüllerde geçersiz host girdileri reddedilmeli
+  (`invalidHostInputs`).
+- **Docker ve derleme:** İki yeni paket için `node_modules` volume'u ve bağlama noktası;
+  `tsconfig.packages.json`'a referans (paketler `composite`, `game-sdk`'ye referans verir).
+
+### 2. Oyunlar
+
+- **Tombala** (`tombala`, `@loudroom/game-tombala`):
+  - İçerik yalnızca bir ad: `{ title }` ("Klasik Tombala"). Kurallar bölüm ayarlarında.
+  - **Kart** (sunucuda, round seed'iyle): 3 satır × 9 sütun, satır başına 5 sayı, toplam 15.
+    Sütun aralıkları 1–9, 10–19, …, 80–90; her sütunda 1–3 sayı, sütun içinde yukarıdan aşağı
+    artan. Oyuncular arasında aynı kart yok.
+  - **Fazlar:** INTRO (kartlar dağıtılır, ~5 sn) → DRAW (her çekiliş bir faz) → gerektiğinde
+    CLAIM (~4 sn, TV'de kazanan) → … → REVEAL → round biter. Tombala gelince ya da 90 sayı
+    bitince REVEAL.
+  - **Çekiliş:** `drawMode`: `auto` (varsayılan, aralık `drawIntervalMs` = 6 sn, 3–20 sn) ya
+    da `manual` (host "Çek" der, süre yok). Otomatik modda da host "Şimdi çek" ile beklemeden
+    çekebilir. Torba sunucuda seed ile karılır; sıradaki sayı hiçbir payload'da yok.
+  - **İşaretleme:** Oyuncu telefonda sayıya dokunarak işaretler; çekilmemiş sayı reddedilir.
+    `autoMark` ayarı (varsayılan kapalı) çekilen sayıları kendisi işaretler.
+  - **İddia:** "Çinko!" / "Tombala!" butonları. Sunucu kartı **çekilmiş sayılara** göre
+    doğrular: unutulmuş bir işaret iddiayı bozmaz. 1. çinko = bir satır tamam, 2. çinko = iki
+    satır, tombala = üç satır.
+  - **Aynı anda iddia:** Bir ödülü, sonraki sayı çekilene kadar doğru iddia eden herkes alır
+    (ağ gecikmesi kimseyi kaybettirmesin). Geçerli iddiada çekiliş CLAIM fazı kadar durur.
+  - **Hatalı iddia:** Oyuncu `falseClaimLockout` (varsayılan 3) çekiliş boyunca iddia
+    edemez. Puan cezası `falseClaimPenalty` varsayılan 0; açılırsa round puanı eksiye
+    düşebilir.
+  - **Geç katılan oyuncu:** Bir sonraki çekilişte kartı verilir; o ana kadar çekilmiş
+    sayıları da işaretleyebilir.
+  - **Puan:** 1. çinko 300, 2. çinko 600, tombala 1200 (ayar) × çarpan. `correct` = en az bir
+    ödül. Eşitlik bozma için `responseTimeMs` = ilk ödüle kadar geçen süre.
+  - **TV:** Son çekilen sayı büyük, 1–90 tablosu, ödüller ve kazananlar. Sayı Web Speech API
+    ile Türkçe okunur (Türkçe ses varsa; host ekranında aç/kapa).
+  - **Telefon:** Kendi kartı, işaretler, son çekilen birkaç sayı, ödül durumu, iddia
+    butonları, kilitliyse kalan çekiliş sayısı.
+  - En az 2 oyuncu; üst sınır oda sınırı.
+- **Casus Kim?** (`spy`, `@loudroom/game-spy`):
+  - İçerik bir mekân seti: `{ title, locations: [{ id, name, emoji? }] (8–30) }`. Round seed
+    ile setten bir mekân seçer. Setin tamamı herkese (TV ve telefon) alfabetik gösterilir:
+    casusun tahmin listesi bu, hangisinin seçildiğini ele vermez. Rol yok (doktor, hasta…).
+  - **Casus sayısı:** 1; `twoSpiesFrom` (varsayılan 8 oyuncu, 0 = hiç) ve üstünde 2.
+    Casuslar birbirini bilmez.
+  - **Fazlar:** INTRO (telefonda rol kartı ~10 sn, "gizle/göster" butonuyla) → DISCUSS
+    (`discussionMs` varsayılan 5 dk) → VOTE (`voteMs` 30 sn; herkes oy verince erken biter)
+    → REVEAL.
+  - **Soru sırası:** İlk soran seed ile seçilir. Soran kişi telefonundan kime sorduğunu
+    seçer, soru sözlü sorulur; sorulan kişi sıradaki soran olur. Az önce kendisine soranı
+    seçemez. TV ve telefonlar "Ayşe → Mehmet" ile sırayı ve kalan süreyi gösterir.
+  - **Oylamaya geçiş:** Süre bitince ya da bağlı oyuncuların yarıdan fazlası "Oylamaya geç"
+    deyince.
+  - **Oylama:** Herkes bir kişiye oy verir, kendine oy yok. En çok oy alan bir casussa casus
+    yakalanır; eşitlikte yakalanmaz.
+  - **Casusun tahmini:** DISCUSS ya da VOTE sırasında casus listeden mekânı tahmin edebilir.
+    Doğruysa casus, yanlışsa diğerleri kazanır; round hemen REVEAL'e geçer.
+  - **Puan:** Diğerleri kazanırsa casus olmayan her oyuncuya 500, casusa oy verenlere +250.
+    Casus kaçarsa 1000, mekânı bilirse 1500 (ayar) × çarpan. `correct` = kazanan taraf.
+  - **Gizlilik:** Mekân REVEAL'e kadar casusa ve TV'ye gitmez. Kimin casus olduğu REVEAL'e
+    kadar hiçbir payload'da yok; yalnızca casusun kendi telefonu bilir.
+  - **Kopan ve geç katılan oyuncu:** Kopan oyuncu rolünü korur; oylama bağlı oyuncular
+    arasında yapılır. Geç katılan oyuncu o round izleyicidir.
+  - En az 4 oyuncu (az ise round SKIPPED, Kim Yapar? kalıbı).
+- Her iki oyun Phase 5–8 kalıbında: `schema.ts`, `server.ts`, `host.tsx`, `player.tsx`,
+  `editor.tsx`, `settings-editor.tsx`, `import.ts`, testler; registry'lere birer satır;
+  metinler `games.<id>` altında.
+
+### 3. Admin, içe aktarma ve seed
+
+- **Editörler:** Tombala: ad. Casus: set adı ve mekân listesi (emoji + ad, ekle / çıkar).
+- **Ayar formları:**
+  - Tombala: çekiliş türü ve aralığı, otomatik işaretleme, ödül puanları, hatalı iddia
+    kilidi ve cezası.
+  - Casus: tartışma ve oylama süresi, iki casus eşiği, puanlar.
+- **İçe aktarma:**
+  - Tombala: `baslik`.
+  - Casus: `baslik`, `mekanlar` ("🏥 Hastane | 🏫 Okul | …", Memory'nin ayrıştırıcısıyla).
+- **Seed:**
+  - "Klasik Tombala" içeriği ve yayında "Tombala Gecesi" paketi (1 bölüm, en az 2 oyuncu).
+  - 3 Casus seti (Şehir, Tatil, İş ve okul; 12–16 mekân) ve yayında "Casus Kim?" paketi
+    (3 bölüm, en az 4 oyuncu).
+
+### 4. Testler
+
+- **Unit:**
+  - Tombala:
+    - Kart kuralları: 15 sayı, satır başına 5, sütun aralıkları, artan sıra, oyuncular
+      arasında benzersiz.
+    - Torba tekrarsız ve seed ile belirli.
+    - İşaretleme doğrulaması ve otomatik işaretleme.
+    - Ödül sırası, aynı çekilişte ortak ödül, hatalı iddia kilidi ve cezası.
+    - Geç katılana kart verilmesi; host ile elle çekiliş; bitiş koşulları.
+    - Sıradaki sayı hiçbir görünümde yok.
+  - Casus:
+    - Casus sayısı ve iki casus eşiği.
+    - Mekân casusun ve host'un görünümünde yok.
+    - Casus olmayanların ve host'un görünümü, casus kim olursa olsun aynı (farklı seed'lerle).
+    - Soru sırası kuralı, oylamaya geçiş çoğunluğu, oy ve eşitlik kuralı, tahmin doğru /
+      yanlış, kopan oyuncu, puanlar.
+  - Sözleşme testleri: `secretVariants` (mekân), `secretScripts` (oylar); Tombala için
+    `invalidHostInputs`.
+- **Integration:**
+  - `round:hostInput`: yalnızca host gönderebiliyor, şema doğrulanıyor, host girdisi olmayan
+    oyunda reddediliyor.
+  - Tombala uzun round'u: zamanlayıcı, duraklatma ve devam.
+  - Casus'ta mekân ve casus kimliği REVEAL öncesi hiçbir socket payload'ında yok.
+- **E2E (Chromium + WebKit):**
+  - Tombala (host + 3 telefon, elle çekiliş):
+    - Host sayı çeker, telefonlar işaretler; çekilmemiş sayı işaretlenemez.
+    - Bir telefon hatalı iddia eder ve kilidi görür; satırı dolan telefon çinko der, TV
+      kazananı gösterir; host atlayınca puanlar yazılır.
+  - Casus (host + 4 telefon):
+    - Casus "Casussun" görür, diğerleri mekânı. WebSocket çerçevelerinde casusa ve TV'ye
+      mekân gitmez.
+    - Soru sırası ilerler; çoğunluk oylamaya geçer, casus yakalanır.
+    - İkinci round'da casus mekânı doğru tahmin eder ve kazanır.
+
+### Onay bekleyen kararlar
+
+- **H1:** gameType'lar `tombala` ve `spy`; paketler `@loudroom/game-tombala` ve
+  `@loudroom/game-spy`.
+- **H2:** Modül sözleşmesine isteğe bağlı host girdisi (`hostInputSchema`, `onHostInput`) ve
+  `round:hostInput` komutu. (Alternatif: elle çekiliş olmasın; SPEC'ten sapma.)
+- **H3:** Tombala içeriği yalnızca ad; kurallar bölüm ayarlarında.
+- **H4:** Standart Türk tombala kartı (3×9, 15 sayı, sütun aralıkları), oyuncular arasında
+  benzersiz.
+- **H5:** Otomatik çekiliş varsayılan 6 sn (3–20); elle mod; host her zaman "Şimdi çek"
+  diyebilir.
+- **H6:** İşaretleme doğrulanır, otomatik işaretleme varsayılan kapalı; iddia çekilmiş
+  sayılara göre doğrulanır.
+- **H7:** Bir sonraki çekilişe kadar gelen doğru iddiaların hepsi ödülü alır; geçerli iddiada
+  ~4 sn CLAIM fazı.
+- **H8:** Ödüller 300 / 600 / 1200; hatalı iddiada 3 çekiliş kilit, puan cezası varsayılan 0.
+- **H9:** Geç katılana bir sonraki çekilişte kart verilir.
+- **H10:** TV sayıyı Web Speech API ile Türkçe okur (Türkçe ses varsa, aç/kapa).
+- **H11:** Casus içeriği mekân seti (8–30 mekân); round seed ile mekân seçer; liste herkese
+  alfabetik; rol yok.
+- **H12:** 1 casus; 8 oyuncu ve üstünde 2 (ayar); casuslar birbirini bilmez.
+- **H13:** Fazlar INTRO → DISCUSS (5 dk) → VOTE (30 sn) → REVEAL; soru sırası telefondan
+  seçilir; çoğunluk isteyince erken oylama.
+- **H14:** En çok oy alan casussa casus yakalanır, eşitlikte yakalanmaz. Casus DISCUSS ya da
+  VOTE'ta tahmin edebilir: doğruysa kazanır, yanlışsa kaybeder.
+- **H15:** Puanlar: diğerleri kazanırsa 500 (+250 casusa oy verene); casus kaçarsa 1000,
+  bilirse 1500.
+- **H16:** Kopan oyuncu rolünü korur, oylama bağlılar arasında; geç katılan izleyici.
+- **H17:** Seed: "Klasik Tombala" + "Tombala Gecesi" paketi; 3 Casus seti + "Casus Kim?"
+  paketi.
+
+**Eklenecek paket:** Yok. Sesli okuma tarayıcının Web Speech API'siyle yapılıyor.
+
+### Riskler
+
+- **Tombala süresi:** 6 sn aralıkla tombala ~60–80 çekilişte, 6–8 dk sürer. Aralık ayarla
+  kısalır; e2e elle çekilişle hızlı ilerler.
+- **Sesli okuma:** Türkçe ses tarayıcıya ve TV'ye göre değişir, bazı cihazlarda hiç yok. Ses
+  yoksa sessiz kalır; e2e yalnızca aç/kapa düğmesini kontrol eder.
+- **Casus sözlü oynanır:** Oyuncuların aynı odada olması gerekir; platformda ses kanalı yok.
+  Sistem yalnızca kimin sorduğunu gösterir, konuşmayı zorlayamaz.
+- **Telefonu görülen oyuncu:** Rol kartı yandakine görünebilir; "gizle" butonu ve INTRO
+  sonrası kartın küçülmesi.
+- **Eksi puan:** Hatalı iddia cezası açılırsa skor tablosunda eksi puan görünebilir;
+  tablo ve podyum bunu doğru göstermeli (test edilir).
+- **Mekân tekrarı:** Aynı set bir pakette iki bölümde seçilirse mekân tekrar edebilir (modül
+  önceki round'ları bilmez); seed paketlerinde setler farklı.
 
 ---
 
