@@ -1,4 +1,4 @@
-import { createRandom, seedFromString } from '@loudroom/game-sdk';
+import { createRandom, seedFromString, type Random } from '@loudroom/game-sdk';
 
 /**
  * Shuffles with a seed of its own. A module's `ctx.random` restarts from the round seed on
@@ -7,6 +7,19 @@ import { createRandom, seedFromString } from '@loudroom/game-sdk';
  */
 export function shuffleWith<T>(seed: number, label: string, items: readonly T[]): T[] {
   return createRandom(seedFromString(`${seed}:${label}`)).shuffle(items);
+}
+
+/** Randomness of its own for a later event (a bot's choice, a random fleet), like `shuffleWith`. */
+export function randomFor(seed: number, label: string): Random {
+  return createRandom(seedFromString(`${seed}:${label}`));
+}
+
+/**
+ * The roll of a die: the n-th roll of a match. Clients cannot predict it (the seed stays on
+ * the server); the server can replay it.
+ */
+export function rollDie(seed: number, rollNumber: number, sides = 6): number {
+  return randomFor(seed, `roll:${rollNumber}`).int(1, sides);
 }
 
 /** Takes `count` items off the top (front) of a pile. */

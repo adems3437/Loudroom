@@ -19,6 +19,11 @@ describeGameModuleContract(unoModule, {
       drawn: null,
     };
   },
+  // The draw pile's order is the server's alone.
+  serverState: (state) => ({
+    ...(state as UnoState),
+    deck: [...(state as UnoState).deck].reverse(),
+  }),
   invalidInputs: [
     { type: 'play', cardId: 500 },
     { type: 'play', cardId: card('wild4') },

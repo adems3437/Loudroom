@@ -26,6 +26,11 @@ describeGameModuleContract(pistiModule, {
       deck: [...hand, ...pisti.deck.slice(hand.length)],
     };
   },
+  // The deck's order is the server's alone.
+  serverState: (state) => ({
+    ...(state as PistiState),
+    deck: [...(state as PistiState).deck].reverse(),
+  }),
   invalidInputs: [
     { type: 'play', cardId: 60 },
     { type: 'play', cardId: onTable },

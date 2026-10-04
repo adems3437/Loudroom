@@ -1,13 +1,18 @@
 import type { GamePlayer } from '@loudroom/game-sdk';
 import { describe, expect, it } from 'vitest';
 import {
+  acted,
   dealRound,
   isAway,
+  isWaiting,
+  rollDie,
   nextSeat,
   seatPlayers,
   shuffleWith,
   sideOf,
   sideSeats,
+  startStep,
+  stepDone,
   take,
   turnPhase,
 } from './index.js';
@@ -87,5 +92,26 @@ describe('decks', () => {
       ],
       rest: [7],
     });
+  });
+});
+
+describe('dice and parallel steps', () => {
+  it('rolls 1–6, the same for the same seed and roll number', () => {
+    const rolls = Array.from({ length: 600 }, (_, i) => rollDie(9, i));
+    expect(new Set(rolls)).toEqual(new Set([1, 2, 3, 4, 5, 6]));
+    expect(rollDie(9, 17)).toBe(rolls[17]);
+    expect(Array.from({ length: 20 }, (_, i) => rollDie(10, i))).not.toEqual(rolls.slice(0, 20));
+  });
+
+  it('ends a step once everyone has acted', () => {
+    let step = startStep(['a', 'b', 'a']);
+    expect(step.waiting).toEqual(['a', 'b']);
+    step = acted(step, 'a');
+    expect([isWaiting(step, 'a'), isWaiting(step, 'b'), stepDone(step)]).toEqual([
+      false,
+      true,
+      false,
+    ]);
+    expect(stepDone(acted(step, 'b'))).toBe(true);
   });
 });

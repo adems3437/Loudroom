@@ -40,6 +40,11 @@ export interface ContractFixture extends RoundFixture {
    * the other players — a hand, a rack or a fleet stays with its owner.
    */
   privateState?: (state: unknown, playerId: string) => unknown;
+  /**
+   * Changes only what the server alone may know (e.g. the dice seed, a deck's or a bag's
+   * order). Drawn from that state, every frame must look the same to everyone.
+   */
+  serverState?: (state: unknown) => unknown;
   /** Inputs the module must refuse, either by schema or with a reject effect. */
   invalidInputs: unknown[];
   /** Host inputs the module must refuse (games with `onHostInput`; required for them). */
@@ -118,7 +123,8 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
       const declared =
         (fixture.secretVariants?.length ?? 0) +
         (fixture.secretScripts?.length ?? 0) +
-        (fixture.privateState ? 1 : 0);
+        (fixture.privateState ? 1 : 0) +
+        (fixture.serverState ? 1 : 0);
       expect(declared).toBeGreaterThan(0);
     });
 
@@ -184,6 +190,18 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
         }
       },
     );
+
+    it.runIf(fixture.serverState !== undefined)('keeps server-only state from every client', () => {
+      const serverState = fixture.serverState;
+      if (!serverState) return;
+      const played = playRound(module, fixture);
+      // The change is real (checked at the start, before cards or numbers run out).
+      const created = playRound(module, { ...fixture, script: [] }).state;
+      expect(serverState(created)).not.toEqual(created);
+      const frames = playRound(module, fixture, { viewState: serverState }).frames;
+      const everyone = fixture.players.map((player) => player.id);
+      expect(seenBy(frames, everyone)).toEqual(seenBy(played.frames, everyone));
+    });
 
     it.runIf(fixture.anonymousScripts?.length)(
       'keeps choices anonymous, also after the round',
