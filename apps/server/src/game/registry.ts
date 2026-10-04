@@ -1,8 +1,10 @@
 import type { AnyGameModule } from '@loudroom/game-sdk';
+import { amiralModule } from '@loudroom/game-amiral-batti/server';
 import { bluffModule } from '@loudroom/game-bluff/server';
 import { closestNumberModule } from '@loudroom/game-closest-number/server';
 import { drawingModule } from '@loudroom/game-drawing/server';
 import { imageLocationModule } from '@loudroom/game-image-location/server';
+import { kizmaModule } from '@loudroom/game-kizma-birader/server';
 import { memoryModule } from '@loudroom/game-memory/server';
 import { pistiModule } from '@loudroom/game-pisti/server';
 import { quizModule } from '@loudroom/game-quiz/server';
@@ -28,6 +30,8 @@ const MODULES: readonly AnyGameModule[] = [
   spyModule,
   unoModule,
   pistiModule,
+  kizmaModule,
+  amiralModule,
 ];
 
 const byType = new Map(MODULES.map((module) => [module.id, module]));

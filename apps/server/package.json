@@ -29,10 +29,12 @@
     "unplugin-swc": "2.0.0"
   },
   "dependencies": {
+    "@loudroom/game-amiral-batti": "workspace:*",
     "@loudroom/game-bluff": "workspace:*",
     "@loudroom/game-closest-number": "workspace:*",
     "@loudroom/game-drawing": "workspace:*",
     "@loudroom/game-image-location": "workspace:*",
+    "@loudroom/game-kizma-birader": "workspace:*",
     "@loudroom/game-memory": "workspace:*",
     "@loudroom/game-pisti": "workspace:*",
     "@loudroom/game-quiz": "workspace:*",

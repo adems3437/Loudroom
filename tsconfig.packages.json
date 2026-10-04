@@ -48,6 +48,12 @@
     },
     {
       "path": "./packages/games/pisti/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/kizma-birader/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/amiral-batti/tsconfig.build.json"
     }
   ]
 }

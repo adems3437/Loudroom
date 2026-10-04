@@ -1,4 +1,5 @@
 import type { GameRenderer } from '@loudroom/game-sdk/client';
+import { AMIRAL_GAME_TYPE, amiralRenderer } from '@loudroom/game-amiral-batti/client';
 import { BLUFF_GAME_TYPE, bluffRenderer } from '@loudroom/game-bluff/client';
 import {
   CLOSEST_NUMBER_GAME_TYPE,
@@ -9,6 +10,7 @@ import {
   IMAGE_LOCATION_GAME_TYPE,
   imageLocationRenderer,
 } from '@loudroom/game-image-location/client';
+import { KIZMA_GAME_TYPE, kizmaRenderer } from '@loudroom/game-kizma-birader/client';
 import { MEMORY_GAME_TYPE, memoryRenderer } from '@loudroom/game-memory/client';
 import { PISTI_GAME_TYPE, pistiRenderer } from '@loudroom/game-pisti/client';
 import { QUIZ_GAME_TYPE, quizRenderer } from '@loudroom/game-quiz/client';
@@ -48,6 +50,8 @@ const RENDERERS: Record<string, AnyRenderer> = {
   [SPY_GAME_TYPE]: erase(spyRenderer),
   [UNO_GAME_TYPE]: erase(unoRenderer),
   [PISTI_GAME_TYPE]: erase(pistiRenderer),
+  [KIZMA_GAME_TYPE]: erase(kizmaRenderer),
+  [AMIRAL_GAME_TYPE]: erase(amiralRenderer),
 };
 
 export function findRenderer(gameType: string): AnyRenderer | undefined {

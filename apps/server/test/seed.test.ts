@@ -24,6 +24,14 @@ import {
   seedReflexPack,
 } from '../src/seed/reflex-pack.js';
 import {
+  AMIRAL_TEAMS_PACK_ID,
+  AMIRAL_TOURNAMENT_PACK_ID,
+  KIZMA_PACK_ID,
+  SAMPLE_AMIRAL,
+  SAMPLE_KIZMA,
+  seedBoardPacks,
+} from '../src/seed/board-packs.js';
+import {
   PISTI_PACK_ID,
   SAMPLE_PISTI,
   SAMPLE_UNO,
@@ -258,6 +266,42 @@ describe('seedCategories', () => {
       expect(pack.rounds.map((round) => [round.gameType, round.questionCount])).toEqual([
         [gameType, 1],
       ]);
+    }
+  });
+
+  it('seeds Kızma Birader, Amiral Battı and their packs idempotently', async () => {
+    await seedBoardPacks(prisma);
+    await seedBoardPacks(prisma);
+    for (const [gameType, item] of [
+      ['kizmaBirader', SAMPLE_KIZMA],
+      ['amiralBatti', SAMPLE_AMIRAL],
+    ] as const) {
+      const row = await prisma.contentItem.findUniqueOrThrow({ where: { id: item.id } });
+      expect(row).toMatchObject({ gameType, status: 'PUBLISHED' });
+      expect(findGameModule(gameType)?.contentSchema.safeParse(row.data).success).toBe(true);
+    }
+    for (const [packId, name, gameType, settings] of [
+      [KIZMA_PACK_ID, 'Kızma Birader', 'kizmaBirader', {}],
+      [AMIRAL_TEAMS_PACK_ID, 'Amiral Battı: Takımlar', 'amiralBatti', { mode: 'teams' }],
+      [
+        AMIRAL_TOURNAMENT_PACK_ID,
+        'Amiral Battı Turnuvası',
+        'amiralBatti',
+        { mode: 'tournament', fleet: 'small' },
+      ],
+    ] as const) {
+      const pack = await prisma.gamePack.findUniqueOrThrow({
+        where: { id: packId },
+        include: { rounds: true },
+      });
+      expect(pack).toMatchObject({ name, status: 'PUBLISHED' });
+      expect(pack.rounds.map((round) => [round.gameType, round.settings])).toEqual([
+        [gameType, settings],
+      ]);
+      const module = findGameModule(gameType);
+      expect(
+        module?.settingsSchema.safeParse({ ...module.defaultSettings, ...settings }).success,
+      ).toBe(true);
     }
   });
 
