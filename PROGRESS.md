@@ -139,9 +139,10 @@ Yok. Yeni workspace paketleri: `@loudroom/game-kizma-birader`, `@loudroom/game-a
 
 ### Bilinen sınırlar
 
-- **Amiral Battı'da bot zayıf değil ama basit:** olasılık haritası kullanmıyor.
 - **6'lık tahta:** Klasik haçın 6 kollu karşılığı yok; 6 kişilik varyant yuvarlak.
-- **Telefonda 10×10:** Kareler ~30 px; kendi filon küçük ızgarada, kaydırınca görünür.
+- **Telefonda 10×10:** Kareler tam genişlikte bile ~34 pt (önerilen 44 pt'nin altında);
+  "seç → Ateş!" adımı yanlış kareye atışı önlüyor.
+- **Yan yana gemiler:** Yerleştirmede değen gemiler aynı renkte; sınırları ayırt edilmiyor.
 - **CI'da lint takıldı:** Phase 12 push'unda GitHub Actions'ta lint 27 dk'da bitmedi (önceki
   koşuda 2 dk). turbo.json'daki `concurrency: 30` (dev izleyicileri için) CI'da 30 tip bilgili
   ESLint sürecini 4 çekirdekli runner'da aynı anda çalıştırıyordu. Koşu iptal edildi; CI
@@ -154,6 +155,26 @@ Yok. Yeni workspace paketleri: `@loudroom/game-kizma-birader`, `@loudroom/game-a
   sayıyordu. Önceki tam e2e koşusundaki 4 hata bu yeniden başlatmalarla çakışıyordu. Kullanıcı
   isteğiyle repo `~/Developer/Loudroom`'a taşındı (iCloud dışı); döngü bitti. `.git` içindeki
   "index 2" kopyası da silinmişti.
+
+### Sonradan iyileştirmeler (2026-10-04, kullanıcı onaylı)
+
+- **Amiral Battı botu olasılık haritasıyla atıyor:** Batmamış her gemi boyu için tahtaya
+  sığabileceği yerleşimleri (ıska ve batık gemi karelerine değmeden) sayıyor; en çok
+  yerleşimin geçtiği boş kareye atıyor (eşitlikte seed'li rastgele). Açık isabet varken
+  yalnızca o isabetlerden geçen yerleşimler sayılıyor; böylece hattı bulup gemiyi bitiriyor.
+  Kalan gemi boyları herkese açık bilgiden (filo listesi eksi batan gemiler) çıkıyor; bot gizli
+  filoya bakmıyor. 200 oyunluk ölçümde ortalama atış: klasik 52,0 → 45,3, küçük 34,6 → 30,8,
+  mini 19,9 → 17,7; oyun başına ~11 ms.
+- **Telefonda savaş ekranı:** Tahtalar ekran genişliğini dolduruyor (10×10'da ~34 pt kare,
+  önce 30 px). Dokunuş yalnızca nişan alıyor; atış "🎯 Ateş: G4" düğmesiyle gidiyor. "Rakip /
+  Senin filon" sekmeleri: sıra sendeyken rakip, değilken kendi filon; atış yaptıktan sonra
+  sonucu görmek için sıra yeniden gelene kadar rakip haritası kalıyor. Yerleştirme de tam
+  genişlikte.
+- **Testler:** Unit: bot sığmayan yere atmıyor, batık gemiyi kovalamıyor, hattı izliyor; 40
+  klasik oyunda ortalama 48 atışın altında. E2E (takımlar): ilk atıcının telefonu rakip
+  sekmesinde, diğerleri kendi filosunda; dokunuş yalnızca nişan alıyor, "Ateş!" atıyor.
+- **Bitti tanımı:** typecheck, lint, test, build, format ve Amiral Battı e2e (Chromium +
+  WebKit, 4/4) yeşil.
 
 ---
 
