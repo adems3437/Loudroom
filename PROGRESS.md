@@ -25,8 +25,9 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Phase 13 — Okey (plan, onay bekliyor)
 
-Plan 2026-10-04'te çıkarıldı. K1–K12 kararları kullanıcının onayını bekliyor. Kullanıcı
-"öneriler tamam" derse uygulamaya geçilir.
+Plan 2026-10-04'te çıkarıldı. Kullanıcının cevabıyla güncellendi: boş koltuklara bot (K3),
+puanlama ve el sayısı oyun başlarken TV'de seçiliyor (K6), ıstaka yatay telefonda gerçek
+2 × 15 (K7). Kalan maddeler için onay bekleniyor.
 
 ### 1. Oyun kuralları
 
@@ -36,8 +37,10 @@ Plan 2026-10-04'te çıkarıldı. K1–K12 kararları kullanıcının onayını 
   aynı renkte bir üst sayıdır (13'ün üstü 1). Okey taşları joker. Sahte okeyler jokerin yerine
   değil, okey taşının yerine geçer (onun renk ve sayısını taşır).
 - **Koltuklar (K3):**
-  - 2–4 oyuncu, 4 koltuk. Fazlası izleyici; boş koltuğa bot oturtulmaz.
-  - Eşli mod ayarı (yalnızca 4 kişide, 0+2 / 1+3), varsayılan kapalı.
+  - Masa her zaman 4 koltuk. 2–4 oyuncu oturur, boş koltuklara bot ("Bot 1" …) oturur;
+    fazla oyuncular izleyici.
+  - Botlar sıralamada yer alır ama platform puanı almaz; podyumda yalnızca oyuncular.
+  - Eşli mod (0+2 / 1+3); eş bir bot olabilir.
 - **Dağıtım ve sıra (K4):**
   - Başlayan 15, diğerleri 14 taş alır. İlk elde başlayan rastgele, sonraki ellerde sıra
     sağdakine geçer.
@@ -52,13 +55,20 @@ Plan 2026-10-04'te çıkarıldı. K1–K12 kararları kullanıcının onayını 
   - Geçerliliği sunucu kendisi arar, ıstakadaki dizilişe bakmaz. Okey jokerdir. Geçersiz
     bitirme cezasız reddedilir.
   - Deste biterse el berabere biter.
+- **Oyun başlarken seçim (K6):** Taşlar dağıtılmadan önce TV'de bir kurulum ekranı açılır.
+  Host (TV) şunları seçer, sonra "Başlat"a basar; varsayılanlar paket ayarlarından gelir:
+  - el sayısı (1 / 2 / 4 / 8),
+  - başlangıç puanı (10 / 20),
+  - eşli mod (açık / kapalı).
+    2 dk içinde seçilmezse varsayılanlarla başlar. Seçimler `round:hostInput` ile gider
+    (Tombala'daki gibi); telefonlarda "Host ayarları seçiyor…" yazar.
 - **Puanlama, 20'den düşme (K6):**
-  - Herkes 20 puanla başlar (ayar).
+  - Herkes seçilen başlangıç puanıyla başlar.
   - Normal bitişte diğerleri −2, okey atarak ya da çiftten bitişte −4, ikisi birden −8.
   - Başlangıç turunda göstergeyi gösteren için diğerleri −1.
   - Eşli modda eşler aynı puanı paylaşır.
-  - Maç biri 0'a inince, el sayısı dolunca (varsayılan 4) ya da maç süresi dolunca (30 dk;
-    süren el sayılmaz) biter.
+  - Maç biri 0'a inince, seçilen el sayısı dolunca ya da maç süresi dolunca (30 dk; süren el
+    sayılmaz) biter.
   - Sıralama kalan puana göre; eşitlikte daha çok el bitiren önde.
   - Platform puanı 1000 / 600 / 400 / 200; eşlide kazanan takım 1000, diğeri 300.
 - **Saat ve bot (K8):**
@@ -69,7 +79,11 @@ Plan 2026-10-04'te çıkarıldı. K1–K12 kararları kullanıcının onayını 
 ### 2. Ekranlar
 
 - **Telefon, ıstaka (K7):**
-  - Dikey ekran (SPEC §12): 3 sıra × 10 yuva; taşlar yaklaşık 34×46 px.
+  - Okey'de telefon yatay tutulur (SPEC §12'deki dikey kuralına bu oyun için istisna).
+    Gerçek ıstaka gibi 2 sıra × 15 yuva; iPhone'da yatayda taşlar ~50×68 px.
+  - Dikey tutulursa "Telefonu yan çevir" ekranı çıkar (iOS'ta yön kilitlenemiyor).
+  - Yatay ve kısa ekranlarda (yükseklik < 500 px) telefonun üst bilgisi (logo, ad, puan)
+    tek ince satıra iner; bu bütün oyunlarda yatay tutunca geçerli olur.
   - Taşlar sürükle-bırakla dizilir (`@dnd-kit/core`). Boş yuvalar grupları ayırır.
   - Diziliş sunucuda saklanır (bırakınca `arrange` girdisi). Yenileme ya da telefon
     değişince kaybolmaz; diğerlerine gitmez.
@@ -95,8 +109,8 @@ Plan 2026-10-04'te çıkarıldı. K1–K12 kararları kullanıcının onayını 
   noktası ve `tsconfig.packages.json` referansı.
 - **Admin:**
   - Editör yalnızca ad; içe aktarma `baslik`.
-  - Ayar formu: başlangıç puanı, el sayısı, maç süresi, eşli mod, sıra süresi, kopana bot,
-    bot gecikmesi, sıra puanları.
+  - Ayar formu: varsayılan başlangıç puanı, el sayısı ve eşli mod (oyun başında
+    değiştirilebilir), maç süresi, sıra süresi, kopana bot, bot gecikmesi, sıra puanları.
 - **Seed (K11):** "Okey" paketi (varsayılan ayarlar).
 - **Bağımlılık (K12):** Yeni npm paketi yok. `@dnd-kit/core` 6.3.1 workspace'te zaten var
   (Sorting); okey paketine aynı sürümle eklenir.
@@ -115,15 +129,18 @@ Plan 2026-10-04'te çıkarıldı. K1–K12 kararları kullanıcının onayını 
     - başlayanın ilk turu, gösterge yalnızca ilk turda
     - geçersiz bitirmenin reddi
   - Puanlama: normal, okey atarak, çiftten, ikisi birden, gösterge, eşli.
-  - Akış: deste bitince berabere; el sayısı, 0 puan ve süre ile maç sonu; sıralama ve
-    eşitlik.
+  - Akış: kurulum seçimleri (host girdisi, oyuncu girdisi reddi, süre dolunca
+    varsayılanlar); deste bitince berabere; el sayısı, 0 puan ve süre ile maç sonu; sıralama
+    ve eşitlik; boş koltuklara bot ve botların puan almaması.
   - Bot: bitirir, işe yarayan taşı alır, okeyi atmaz; süre dolunca ve kopana bot.
   - Sözleşme: `privateState` (ıstaka ve diziliş), `serverState` (deste sırası).
 - **Integration:**
   - Istaka yalnızca sahibine, deste sırası hiçbir socket'e gitmiyor.
   - Diziliş kaydediliyor ve yeniden bağlanınca geri geliyor.
   - Kopan oyuncu için bot oynuyor.
-- **E2E (Chromium + WebKit; host + 2 telefon, el sayısı 1):**
+- **E2E (Chromium + WebKit; host + 2 yatay telefon, 2 bot koltuk):**
+  - TV'de kurulum: el sayısı 1, başlangıç puanı seçilir; dikey telefonda "yan çevir"
+    ekranı.
   - Taş sürükleyerek yer değiştirme; yenileyince diziliş kalıyor.
   - Desteden çekip sürükleyerek atma; soldakinin attığını alma; geçersiz "Bitir" reddi.
   - Telefonlar kapanınca botlar eli bitiriyor (biri bitirir ya da deste biter); puan
@@ -134,13 +151,15 @@ Plan 2026-10-04'te çıkarıldı. K1–K12 kararları kullanıcının onayını 
 
 - **K1:** gameType `okey`, paket `@loudroom/game-okey`.
 - **K2:** 106 taş, gösterge, okey (joker) ve sahte okey (okeyin değeri).
-- **K3:** 2–4 oyuncu, fazlası izleyici; boş koltuğa bot yok; eşli mod ayarı (kapalı).
+- **K3:** ✅ Masa 4 koltuk; boş koltuklara bot; fazlası izleyici; botlar platform puanı
+  almaz.
 - **K4:** Başlayan 15 taş, sıra sağa; ortadan çek ya da soldakinin attığını al, sonra at.
 - **K5:** Per, seri (12-13-1 geçerli), 7 çift; sunucu arar; geçersiz bitirme cezasız red;
   deste biterse berabere.
-- **K6:** 20'den düşme: −2 / −4 / −8, gösterge −1; maç el sayısı (4), 0 puan ya da 30 dk
-  ile biter; puanlar 1000 / 600 / 400 / 200.
-- **K7:** Dikey ıstaka 3 × 10, sürükle-bırak; diziliş sunucuda; "Seri diz" / "Çift diz".
+- **K6:** ✅ El sayısı, başlangıç puanı ve eşli mod oyun başında TV'de seçilir. 20'den düşme:
+  −2 / −4 / −8, gösterge −1; puanlar 1000 / 600 / 400 / 200.
+- **K7:** ✅ Yatay telefonda 2 × 15 ıstaka, dikeyde "yan çevir"; sürükle-bırak; diziliş
+  sunucuda; "Seri diz" / "Çift diz".
 - **K8:** Sıra 30 sn; süre dolunca ve kopana bot.
 - **K9:** TV'de masa; el sonunda bitirenin ıstakası ve puan tablosu.
 - **K10:** Özgün CSS taşlar, renk token'ları.
@@ -152,9 +171,11 @@ Plan 2026-10-04'te çıkarıldı. K1–K12 kararları kullanıcının onayını 
 - **Bitirme arayıcı:** Kuralların en hassas kısmı (iki joker, 12-13-1, çift). Geniş unit
   testleri ve rastgele kurulmuş geçerli ellerle doğrulanacak; 14 taşta geri izlemeli arama
   hızlı.
-- **Dikey ekranda ıstaka:** Gerçek ıstaka 2 sıra; dikey telefonda 15 yuva ~23 px'e
-  düşeceği için 3 × 10 seçildi. iOS Safari'de sürüklemeyle kaydırma çakışmasın diye
-  Sorting'deki dokunma ayarları kullanılacak.
+- **Yatay telefon:** Tarayıcı çubukları yatayda yüksekliği ~330 px'e indiriyor; ıstaka, masa
+  bilgisi ve düğmeler buna sığacak şekilde tasarlanacak. iOS Safari'de sürüklemeyle kaydırma
+  çakışmasın diye Sorting'deki dokunma ayarları kullanılacak.
+- **Botlu koltuklar:** Masada oyuncu olmayan katılımcılar ilk kez var; görünümler, sıralama
+  ve podyum yalnızca gerçek oyuncuları puanlamalı.
 - **Maç süresi:** Bir el 5–10 dk; varsayılan 4 el ~30 dk. Ayarlarla kısaltılabilir.
 - **E2E'de bitiş:** Kazanan bir el zorlanamaz; bitirme unit testlerle, e2e'de el sonu botların
   oyunuyla (bitiş ya da deste sonu) doğrulanır.
