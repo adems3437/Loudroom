@@ -220,6 +220,9 @@ importers:
       '@loudroom/game-memory':
         specifier: workspace:*
         version: link:../../packages/games/memory
+      '@loudroom/game-pisti':
+        specifier: workspace:*
+        version: link:../../packages/games/pisti
       '@loudroom/game-quiz':
         specifier: workspace:*
         version: link:../../packages/games/quiz
@@ -238,6 +241,9 @@ importers:
       '@loudroom/game-tombala':
         specifier: workspace:*
         version: link:../../packages/games/tombala
+      '@loudroom/game-uno':
+        specifier: workspace:*
+        version: link:../../packages/games/uno
       '@loudroom/game-who-would':
         specifier: workspace:*
         version: link:../../packages/games/who-would
@@ -356,6 +362,9 @@ importers:
       '@loudroom/game-memory':
         specifier: workspace:*
         version: link:../../packages/games/memory
+      '@loudroom/game-pisti':
+        specifier: workspace:*
+        version: link:../../packages/games/pisti
       '@loudroom/game-quiz':
         specifier: workspace:*
         version: link:../../packages/games/quiz
@@ -374,6 +383,9 @@ importers:
       '@loudroom/game-tombala':
         specifier: workspace:*
         version: link:../../packages/games/tombala
+      '@loudroom/game-uno':
+        specifier: workspace:*
+        version: link:../../packages/games/uno
       '@loudroom/game-who-would':
         specifier: workspace:*
         version: link:../../packages/games/who-would
@@ -532,6 +544,28 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(@types/node@24.19.0)(vite@8.3.1(@types/node@24.19.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
+  packages/games/pisti:
+    dependencies:
+      '@loudroom/game-sdk':
+        specifier: workspace:*
+        version: link:../../game-sdk
+      '@loudroom/table-kit':
+        specifier: workspace:*
+        version: link:../../table-kit
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      vitest:
+        specifier: 5.0.3
+        version: 5.0.3(@types/node@24.19.0)(vite@8.3.1(@types/node@24.19.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
   packages/games/quiz:
     dependencies:
       '@loudroom/game-sdk':
@@ -639,6 +673,28 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(@types/node@24.19.0)(vite@8.3.1(@types/node@24.19.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
+  packages/games/uno:
+    dependencies:
+      '@loudroom/game-sdk':
+        specifier: workspace:*
+        version: link:../../game-sdk
+      '@loudroom/table-kit':
+        specifier: workspace:*
+        version: link:../../table-kit
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      vitest:
+        specifier: 5.0.3
+        version: 5.0.3(@types/node@24.19.0)(vite@8.3.1(@types/node@24.19.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
   packages/games/who-would:
     dependencies:
       '@loudroom/game-sdk':
@@ -663,6 +719,22 @@ importers:
       zod:
         specifier: 4.6.5
         version: 4.6.5
+
+  packages/table-kit:
+    dependencies:
+      '@loudroom/game-sdk':
+        specifier: workspace:*
+        version: link:../game-sdk
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      vitest:
+        specifier: 5.0.3
+        version: 5.0.3(@types/node@24.19.0)(vite@8.3.1(@types/node@24.19.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
 packages:
 

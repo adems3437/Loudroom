@@ -24,8 +24,9 @@ RUN mkdir -p /app/node_modules /app/apps/server/node_modules /app/apps/web/node_
     /app/packages/games/image-location/node_modules /app/packages/games/bluff/node_modules \
     /app/packages/games/drawing/node_modules /app/packages/games/reaction/node_modules \
     /app/packages/games/memory/node_modules /app/packages/games/tombala/node_modules \
-    /app/packages/games/spy/node_modules \
-    /pnpm-store /media-data \
+    /app/packages/games/spy/node_modules /app/packages/games/uno/node_modules \
+    /app/packages/games/pisti/node_modules /app/packages/table-kit/node_modules \
+    /app/apps/web/.next /pnpm-store /media-data \
   && chown -R node:node /app /pnpm-store /media-data
 
 USER node

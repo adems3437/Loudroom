@@ -26,7 +26,13 @@ x-app: &app
     - game-memory-node-modules:/app/packages/games/memory/node_modules
     - game-tombala-node-modules:/app/packages/games/tombala/node_modules
     - game-spy-node-modules:/app/packages/games/spy/node_modules
+    - game-uno-node-modules:/app/packages/games/uno/node_modules
+    - game-pisti-node-modules:/app/packages/games/pisti/node_modules
+    - table-kit-node-modules:/app/packages/table-kit/node_modules
     - pnpm-store:/pnpm-store
+    # Next's dev output stays in the container: in the iCloud folder it collected conflict
+    # copies ("LOG 2") that broke Turbopack's cache, and the host's own `next` shares nothing.
+    - web-next:/app/apps/web/.next
     # Uploaded media (SPEC §13: a Docker volume in the MVP).
     - media-data:/media-data
   environment: &app-env
@@ -136,4 +142,8 @@ volumes:
   game-memory-node-modules:
   game-tombala-node-modules:
   game-spy-node-modules:
+  game-uno-node-modules:
+  game-pisti-node-modules:
+  table-kit-node-modules:
+  web-next:
   pnpm-store:

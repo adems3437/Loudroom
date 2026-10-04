@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import { seedAdminUser } from '../src/seed/admin-user.js';
+import { seedCardPacks } from '../src/seed/card-packs.js';
 import { seedCategories } from '../src/seed/categories.js';
 import { seedDrawingPack } from '../src/seed/drawing-pack.js';
 import { seedMapPack } from '../src/seed/map-pack.js';
@@ -21,6 +22,7 @@ try {
   await seedDrawingPack(prisma);
   await seedReflexPack(prisma);
   await seedTombalaSpyPacks(prisma);
+  await seedCardPacks(prisma);
   const email = process.env.ADMIN_SEED_EMAIL;
   const password = process.env.ADMIN_SEED_PASSWORD;
   if (email && password) {

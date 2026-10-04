@@ -24,6 +24,13 @@ import {
   seedReflexPack,
 } from '../src/seed/reflex-pack.js';
 import {
+  PISTI_PACK_ID,
+  SAMPLE_PISTI,
+  SAMPLE_UNO,
+  seedCardPacks,
+  UNO_PACK_ID,
+} from '../src/seed/card-packs.js';
+import {
   SAMPLE_SPY,
   SAMPLE_TOMBALA,
   seedTombalaSpyPacks,
@@ -229,6 +236,27 @@ describe('seedCategories', () => {
       expect(pack).toMatchObject({ name, status: 'PUBLISHED' });
       expect(pack.rounds.map((round) => [round.gameType, round.questionCount])).toEqual([
         [gameType, count],
+      ]);
+    }
+  });
+
+  it('seeds UNO, Pişti and their packs idempotently', async () => {
+    await seedCardPacks(prisma);
+    await seedCardPacks(prisma);
+    for (const [gameType, item, packId, name] of [
+      ['uno', SAMPLE_UNO, UNO_PACK_ID, 'UNO'],
+      ['pisti', SAMPLE_PISTI, PISTI_PACK_ID, 'Pişti'],
+    ] as const) {
+      const row = await prisma.contentItem.findUniqueOrThrow({ where: { id: item.id } });
+      expect(row).toMatchObject({ gameType, status: 'PUBLISHED' });
+      expect(findGameModule(gameType)?.contentSchema.safeParse(row.data).success).toBe(true);
+      const pack = await prisma.gamePack.findUniqueOrThrow({
+        where: { id: packId },
+        include: { rounds: true },
+      });
+      expect(pack).toMatchObject({ name, status: 'PUBLISHED' });
+      expect(pack.rounds.map((round) => [round.gameType, round.questionCount])).toEqual([
+        [gameType, 1],
       ]);
     }
   });

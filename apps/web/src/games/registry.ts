@@ -10,11 +10,13 @@ import {
   imageLocationRenderer,
 } from '@loudroom/game-image-location/client';
 import { MEMORY_GAME_TYPE, memoryRenderer } from '@loudroom/game-memory/client';
+import { PISTI_GAME_TYPE, pistiRenderer } from '@loudroom/game-pisti/client';
 import { QUIZ_GAME_TYPE, quizRenderer } from '@loudroom/game-quiz/client';
 import { REACTION_GAME_TYPE, reactionRenderer } from '@loudroom/game-reaction/client';
 import { SORTING_GAME_TYPE, sortingRenderer } from '@loudroom/game-sorting/client';
 import { SPY_GAME_TYPE, spyRenderer } from '@loudroom/game-spy/client';
 import { TOMBALA_GAME_TYPE, tombalaRenderer } from '@loudroom/game-tombala/client';
+import { UNO_GAME_TYPE, unoRenderer } from '@loudroom/game-uno/client';
 import { WHO_WOULD_GAME_TYPE, whoWouldRenderer } from '@loudroom/game-who-would/client';
 
 type AnyRenderer = GameRenderer<unknown, unknown>;
@@ -44,6 +46,8 @@ const RENDERERS: Record<string, AnyRenderer> = {
   [MEMORY_GAME_TYPE]: erase(memoryRenderer),
   [TOMBALA_GAME_TYPE]: erase(tombalaRenderer),
   [SPY_GAME_TYPE]: erase(spyRenderer),
+  [UNO_GAME_TYPE]: erase(unoRenderer),
+  [PISTI_GAME_TYPE]: erase(pistiRenderer),
 };
 
 export function findRenderer(gameType: string): AnyRenderer | undefined {

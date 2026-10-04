@@ -11,6 +11,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import type { Socket } from 'socket.io-client';
 import { inject } from 'vitest';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { findGameModule } from '../src/game/registry.js';
 import { connect, nextEvent, sendOk, type TestApp, type TestSocket } from './support.js';
 
 export function testPrisma(): PrismaClient {
@@ -83,6 +84,11 @@ export interface PackSegment {
   timeLimitMs?: number;
 }
 
+function hasIntro(gameType: string): boolean {
+  const defaults = findGameModule(gameType)?.defaultSettings as object | undefined;
+  return defaults !== undefined && 'introMs' in defaults;
+}
+
 /** A published pack with one round per segment, each a fixed list of new content. */
 export async function createPack(
   prisma: PrismaClient,
@@ -111,7 +117,11 @@ export async function createPack(
           questionCount: segment.contents.length,
           timeLimitMs: segment.timeLimitMs ?? 3_000,
           showScoreboardAfter: false,
-          settings: { introMs: 50, ...segment.settings },
+          // Short intros keep tests fast; games without an intro have no such setting.
+          settings: {
+            ...(hasIntro(segment.gameType) ? { introMs: 50 } : {}),
+            ...segment.settings,
+          },
         })),
       },
     },
