@@ -18,5 +18,10 @@
     "resolveJsonModule": true,
     "declaration": true,
     "sourceMap": true
+  },
+  // Watchers never need the apps' build output and logs: Turbopack writes `.next` all the
+  // time, which restarted the Docker dev server mid-game (it watches the whole bind mount).
+  "watchOptions": {
+    "excludeDirectories": ["**/.next", "**/.turbo", "**/test-results", "**/playwright-report"]
   }
 }
