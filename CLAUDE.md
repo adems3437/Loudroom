@@ -93,7 +93,8 @@ packages/game-sdk  GameModule contract, seeded RNG, text matching (cleanText, fo
                    isNearMatch); ./testing (contract suite + round harness); ./client
                    (countdown, option shapes, TR number format, settings form fields,
                    ContainedImage + image point mapping, renderer types)
-packages/table-kit seats/spectators, turns, turn clock + bots, seeded decks; ./client: SeatBar
+packages/table-kit seats/spectators, turns, turn clock + bots, seeded decks and dice, lockstep
+                   (parallel turns on one clock); ./client: SeatBar
                    (TV), HandStrip (phone) — shared by the card and board games
 packages/games/*   one package per game: schema.ts, server.ts (module), import.ts (CSV/XLSX
                    columns), host.tsx, player.tsx,
@@ -101,7 +102,7 @@ packages/games/*   one package per game: schema.ts, server.ts (module), import.t
                    exports ./server and ./client separately. quiz, closest-number, sorting
                    (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff, drawing (round
                    stream, canvas), reaction (hidden phase clock), memory, tombala (host
-                   input), spy ("Casus Kim?"), uno, pisti
+                   input), spy ("Casus Kim?"), uno, pisti, kizma-birader, amiral-batti
 docker/            dev image, postgres init (creates loudroom_test); server.Dockerfile (build stage =
                    migrate image, slim runtime + static ffmpeg), web.Dockerfile (standalone),
                    nginx/ (nginx.conf, locations.conf, sites/http.conf, tls.conf.example),
@@ -174,7 +175,11 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
 - Card and board games: one long round per match; turns are `TURN` phases from table-kit's
   `turnPhase` (an away player's turn gets the bot's short pause). `onPlayersChanged` (the
   engine calls it on disconnect, reconnect, join, leave, kick and resume) hands a turn to the
-  bot or back. Hidden hands are tested with the contract's `privateState`.
+  bot or back. Hidden hands are tested with the contract's `privateState`, server-only
+  secrets (dice seed, deck or bag order) with `serverState`.
+- Parallel turns (Amiral Battı's tournament duels) run in lockstep steps on the one phase
+  clock: every duel fires once per step; never keep per-duel absolute deadlines (a pause only
+  shifts the engine's clock).
 - A module's randomness belongs in `createRound`: `ctx.random` restarts from the round seed
   on every call. Later draws derive their own seed (Tombala deals a late joiner's card from
   `seedFromString(cardSeed:playerId)`).
@@ -204,9 +209,10 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
 - Next's route announcer also has `role="alert"`: e2e tests select by `data-testid`.
 - The server publishes state _before_ acking a command. In tests, start listening for the
   expected event before sending the command, or the event is missed.
-- The repo lives in an iCloud-synced Desktop. "Keep Downloaded" must stay on for the folder;
-  evicted (dataless) files read as empty and break tools. Check with
-  `find . -flags +dataless -type f | wc -l`; fix by reading the files or reinstalling deps.
+- Keep the repo out of iCloud-synced folders (it lives in `~/Developer/Loudroom`). In the iCloud
+  Desktop, evicted files read as empty, build output got "name 2.ext" conflict copies, and
+  iCloud syncing `dist`/the generated Prisma client touched directories: the Docker server's
+  polling watchers saw that and restarted Nest every ~15 s, pausing games in e2e runs.
 - Game packages build with `tsc` (JSX included); Next uses their `dist`. Tailwind scans their
   sources via `@source` in `globals.css`.
 - The admin API is same-origin: Next rewrites `/api/*` and `/media/*` to `API_INTERNAL_URL`
@@ -232,19 +238,17 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
 - TypeScript watchers ignore `.next`, `.turbo`, `test-results` and `playwright-report`
   (`watchOptions.excludeDirectories` in tsconfig.base.json): the Docker server polls the whole
   bind mount, and Turbopack writing `.next` restarted Nest mid-game (games pause on restart).
-- In Docker, `apps/web/.next` is a named volume (`web-next`): in the iCloud folder Turbopack's
-  cache collected conflict copies ("LOG 2") and mixed with the host's `next`. On the host, a
-  Turbopack "Failed to restore data" / "Unexpected file in persistence directory" error still
-  means an iCloud-broken cache: delete `apps/web/.next/dev` (dev) or `apps/web/.next/cache`
+- In Docker, `apps/web/.next` is a named volume (`web-next`), so the container's Turbopack
+  cache never mixes with the host's `next`. On the host, a Turbopack "Failed to restore data"
+  error means a broken cache: delete `apps/web/.next/dev` (dev) or `apps/web/.next/cache`
   (build).
-- iCloud makes "name 2.ext" copies when the host and the container write the same build
-  output (dist, generated Prisma client); they are git-ignored. Clean them with
-  `find . -path ./node_modules -prune -o -name '* [0-9].*' -print` (check, then delete).
 - The test helper `createPack` adds `introMs: 50` only for games that have that setting:
   settings schemas are strict, an unknown key fails `game:start`.
 - Host screens render inside the stage's main area (about 720 px tall above the "next"
   button): a host renderer that overflows covers the stage controls. Fit it, and keep
   `overflow-hidden` on its root.
+- Do not change repo files while e2e runs against Docker: the server's watchers poll the
+  bind mount, and a restart pauses running games.
 - The Docker dev server shares `apps/server/dist` and the package `dist`s with the host via
   the bind mount. A host `pnpm build` deletes and rewrites them, which can leave Nest without
   `dist/main`: run `docker compose restart server` before `pnpm test:e2e`.
