@@ -238,7 +238,7 @@ function fire(state: AmiralState, duelId: string, x: number, y: number): AmiralS
 
 function botFire(state: AmiralState, duel: AmiralDuel): AmiralState {
   const next = nextRandom(state, `shot:${duel.id}`);
-  const [x, y] = botTarget(duel.shots[duel.turn], state.grid, next.random);
+  const [x, y] = botTarget(duel.shots[duel.turn], state.grid, state.sizes, next.random);
   return fire(next.state, duel.id, x, y);
 }
 

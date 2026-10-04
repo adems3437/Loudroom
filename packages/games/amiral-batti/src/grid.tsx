@@ -17,7 +17,7 @@ const MARK: Record<CellState, string> = { empty: '', ship: '', miss: '•', hit:
 
 /**
  * A board: shots fired at it (hits, misses, sunk ships) and, for its own side only, the fleet.
- * Tappable cells call `onCell` (aiming, placing).
+ * Tappable cells call `onCell` (aiming, placing). Without `cellPx` it fills its width (phones).
  */
 export function Grid({
   size,
@@ -25,6 +25,7 @@ export function Grid({
   fleet = null,
   sizes = [],
   cellPx,
+  aim = null,
   onCell,
   canTap,
   testId,
@@ -34,7 +35,9 @@ export function Grid({
   shots: readonly Shot[];
   fleet?: readonly (Placement | null)[] | null;
   sizes?: readonly number[];
-  cellPx: number;
+  cellPx?: number | undefined;
+  /** The cell picked to fire at (highlighted). */
+  aim?: readonly [number, number] | null;
   onCell?: ((x: number, y: number) => void) | undefined;
   canTap?: ((x: number, y: number) => boolean) | undefined;
   testId: string;
@@ -56,20 +59,30 @@ export function Grid({
       role="grid"
       aria-label={label}
       data-testid={testId}
-      className="grid gap-[2px]"
-      style={{ gridTemplateColumns: `repeat(${size}, ${cellPx}px)` }}
+      className={`grid gap-[2px] ${cellPx === undefined ? 'w-full' : ''}`}
+      style={{
+        gridTemplateColumns: `repeat(${size}, ${cellPx === undefined ? 'minmax(0, 1fr)' : `${cellPx}px`})`,
+        containerType: 'inline-size',
+      }}
     >
       {Array.from({ length: size * size }, (_, i) => {
         const x = i % size;
         const y = Math.floor(i / size);
         const cell = state.get(`${x},${y}`) ?? 'empty';
         const tappable = onCell !== undefined && (canTap?.(x, y) ?? true);
+        const aimed = aim !== null && aim[0] === x && aim[1] === y;
         const common = {
           'data-x': x,
           'data-y': y,
           'data-state': cell,
-          className: `grid place-items-center rounded-[3px] font-extrabold leading-none ${CELL_CLASS[cell]}`,
-          style: { width: cellPx, height: cellPx, fontSize: Math.round(cellPx * 0.6) },
+          'data-aimed': aimed,
+          className: `grid aspect-square place-items-center rounded-[3px] font-extrabold leading-none ${
+            aimed ? 'bg-accent text-canvas' : CELL_CLASS[cell]
+          }`,
+          style:
+            cellPx === undefined
+              ? { fontSize: `calc(60cqw / ${size})` }
+              : { width: cellPx, height: cellPx, fontSize: Math.round(cellPx * 0.6) },
         };
         return tappable ? (
           <button
@@ -81,7 +94,7 @@ export function Grid({
               onCell(x, y);
             }}
           >
-            {MARK[cell]}
+            {aimed ? '◎' : MARK[cell]}
           </button>
         ) : (
           <span key={i} data-testid={`${testId}-cell`} {...common}>

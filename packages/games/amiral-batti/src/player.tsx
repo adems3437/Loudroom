@@ -13,6 +13,11 @@ type Playing = Extract<AmiralPlayerView, { phase: 'PLACE' | 'BATTLE' }>;
 const button =
   'min-h-touch rounded-2xl px-4 py-3 font-bold transition-transform active:scale-95 disabled:opacity-40';
 
+/** A cell's name as on a paper board: column letter, row number (B5). */
+const cellName = (x: number, y: number) => `${String.fromCharCode(65 + x)}${y + 1}`;
+
+type Tab = 'target' | 'own';
+
 /** The captain lays out the fleet: pick a ship, tap its first cell; rotate; or random. */
 function Placer({
   view,
@@ -30,7 +35,6 @@ function Placer({
   );
   const [selected, setSelected] = useState(0);
   const [vertical, setVertical] = useState(false);
-  const cellPx = Math.floor(300 / view.grid);
 
   const placeAt = (x: number, y: number) => {
     const candidate = { x, y, vertical };
@@ -72,13 +76,12 @@ function Placer({
           </li>
         ))}
       </ul>
-      <div className="self-center">
+      <div>
         <Grid
           size={view.grid}
           shots={[]}
           fleet={ships}
           sizes={view.ships}
-          cellPx={cellPx}
           onCell={placeAt}
           testId="amiral-place"
           label={t('yourFleet')}
@@ -128,6 +131,10 @@ function Placer({
 export function AmiralPlayer({ view, players, playerId, submit, haptic, describeError, t }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aim, setAim] = useState<readonly [number, number] | null>(null);
+  // A tab picked by hand (or the enemy board, right after firing, to see the result) holds
+  // until the turn changes hands; then the board that matters shows.
+  const [picked, setPicked] = useState<{ tab: Tab; myTurn: boolean } | null>(null);
   const nick = (id: string) => players.find((player) => player.id === id)?.nickname ?? '?';
 
   const send = async (input: AmiralInput) => {
@@ -167,7 +174,12 @@ export function AmiralPlayer({ view, players, playerId, submit, haptic, describe
   const mine =
     duel && view.mySide !== null ? (duel.a.side === view.mySide ? duel.a : duel.b) : null;
   const theirs = duel && mine ? (mine === duel.a ? duel.b : duel.a) : null;
-  const cellPx = Math.floor(300 / view.grid);
+  const canShoot = view.phase === 'BATTLE' && view.canShoot;
+  const tab: Tab = picked?.myTurn === canShoot ? picked.tab : canShoot || !mine ? 'target' : 'own';
+  const target =
+    canShoot && aim && !theirs?.shotsTaken.some((s) => s.x === aim[0] && s.y === aim[1])
+      ? aim
+      : null;
   const errorBox = error && (
     <p
       role="alert"
@@ -211,7 +223,7 @@ export function AmiralPlayer({ view, players, playerId, submit, haptic, describe
               shots={[]}
               fleet={view.fleet}
               sizes={view.ships}
-              cellPx={Math.floor(cellPx * 0.7)}
+              cellPx={Math.floor(220 / view.grid)}
               testId="amiral-own"
               label={t('yourFleet')}
             />
@@ -243,35 +255,73 @@ export function AmiralPlayer({ view, players, playerId, submit, haptic, describe
               ? t('yourShot')
               : t('shooting', { name: nick(duel.shooter ?? '') })}
       </p>
-      {theirs && (
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-muted text-sm">{t('theirBoard', { count: theirs.shipsLeft })}</span>
+      {theirs && mine && (
+        <div className="grid grid-cols-2 gap-2" role="group">
+          {(['target', 'own'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              data-testid={`amiral-tab-${value}`}
+              aria-pressed={tab === value}
+              onClick={() => {
+                setPicked({ tab: value, myTurn: canShoot });
+              }}
+              className={`rounded-xl px-3 py-2 text-sm font-bold ${
+                tab === value ? 'bg-accent text-canvas' : 'bg-surface'
+              }`}
+            >
+              {value === 'target'
+                ? t('theirBoard', { count: theirs.shipsLeft })
+                : t('yourBoard', { count: mine.shipsLeft })}
+            </button>
+          ))}
+        </div>
+      )}
+      {theirs && tab === 'target' && (
+        <>
           <Grid
             size={view.grid}
             shots={theirs.shotsTaken}
-            cellPx={cellPx}
+            aim={target}
             onCell={
-              view.canShoot && !busy ? (x, y) => void send({ type: 'shoot', x, y }) : undefined
+              canShoot && !busy
+                ? (x, y) => {
+                    haptic();
+                    setAim([x, y]);
+                  }
+                : undefined
             }
             canTap={(x, y) => !theirs.shotsTaken.some((s) => s.x === x && s.y === y)}
             testId="amiral-target"
             label={t('theirBoardLabel')}
           />
-        </div>
+          {canShoot && (
+            <button
+              type="button"
+              data-testid="amiral-fire"
+              disabled={!target || busy}
+              onClick={() => {
+                if (!target) return;
+                setAim(null);
+                setPicked({ tab: 'target', myTurn: false });
+                void send({ type: 'shoot', x: target[0], y: target[1] });
+              }}
+              className={`${button} bg-danger text-ink text-xl`}
+            >
+              {target ? t('fireAt', { cell: cellName(target[0], target[1]) }) : t('pickCell')}
+            </button>
+          )}
+        </>
       )}
-      {mine && (
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-muted text-sm">{t('yourBoard', { count: mine.shipsLeft })}</span>
-          <Grid
-            size={view.grid}
-            shots={mine.shotsTaken}
-            fleet={view.fleet}
-            sizes={view.ships}
-            cellPx={Math.floor(cellPx * 0.6)}
-            testId="amiral-own"
-            label={t('yourFleet')}
-          />
-        </div>
+      {mine && (tab === 'own' || !theirs) && (
+        <Grid
+          size={view.grid}
+          shots={mine.shotsTaken}
+          fleet={view.fleet}
+          sizes={view.ships}
+          testId="amiral-own"
+          label={t('yourFleet')}
+        />
       )}
       {errorBox}
     </div>

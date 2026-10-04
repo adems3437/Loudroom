@@ -69,7 +69,7 @@ async function open(browser: Browser, packId: string, names: string[]) {
   return { host, hostFrames, phones };
 }
 
-/** Plays until the match ends: placers lay out at random, shooters fire at the first free cell. */
+/** Plays until the match ends: placers lay out at random, shooters aim at the first free cell and fire. */
 async function playOut(host: Page, phones: Phone[]) {
   const stage = host.getByTestId('amiral-host');
   for (let step = 0; step < 600; step++) {
@@ -93,6 +93,10 @@ async function playOut(host: Page, phones: Phone[]) {
         const cell = page.locator('button[data-testid="amiral-target-cell"]').first();
         if (await cell.isVisible()) {
           await cell.click({ timeout: 2_000 }).catch(() => undefined);
+          await page
+            .getByTestId('amiral-fire')
+            .click({ timeout: 2_000 })
+            .catch(() => undefined);
           acted = true;
         }
       }
@@ -124,6 +128,42 @@ test('amiral battı teams: captains lay out fleets, members take turns, a team w
   await expect(ayse.page.getByTestId('amiral-placer')).toBeVisible();
   await expect(mehmet.page.getByTestId('amiral-placer')).toBeVisible();
   await expect(zeynep.page.getByTestId('amiral-waiting')).toBeVisible();
+
+  // The shooter's phone opens on the enemy board; everyone else watches their own fleet. A
+  // tap only aims: the shot goes with "Ateş!".
+  for (const { page } of [ayse, mehmet]) {
+    await page.getByTestId('amiral-random').click();
+    await page.getByTestId('amiral-ready-button').click();
+  }
+  await expect(stage).toHaveAttribute('data-phase', 'BATTLE');
+  const canShoot = (phone: Phone) =>
+    phone.page.locator('[data-testid="amiral-player"][data-can-shoot="true"]');
+  const shooterName = async () =>
+    (await canShoot(ayse).isVisible())
+      ? ayse.nickname
+      : (await canShoot(mehmet).isVisible())
+        ? mehmet.nickname
+        : null;
+  await expect.poll(shooterName).not.toBeNull();
+  const shooter = (await shooterName()) === ayse.nickname ? ayse : mehmet;
+  for (const phone of phones.filter((p) => p !== shooter)) {
+    await expect(phone.page.getByTestId('amiral-tab-own')).toHaveAttribute('aria-pressed', 'true');
+    await expect(phone.page.getByTestId('amiral-own')).toBeVisible();
+  }
+  const fire = shooter.page.getByTestId('amiral-fire');
+  const c2 = shooter.page.locator('[data-testid="amiral-target-cell"][data-x="2"][data-y="1"]');
+  await expect(shooter.page.getByTestId('amiral-tab-target')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(fire).toBeDisabled();
+  await c2.click();
+  await expect(c2).toHaveAttribute('data-aimed', 'true');
+  await expect(fire).toHaveText(/C2/);
+  await expect(canShoot(shooter)).toBeVisible();
+  await fire.click();
+  await expect(c2).toHaveAttribute('data-state', /^(hit|miss|sunk)$/);
+  await expect(canShoot(shooter)).toBeHidden();
 
   await playOut(host, phones);
   await expect(stage).toHaveAttribute('data-phase', 'END', { timeout: 30_000 });
