@@ -42,11 +42,11 @@ export function PlayerGame({
   }, [verdictKey]);
 
   const header = (
-    <div className="flex items-center gap-3">
+    <div className="phone-landscape:text-sm flex items-center gap-3">
       <Avatar id={me.avatar} color={me.color} size={40} />
       <span className="flex-1 truncate font-semibold">{me.nickname}</span>
       <span
-        className="font-display text-xl font-extrabold tabular-nums"
+        className="font-display phone-landscape:text-base text-xl font-extrabold tabular-nums"
         data-testid="my-score"
         data-score={me.score}
       >
@@ -133,7 +133,7 @@ export function PlayerGame({
     <section
       data-testid="player-game"
       data-status={game.status}
-      className="flex flex-1 flex-col gap-5"
+      className="phone-landscape:gap-2 flex flex-1 flex-col gap-5"
     >
       {header}
       {body}

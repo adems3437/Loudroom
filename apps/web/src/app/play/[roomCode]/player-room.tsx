@@ -115,8 +115,8 @@ export function PlayerRoom({ roomCode }: { roomCode: string }) {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-6">
-      <header className="flex items-center justify-between">
+    <main className="phone-landscape:gap-2 flex flex-1 flex-col gap-6">
+      <header className="phone-landscape:hidden flex items-center justify-between">
         <span className="text-2xl">
           <Brand />
         </span>
