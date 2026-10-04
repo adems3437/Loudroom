@@ -4,197 +4,176 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                          |
-| ----------------------------------------------- | ------------------------------ |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)     |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)     |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)     |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)     |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)     |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02)     |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02)     |
-| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02)     |
-| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02)     |
-| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04)     |
-| Phase 10 — Tombala + Casus Kim?                 | ✅ Tamamlandı (2026-10-04)     |
-| Phase 11 — Kart/masa altyapısı + UNO + Pişti    | ⏸ Plan onay bekliyor (aşağıda) |
+| Faz                                             | Durum                      |
+| ----------------------------------------------- | -------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
+| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
+| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02) |
+| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04) |
+| Phase 10 — Tombala + Casus Kim?                 | ✅ Tamamlandı (2026-10-04) |
+| Phase 11 — Kart/masa altyapısı + UNO + Pişti    | ✅ Tamamlandı (2026-10-04) |
 
 ---
 
-## Phase 11 — Kart/masa altyapısı + UNO + Pişti (plan, onay bekliyor)
+## Phase 11 — Kart/masa altyapısı + UNO + Pişti
 
-Plan 2026-10-04'te çıkarıldı. I1–I18 kararları kullanıcının onayını bekliyor. Kullanıcı
-"öneriler tamam" derse uygulamaya geçilir.
+Plan 2026-10-04'te onaylandı (I1–I18: "öneriler tamam"; "UNO" adı aynen kalsın — kişisel
+kullanım, bir yerde yayınlanmayacak) ve aynı gün Mac'te, Docker dev stack'inde uygulandı.
 
-### 1. Ortak altyapı
+### Yapılanlar
 
-- **Yeni paket `@loudroom/table-kit` (I1):** Phase 12–13'teki masa oyunları da kullanacak saf
-  yardımcılar:
-  - **Koltuklar:** Round başında bağlı oyuncular katılma sırasıyla koltuklara oturur
-    (`minSeats`–`maxSeats`); fazlası izleyici olur. İsteğe bağlı eşli düzen (0+2 / 1+3).
-  - **Sıra:** Sıradaki koltuk, yön (UNO'da ters çevirme), atlama.
-  - **Sıra saati:** Her sıra bir faz (`TURN`, süre ayarı). Süre dolunca otomatik hamle.
-  - **Bot:** Oyunun verdiği hamle seçicisi. Kopan oyuncunun sırası gelince kısa bir
-    beklemeden (~1,5 sn) sonra bot oynar. Oyuncu dönünce sıra yine kendisinde.
-  - **Deste:** Seed ile karma, dağıtma, biten desteyi atılanlardan yeniden karma.
-  - **İstemci:** Telefonda el şeridi (yatay kaydırma, seç ve oyna) ve TV'de masa düzeni
-    (koltuklar çevrede, sıradaki vurgulu, kart sayıları).
-- **Motora oyuncu değişikliği bildirimi (I2):** Bugün bir oyuncunun kopması ya da dönmesi
-  modüle iletilmiyor; kopan oyuncunun sırasında bot ancak sıra süresi bitince devreye
-  girebilir. Modül sözleşmesine isteğe bağlı `onPlayersChanged(state, ctx)` eklenir. Motor
-  bunu, oyun oynanırken bir oyuncunun bağlantısı değişince, katılınca ya da ayrılınca oda
-  kilidi altında çağırır. (Alternatif: hook yok, kopan oyuncu sıra süresi kadar bekletir.)
-- **Gizli el için sözleşme testi (I3):** Bugünkü gizlilik testleri içerik ve girdi
-  farklarıyla çalışıyor; eller seed'den geliyor. Fixture'a `privateState(state, playerId)`
-  eklenir: yalnızca o oyuncunun bilebileceğini değiştiren bir durum dönüşümü (ör. elindeki
-  kartları değiştirmek). Test, her karede host'un ve diğer oyuncuların görünümünün
-  değişmediğini kontrol eder. Okey ve Amiral Battı da bunu kullanacak.
-- **Kart renkleri (I4):** UNO kartlarının dört rengi ve kart yüzü `globals.css`'e token
-  olarak eklenir. Kart tasarımları tamamen CSS ile, özgün; görsel dosya yok (SPEC §7).
-
-### 2. Oyunlar
-
+- **`@loudroom/table-kit` (I1):**
+  - Koltuklar: başlangıçta bağlı oyuncular katılma sırasıyla oturur, fazlası ve bağlı
+    olmayanlar izleyici. Taraflar: eşli düzende 0+2 / 1+3.
+  - Sıra: `nextSeat` (yön ve atlama). `turnPhase`: oyuncu buradaysa tam sıra süresi, yoksa
+    (ve bot açıksa) botun kısa beklemesi.
+  - Deste: `shuffleWith(seed, etiket)` — `ctx.random` her çağrıda baştan başladığı için
+    sonraki karmalar durumda tutulan seed ve bir etiketle (`deal:2`, `reshuffle:1`) yapılıyor.
+    `dealRound` kartları masadaki gibi birer birer dağıtıyor.
+  - İstemci: TV'de `SeatBar` (sıradaki vurgulu, kart sayıları, eş renkleri, rozet),
+    telefonda `HandStrip` (yatay kayan el, seçilen kart yükselir, oynanamayan soluk).
+- **Motor (I2):** Modül sözleşmesine `onPlayersChanged`. Motor; kopma, dönme, katılma,
+  ayrılma, atılma ve duraklatmanın bitişinde, oyun oynanırken oda kilidi altında çağırıyor.
+  Süresi dolan oyuncunun bağlantısı düşerse (90 sn) çağrılmıyor; oyuncu zaten kopuk
+  sayılıyordu.
+- **Sözleşme testi (I3):** `privateState(state, playerId)`: yalnızca o oyuncunun bildiğini
+  değiştiren dönüşümle çizilen her karede host'un ve diğer oyuncuların görünümü aynı
+  kalmalı; oyuncunun kendisi farkı görmeli. Test aracına `viewState` seçeneği ve `presence`
+  adımı eklendi.
 - **UNO** (`uno`, `@loudroom/game-uno`):
-  - İçerik yalnızca ad (`{ title }`), kurallar bölüm ayarlarında (Tombala kalıbı).
-  - 2–10 koltuk. 108 kart: 4 renk × (bir 0, ikişer 1–9, Atla, Yön değiştir, +2), 4 Renk
-    seç, 4 +4. Başta 7 kart (`startingCards`, 2–10). İlk açılan kart +4 ise deste yeniden
-    karılır; diğer özel kartlar klasik kurala göre uygulanır.
-  - **Oynama:** Renk, sayı ya da sembol eşleşmeli; Renk seç her zaman. +4 yalnızca elde o
-    rengin kartı yokken (sunucu doğrular; itiraz kuralı yok). Renk seçen kart oynanırken
-    renk de gönderilir.
-  - **Çekme:** Oynamak istemeyen ya da oynayamayan 1 kart çeker; çektiği kart oynanabilirse
-    hemen oynayabilir ya da pas geçer.
-  - **Yığma:** +2 / +4 üst üste konamaz (klasik); ayarla açılabilir.
-  - 2 kişide Yön değiştir, Atla gibi çalışır.
-  - **UNO!:** Sondan ikinci kartını oynayan "UNO!" demezse, bir sonraki oyuncu hamle
-    yapmadan önce herhangi biri telefondan "Yakala!" diyebilir: 2 ceza kartı. Oyuncu
-    yakalanmadan önce geç de olsa "UNO!" diyerek kurtulabilir.
-  - **Bitiş:** Elini ilk bitiren kazanır. Maç süresi sınırı (`matchMs`, varsayılan 15 dk)
-    dolarsa elinde en az kart puanı olan kazanır.
-  - **Puan (I5):** Sıraya göre: 1. 1000, 2. 600, 3. 400, diğerleri 200 (ayar). Kazanan
-    dışındakiler elde kalan kart puanına göre sıralanır (sayı = değeri, özel 20, renk seç
-    50). `correct` = kazanan.
-  - **Sıra süresi:** 30 sn. Süre dolunca: `autoPlay` (bot hamlesi, varsayılan) ya da
-    `drawAndPass` (ayar).
-  - **TV:** Yerdeki kart ve geçerli renk, deste sayısı, yön oku, koltuklar ve kart sayıları,
-    sıradaki oyuncu ve saati, "UNO!" ve "Yakalandı!" anları.
-  - **Telefon:** Kendi eli (oynanabilir kartlar belirgin), Çek / Pas, renk seçici, UNO! ve
-    Yakala! düğmeleri.
+  - 108 kart; 2–10 koltuk; başlangıç kartı ayarlı (varsayılan 7). İlk açılan kart renkli;
+    Atla, Yön değiştir ve +2 ilk oyuncuya uygulanıyor.
+  - Oynama kuralları: renk / sayı / sembol; Renk seç her zaman; +4 yalnızca elde o renk
+    yokken. Çekilen kart oynanabilirse hemen oynanabilir ya da pas.
+  - Atla, Yön değiştir (2 kişide atla), +2 / +4 (sıradaki çeker ve sırası geçer). Yığma
+    ayarı: toplam bir sonrakine geçer.
+  - UNO! / Yakala!: iki kartla ya da tek kart kalınca demek mümkün; demeyen, sonraki oyuncu
+    hamle yapana kadar yakalanabilir (2 ceza kartı). Boşa "Yakala!" cezasız reddediliyor.
+  - Biten deste, yerdeki kartlardan (üstteki hariç) yeniden karılıyor.
+  - Bitiş: el boşalınca ya da maç süresi (15 dk) dolunca bir sonraki sırada; sıralama elde
+    kalan kart puanına göre; puanlar 1000 / 600 / 400 / 200.
+  - Sıra süresi 30 sn; süre dolunca bot hamlesi (ya da ayarla çek ve pas). Bot: önce geçerli
+    rengin kartı, sonra eşleşen, sonra Renk seç / +4; renk olarak elinde en çok olanı seçer,
+    UNO'yu unutmaz.
+  - Kart tasarımı CSS ile özgün; renkler `globals.css` token'ı (`uno-red` …).
 - **Pişti** (`pisti`, `@loudroom/game-pisti`):
-  - İçerik yalnızca ad, kurallar bölüm ayarlarında.
-  - 2–4 koltuk; 4 kişide eşli oyun ayarı (`teams`, varsayılan açık). 52 kart.
-  - **Dağıtım:** Yere 4 kart (3'ü kapalı, en üstteki açık), her oyuncuya 4 kart. Eller
-    bitince deste bitene kadar yeniden 4'er kart dağıtılır.
-  - **Oynama:** Sırayla bir kart atılır. Yerdeki üst kartla aynı değerdeyse ya da Vale ise
-    yerdeki bütün kartlar alınır.
-  - **Pişti:** Yerde tek kart varken aynı değerle almak 10 puan; Vale ile Vale pişti 20.
-  - **El sonu:** Yerde kalanlar son alan oyuncuya gider. Puanlar:
-    - En çok kart 3.
-    - Her As 1, her Vale 1.
-    - ♣2 2, ♦10 3.
-    - Pişti 10, Vale piştisi 20.
-  - **Bitiş (I6):** Biri hedef puana ulaşınca (`targetPoints`, varsayılan 101) ya da el
-    sayısı dolunca (`maxDeals`). Sonda eşitlik varsa en çok kartı alan kazanır.
-  - **Puan:** Platform puanı = oyun puanı × 10. Eşli oyunda iki eş takım puanını alır.
-    `correct` = kazanan taraf.
-  - **Sıra süresi:** 20 sn; süre dolunca otomatik hamle (Pişti'de pas yok). Bot: alabiliyorsa
-    alır (pişti öncelikli), alamıyorsa en düşük, Vale olmayan kartı atar.
-  - **TV:** Yerdeki yığın (kapalılar arka yüzüyle), alınan kart sayıları, oyun puanları, son
-    pişti; eşli oyunda takım renkleri.
-  - **Telefon:** Kendi eli; dokun ve at.
-- **İzleyiciler:** Koltuk dışında kalanlar ve maç sırasında katılanlar izleyici olur;
-  telefonlarında masanın özeti ve "İzleyicisin" yazar, puan almazlar.
-- Her iki oyun Phase 5–10 kalıbında: `schema.ts`, `server.ts`, `host.tsx`, `player.tsx`,
-  `editor.tsx`, `settings-editor.tsx`, `import.ts`, testler; registry'lere birer satır;
-  metinler `games.<id>` altında.
+  - 52 kart; 2–4 koltuk; 4 kişide eşli oyun (ayar). Yere 4 kart (3'ü kapalı), herkese 4;
+    eller bitince desteden yeniden 4'er.
+  - Alma: aynı değer ya da Vale. Tek karta aynı değerle pişti 10, Vale'ye Vale 20; tek
+    karta Vale pişti değil.
+  - El sonu: yerdekiler son alana; çok kart 3 (eşitlikte kimse), As ve Vale 1, ♣2 2, ♦10 3.
+    Puan tablosu 6 sn TV'de (TALLY).
+  - Bitiş: hedef puan (101) ya da el sayısı; eşitlikte maç boyunca en çok kart alan.
+    Platform puanı = oyun puanı × 10; eşler takım puanını alıyor.
+  - Sıra süresi 20 sn; süre dolunca bot kartı atıyor (Pişti'de pas yok). Bot: aynı değerle
+    al, iki ve fazla kartlık yığını Vale ile al, yoksa en değersiz Vale olmayan kartı at.
+  - TV'de kapalı kartlar arka yüzleriyle; kart yüzleri CSS ile.
+- **Admin ve seed:** Editörler (yalnızca ad), ayar formları, içe aktarma (`baslik`), metinler
+  `games.uno` / `games.pisti`. Seed: "Klasik UNO" ve "Pişti" içerikleri, yayında "UNO" ve
+  "Pişti" paketleri.
+- **Docker dev:** `apps/web/.next` artık bir volume (`web-next`): iCloud klasöründe Turbopack
+  önbelleğinde çakışma kopyaları ("LOG 2") oluşuyor ve web açılmıyordu. Derleme
+  çıktılarındaki 3.395 iCloud kopyası ("ad 2.ext", hepsi git'te yok sayılan dosyalar)
+  silindi.
 
-### 3. Admin ve seed
-
-- **Editörler:** UNO ve Pişti için yalnızca ad.
-- **Ayar formları:**
-  - UNO: başlangıç kartı, sıra süresi, süre dolunca ne olacağı, yığma, maç süresi, sıra
-    puanları, kopana bot.
-  - Pişti: hedef puan, el sayısı, eşli oyun, sıra süresi, kopana bot.
-- **İçe aktarma:** `baslik`.
-- **Seed:** "Klasik UNO" ve "Pişti" içerikleri; yayında "UNO" (en az 2 oyuncu) ve "Pişti"
-  (en az 2 oyuncu) paketleri.
-
-### 4. Testler
+### Testler
 
 - **Unit:**
-  - table-kit: koltuk ve izleyici dağılımı, eşler, sıra ve yön, atlama, deste karma ve
-    yeniden karma, bot zamanlaması.
+  - table-kit: koltuk ve izleyici, kopukluk, taraflar, sıra ve yön, bot zamanlaması,
+    seed'li karma, dağıtma.
   - UNO:
-    - Deste bileşimi (108).
-    - Geçerli ve geçersiz hamleler: renk, sayı, sembol, Renk seç, +4 kuralı.
-    - Atla, Yön değiştir (2 kişide atla), +2 / +4 ve çekme.
-    - Çektiği kartı oynama ya da pas.
-    - UNO! ve Yakala! penceresi, geç UNO.
-    - Biten deste, bitiş, süre sınırı, sıra puanları.
-    - Süre dolunca otomatik hamle; kopan oyuncuya bot.
+    - Deste bileşimi.
+    - Eşleşme kuralları, +4 kuralı, Atla, Yön değiştir (2 kişide atla), +2, yığma.
+    - Çekme: oynanamayan, oynanan, saklanan; yeniden karma.
+    - UNO! ve Yakala! penceresi.
+    - Bitiş ve sıralama, süre bitişi.
+    - Süre dolunca hamle ya da çek-pas; bota devir ve geri alma; botlarla tam maç.
+    - Görünümlerde el.
   - Pişti:
-    - Dağıtım (kapalı yer kartları), alma kuralları.
-    - Pişti ve Vale piştisi, el sonu puanları.
-    - Hedef puan, el sayısı, eşli puanlar.
-    - Bot hamlesi, otomatik hamle.
-  - Sözleşme testleri: `privateState` (eller ve kapalı kartlar), `secretScripts`.
+    - Dağıtım, el yenileme, koltuklar ve eşler, SKIPPED.
+    - Alma, pişti ve Vale piştisi.
+    - Sıra dışı hamle.
+    - El sonu puanları, çok kart eşitliği, hedef / el sayısı, eş puanları ve eşitlik bozma.
+    - Bot seçimi, süre dolunca hamle, bota devir.
+    - Görünümlerde el ve kapalı kartlar.
+  - Sözleşme testleri: her iki oyunda `privateState` (el); test aracında `presence` adımı.
 - **Integration:**
-  - `onPlayersChanged`: kopan oyuncunun sırasında bot kısa sürede oynar, dönünce sıra
-    oyuncudadır.
-  - Eller yalnızca sahibine gidiyor: hiçbir socket payload'ında başkasının eli ya da
-    destenin sırası yok.
-  - Uzun round, duraklatma ve sıra saati.
+  - Kopan oyuncunun sırası anında bota geçiyor (3 sn bekleme). Dönünce sıra ve tam süre
+    ona dönüyor. Yine kopunca bot oynuyor.
+  - El yalnızca sahibine gidiyor, deste hiçbir socket'e gitmiyor; sıra dışı hamle
+    reddediliyor.
+  - Pişti telefondan oynanıyor; duraklatma sıra saatini durduruyor.
+  - Seed testi. Test yardımcısı `createPack`, intro'su olmayan oyunlara `introMs`
+    eklemiyor.
 - **E2E (Chromium + WebKit):**
-  - UNO (host + 3 telefon, başlangıçta 3 kart):
-    - Telefonlar sırayla geçerli kart oynar; geçersiz kart reddedilir.
-    - Biri UNO! demeyi unutur ve yakalanır (2 ceza kartı).
-    - Bir telefon kapatılınca bot onun yerine oynar.
-    - Biri elini bitirir, podyum gelir.
-    - WebSocket çerçevelerinde başkasının eli yok.
-  - Pişti (host + 2 telefon, 1 el):
-    - Telefonlar kart atar, bir alma ve puanlar TV'de görünür.
-    - El sonunda puan tablosu, podyum gelir.
+  - UNO (host + 3 telefon, 3 başlangıç kartı, admin API ile paket):
+    - Telefonlar sırayla oynar.
+    - "UNO!" demeyi unutan Mehmet, eli bir karta inince Ayşe tarafından yakalanır.
+    - Zeynep'in telefonu kapanınca bot oynar (TV'ye `"bot":true` gider).
+    - Sonra herkes ayrılır, maçı botlar bitirir; sıralama ve podyum gelir.
+    - TV'ye el, hiçbir tarayıcıya deste gitmez.
+  - Pişti (host + 2 telefon, 1 el): 4 kart yerde, 4'er elde. 48 kart atılır, en az bir alma
+    olur, 52 kartın hepsi puan tablosunda bir tarafa yazılır; maç biter, podyum gelir.
 
-### Onay bekleyen kararlar
+### Bitti tanımı — son çalıştırma (2026-10-04, Mac, Docker dev stack)
 
-- **I1:** Ortak masa altyapısı yeni bir paket: `@loudroom/table-kit` (saf yardımcılar +
-  istemci bileşenleri).
-- **I2:** Modül sözleşmesine isteğe bağlı `onPlayersChanged`; motor oyuncu bağlantısı
-  değişince çağırır. (Alternatif: hook yok.)
-- **I3:** Sözleşme testine `privateState` (gizli el testi).
-- **I4:** Kartlar CSS ile özgün tasarım; UNO renkleri `globals.css` token'ı.
-- **I5:** UNO tek el; puan sıraya göre 1000 / 600 / 400 / 200, sıra elde kalan kart puanıyla.
-- **I6:** Pişti 101'e (ya da el sayısına) kadar; platform puanı = oyun puanı × 10; eşli
-  oyunda eşler takım puanını alır.
-- **I7:** gameType'lar `uno` ve `pisti`; ekranda "UNO" ve "Pişti" adları (SPEC: ad ürün
-  sahibinin kararı; "UNO" tescilli, yayından önce hukuki değerlendirme gerekir).
-- **I8:** İçerik yalnızca ad; bütün kurallar bölüm ayarlarında.
-- **I9:** UNO +4 yalnızca elde o renk yokken (sunucu doğrular), itiraz yok.
-- **I10:** UNO çekme: 1 kart; oynanabilirse hemen oynanabilir ya da pas.
-- **I11:** UNO yığma kapalı (ayarla açılır).
-- **I12:** UNO! / Yakala! penceresi: sonraki oyuncu hamle yapana kadar; ceza 2 kart.
-- **I13:** UNO maç süresi 15 dk; dolunca en az kart puanı olan kazanır.
-- **I14:** Sıra süresi UNO 30 sn, Pişti 20 sn; süre dolunca otomatik hamle (UNO'da ayarla
-  "çek ve pas").
-- **I15:** Kopan oyuncunun sırasında ~1,5 sn sonra bot oynar (ayarla kapatılabilir).
-- **I16:** Pişti klasik puanlar; 4 kişide eşli oyun varsayılan açık.
-- **I17:** Koltuk dışında kalanlar ve geç katılanlar izleyici, puan almaz.
-- **I18:** Seed: "UNO" ve "Pişti" paketleri.
+| Kontrol                  | Sonuç                                                                                                                                                                                                                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`         | ✅ 34/34 görev                                                                                                                                                                                                                                                                               |
+| `pnpm lint`              | ✅ 34/34 görev                                                                                                                                                                                                                                                                               |
+| `pnpm test`              | ✅ 636 test: shared 45, game-sdk 45, table-kit 6, quiz 61, closest-number 64, sorting 27, who-would 20, image-location 23, bluff 22, drawing 27, reaction 26, memory 19, tombala 29, spy 27, uno 29, pisti 24, server 142 (bir koşuda `room-recovery` yük altında zaman aşımı; tekrar geçti) |
+| `pnpm build`             | ✅ 18/18 görev                                                                                                                                                                                                                                                                               |
+| `pnpm test:e2e` (Docker) | 🟡 41/42 (15 dk), 0 server yeniden başlaması. WebKit'te admin quiz testi bir kez düştü ("İçerikte eksik veya hatalı alanlar var"), tek başına iki kez geçti; bu fazla ilgisi yok, ayrı görev olarak işaretlendi. UNO e2e 6/6, Pişti 4/4 tekrarlı koşuda                                      |
+| `pnpm format:check`      | ✅                                                                                                                                                                                                                                                                                           |
 
-**Eklenecek paket:** Yok. Yeni workspace paketi `@loudroom/table-kit`.
+### Alınan kararlar (kullanıcı onaylı)
 
-### Riskler
+- **I1–I4:** `@loudroom/table-kit`; `onPlayersChanged`; `privateState`; kartlar CSS ile
+  özgün, UNO renkleri token.
+- **I5, I9–I15:** UNO tek el, sıraya göre 1000 / 600 / 400 / 200; +4 yalnızca o renk yokken;
+  çekilen kart oynanabilir ya da pas; yığma kapalı (ayar); UNO! / Yakala! penceresi, 2 ceza;
+  maç süresi 15 dk; sıra 30 sn ve süre dolunca bot hamlesi; kopana ~1,5 sn sonra bot.
+- **I6, I16:** Pişti 101'e (ya da el sayısına), × 10 platform puanı, eşler ortak; klasik
+  puanlar; 4 kişide eşli varsayılan.
+- **I7:** gameType'lar `uno` ve `pisti`; ekranda "UNO" adı aynen (kullanıcı: kişisel
+  kullanım, yayın yok).
+- **I8, I17, I18:** İçerik yalnızca ad; koltuk dışı ve geç katılan izleyici; "UNO" ve
+  "Pişti" seed paketleri.
 
-- **Kural karmaşıklığı:** UNO ve Pişti'nin ev kuralları çok çeşitli. Klasik kurallar
-  seçildi; çeşitlemeler (ör. +4 itirazı, 7-0) bu fazın dışında.
-- **Uzun round:** Bir UNO eli 10–20 dk sürebilir. Maç süresi sınırı ve sıra saati var;
-  duraklatma ve sunucu yeniden başlaması mevcut motorla çalışıyor.
-- **Bot:** Basit sezgisel oynar; güçlü bir rakip değil.
-- **Telefon ekranı:** 10+ kartlık el dar ekranda sığmaz; el şeridi yatay kayar, kartlar
-  üst üste biner.
-- **Tescilli ad:** "UNO" adı kullanılıyor; yayına almadan önce hukuki değerlendirme gerekir.
-  Kart tasarımı özgün.
-- **E2E süresi:** Tam bir oyun uzun sürer; e2e küçük ellerle (3 kart, 1 el) oynanır.
+### Varsayımlar ve küçük kararlar
+
+- **UNO'da ilk kart:** Renk seç ya da +4 açılmıyor (destedeki ilk renkli kart açılıyor).
+- **UNO! ne zaman denir:** Elde iki ya da bir kart varken, sıra beklemeden. Eli üç karta
+  çıkan oyuncunun önceki "UNO!"su siliniyor.
+- **Yakala! penceresi:** Başka bir oyuncu kart oynayınca, çekince ya da pas geçince kapanıyor.
+- **Süre bitişi:** Maç süresi sıra değişirken kontrol ediliyor (ayrı bir zamanlayıcı yok).
+- **Pişti'de ilk kart Vale ise:** Yeniden dağıtılmıyor (klasik bazı kurallarda dağıtılır).
+- **İzleyicinin telefonu:** Masa özeti ve "izleyicisin"; puan yok.
+- **Bir sunucu testi yük altında bir kez zaman aşımına uğradı** (`room-recovery`, tam paket
+  koşusunda); tek başına üç kez ve tam sunucu paketiyle tekrar geçti.
+
+### Eklenen paketler
+
+Yok. Yeni workspace paketleri: `@loudroom/table-kit`, `@loudroom/game-uno`,
+`@loudroom/game-pisti`.
+
+### Bilinen sınırlar
+
+- **Bot basit:** Sezgisel oynuyor, güçlü bir rakip değil.
+- **Kural çeşitlemeleri yok:** UNO'da +4 itirazı, 7-0 ve benzerleri; Pişti'de ilk Vale'de
+  yeniden dağıtma gibi ev kuralları bu fazın dışında.
+- **E2E'de "Yakala!":** Mehmet'in eli bir karta inmeden maç biterse yakalama adımı o koşuda
+  atlanıyor; kural unit ve integration testleriyle kesin olarak doğrulanıyor.
+- **"UNO" tescilli ad:** Kullanıcı kişisel kullanım için onayladı; yayına alınırsa hukuki
+  değerlendirme gerekir (SPEC §7).
+- **iCloud:** Host ve konteyner aynı derleme çıktısını yazınca "ad 2.ext" kopyaları oluşuyor;
+  zararsız ama birikiyor (CLAUDE.md'de temizleme komutu).
 
 ---
 

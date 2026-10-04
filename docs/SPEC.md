@@ -127,6 +127,8 @@ interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
   // ScoreResult: { playerId, points, correct, responseTimeMs, answer, breakdown }
   onSkip?(state: State, ctx: RoundContext<Content, Settings>): Transition<State> | null;
   // host "atla" dediğinde; yoksa ya da null dönerse round puansız düşer
+  onPlayersChanged?(state: State, ctx: RoundContext<Content, Settings>): Transition<State>;
+  // oyun sürerken bir oyuncu koptu, döndü, katıldı ya da ayrıldı (ve duraklatma bitti): ör. kopanın sırasını bot alır
   hostInputSchema?: ZodType<HostInput>;
   onHostInput?(state: State, input: HostInput, ctx: RoundContext<Content, Settings>): Transition<State>;
   // TV'den gelen girdi (Tombala'da "Çek"); reddi HOST_INPUT_SENDER için 'reject' efekti
@@ -153,7 +155,8 @@ type Transition<S> = { state: S; effects?: Effect[] };
 - **Stream kanalı:** Çizim gibi yüksek frekanslı veriler için `round:stream` — kalıcılığa yazılmaz, throttle edilir, yine server üzerinden geçer ve doğrulanır. Modül paketin şemasını, kimin hangi fazda gönderebileceğini (`accepts`) ve round limitini verir; taşıma, doğrulama ve geçmiş motordadır. Canlı paketler yalnızca host'a gider; yeniden bağlanan host'a ve gönderebilen oyuncuya (çizen) round'un geçmişi `reset` ile gönderilir.
 - **Client tarafı:** Her oyun paketi `HostRenderer` ve `PlayerRenderer` bileşenlerini (faza göre) export eder. Web'de bir registry `gameType → renderer` eşler. Player UI oyun tipine ve faza göre dinamik render edilir.
 - **Kayıt:** Yeni oyun = yeni paket + server ve web registry'lerine birer satır.
-- **Sözleşme testi:** `game-sdk` içinde her modülün geçmesi gereken ortak test paketi (projeksiyonda cevap sızmıyor, geçersiz input reddediliyor, skor deterministik vb.).
+- **Sözleşme testi:** `game-sdk` içinde her modülün geçmesi gereken ortak test paketi (projeksiyonda cevap sızmıyor, geçersiz input reddediliyor, skor deterministik vb.). Gizli el, ıstaka ya da filo gibi oyuncuya özel durum `privateState` ile sınanır: yalnızca o oyuncunun bildiği değişince host'un ve diğer oyuncuların görünümü değişmemeli.
+- **Masa altyapısı:** Kart ve masa oyunları `@loudroom/table-kit`'i kullanır: koltuklar ve izleyiciler, sıra ve yön, sıra saati ve bot, seed'li deste; istemcide koltuk şeridi ve el şeridi.
 
 ---
 
@@ -175,6 +178,7 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
   - Memory: `{ title, items: [{ id, label, emoji?, mediaId? }] (8–24) }` (her öğede emoji ya da görsel)
   - Tombala: `{ title }` (çekiliş, işaretleme ve ödüller bölüm ayarlarında)
   - Casus Kim?: `{ title, locations: [{ id, name, emoji? }] (8–30) }` (mekân seti; her round birini seçer, adlar benzersiz)
+  - UNO, Pişti: `{ title }` (kurallar bölüm ayarlarında)
   - Diğer oyunlar kendi şemalarıyla.
 - **GamePack:** `id, name, description, status (DRAFT|PUBLISHED), settings, rounds[]` — host yalnızca yayındaki paketleri görür; yayınlarken her bölümün oynanabilir olduğu kontrol edilir.
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`

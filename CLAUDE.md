@@ -93,13 +93,15 @@ packages/game-sdk  GameModule contract, seeded RNG, text matching (cleanText, fo
                    isNearMatch); ./testing (contract suite + round harness); ./client
                    (countdown, option shapes, TR number format, settings form fields,
                    ContainedImage + image point mapping, renderer types)
+packages/table-kit seats/spectators, turns, turn clock + bots, seeded decks; ./client: SeatBar
+                   (TV), HandStrip (phone) — shared by the card and board games
 packages/games/*   one package per game: schema.ts, server.ts (module), import.ts (CSV/XLSX
                    columns), host.tsx, player.tsx,
                    editor.tsx (admin content form), settings-editor.tsx (pack round settings);
                    exports ./server and ./client separately. quiz, closest-number, sorting
                    (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff, drawing (round
                    stream, canvas), reaction (hidden phase clock), memory, tombala (host
-                   input), spy ("Casus Kim?")
+                   input), spy ("Casus Kim?"), uno, pisti
 docker/            dev image, postgres init (creates loudroom_test); server.Dockerfile (build stage =
                    migrate image, slim runtime + static ffmpeg), web.Dockerfile (standalone),
                    nginx/ (nginx.conf, locations.conf, sites/http.conf, tls.conf.example),
@@ -169,6 +171,10 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
   `hostInputSchema` + `onHostInput` and refuses with a `reject` effect for
   `HOST_INPUT_SENDER`; its contract fixture then needs `invalidHostInputs`. Host renderers get
   `sendHostInput`. Games without host input answer `INVALID_INPUT`.
+- Card and board games: one long round per match; turns are `TURN` phases from table-kit's
+  `turnPhase` (an away player's turn gets the bot's short pause). `onPlayersChanged` (the
+  engine calls it on disconnect, reconnect, join, leave, kick and resume) hands a turn to the
+  bot or back. Hidden hands are tested with the contract's `privateState`.
 - A module's randomness belongs in `createRound`: `ctx.random` restarts from the round seed
   on every call. Later draws derive their own seed (Tombala deals a late joiner's card from
   `seedFromString(cardSeed:playerId)`).
@@ -226,9 +232,16 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
 - TypeScript watchers ignore `.next`, `.turbo`, `test-results` and `playwright-report`
   (`watchOptions.excludeDirectories` in tsconfig.base.json): the Docker server polls the whole
   bind mount, and Turbopack writing `.next` restarted Nest mid-game (games pause on restart).
-- Host and Docker `next dev` share `apps/web/.next/dev`. After switching between them a
-  Turbopack "Failed to restore data" 500 means a mixed cache: stop web, delete
-  `apps/web/.next/dev`, start it again.
+- In Docker, `apps/web/.next` is a named volume (`web-next`): in the iCloud folder Turbopack's
+  cache collected conflict copies ("LOG 2") and mixed with the host's `next`. On the host, a
+  Turbopack "Failed to restore data" / "Unexpected file in persistence directory" error still
+  means an iCloud-broken cache: delete `apps/web/.next/dev` (dev) or `apps/web/.next/cache`
+  (build).
+- iCloud makes "name 2.ext" copies when the host and the container write the same build
+  output (dist, generated Prisma client); they are git-ignored. Clean them with
+  `find . -path ./node_modules -prune -o -name '* [0-9].*' -print` (check, then delete).
+- The test helper `createPack` adds `introMs: 50` only for games that have that setting:
+  settings schemas are strict, an unknown key fails `game:start`.
 - Host screens render inside the stage's main area (about 720 px tall above the "next"
   button): a host renderer that overflows covers the stage controls. Fit it, and keep
   `overflow-hidden` on its root.
