@@ -118,6 +118,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         const change = await this.rooms.markPlayerDisconnected(session.roomCode, session.playerId);
         this.broadcaster.state(change.snapshot);
         this.presence.scheduleExpiry(session.roomCode, session.playerId);
+        await this.engine.playersChanged(session.roomCode);
       }
     } catch (error) {
       // The room or player is already gone; there is nothing left to mark.
@@ -175,6 +176,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       await this.attach(socket, { role: 'player', roomCode: input.roomCode, playerId: player.id });
       this.broadcaster.state(snapshot);
       this.broadcaster.playerJoined(input.roomCode, player);
+      if (snapshot.game) await this.engine.playersChanged(input.roomCode);
       return { roomCode: input.roomCode, playerId: player.id, playerToken };
     });
   }
@@ -193,6 +195,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       await this.detach(socket);
       this.broadcaster.state(snapshot);
       this.broadcaster.playerLeft(session.roomCode, player, 'left');
+      if (snapshot.game) await this.engine.playersChanged(session.roomCode);
       return {};
     });
   }
@@ -212,6 +215,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         channels.session({ role: 'player', roomCode, playerId }),
         'KICKED',
       );
+      if (snapshot.game) await this.engine.playersChanged(roomCode);
       return {};
     });
   }
@@ -271,6 +275,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.broadcaster.state(change.snapshot);
     if (change.wasDisconnected) {
       this.broadcaster.playerReconnected(session.roomCode, session.playerId);
+      await this.engine.playersChanged(session.roomCode);
     }
     await this.streams.sendHistory(socket.id, session);
   }

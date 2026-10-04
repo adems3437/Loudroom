@@ -34,6 +34,12 @@ export interface ContractFixture extends RoundFixture {
    * comparisons; everyone else's are not.
    */
   secretHolders?: string[];
+  /**
+   * Changes the state only in what this player alone may know (e.g. other cards in their
+   * hand, same count). Drawn from that state, every frame must look the same to the host and
+   * the other players — a hand, a rack or a fleet stays with its owner.
+   */
+  privateState?: (state: unknown, playerId: string) => unknown;
   /** Inputs the module must refuse, either by schema or with a reject effect. */
   invalidInputs: unknown[];
   /** Host inputs the module must refuse (games with `onHostInput`; required for them). */
@@ -49,7 +55,7 @@ export interface SecretCase {
 /** When and by whom each step happens, without what was chosen. */
 function timing(script: ScriptStep[]) {
   return script.map((step) =>
-    step.type === 'timer'
+    step.type === 'timer' || step.type === 'presence'
       ? step
       : step.type === 'hostInput'
         ? { type: step.type, afterMs: step.afterMs ?? 0 }
@@ -109,7 +115,10 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
     });
 
     it('declares what must stay secret', () => {
-      const declared = (fixture.secretVariants?.length ?? 0) + (fixture.secretScripts?.length ?? 0);
+      const declared =
+        (fixture.secretVariants?.length ?? 0) +
+        (fixture.secretScripts?.length ?? 0) +
+        (fixture.privateState ? 1 : 0);
       expect(declared).toBeGreaterThan(0);
     });
 
@@ -151,6 +160,26 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
           const beforeEnd = (list: Frame[]) => hidden(list, fixture.revealPhase);
           expect(seenBy(beforeEnd(frames), unchanged, fixture.secretHolders)).toEqual(
             seenBy(beforeEnd(reference), unchanged, fixture.secretHolders),
+          );
+        }
+      },
+    );
+
+    it.runIf(fixture.privateState !== undefined)(
+      "keeps each player's private state from the host and the others",
+      () => {
+        const privateState = fixture.privateState;
+        if (!privateState) return;
+        const reference = playRound(module, fixture).frames;
+        for (const { id } of fixture.players) {
+          const frames = playRound(module, fixture, {
+            viewState: (state) => privateState(state, id),
+          }).frames;
+          const others = fixture.players.map((player) => player.id).filter((p) => p !== id);
+          expect(seenBy(frames, others)).toEqual(seenBy(reference, others));
+          // The change is real: the player sees it.
+          expect(frames.map((frame) => frame.playerViews[id])).not.toEqual(
+            reference.map((frame) => frame.playerViews[id]),
           );
         }
       },

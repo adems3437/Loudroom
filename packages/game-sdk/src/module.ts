@@ -171,6 +171,12 @@ export interface GameModule<
   ): Transition<State>;
   onTimer(state: State, ctx: RoundContext<Content, Settings>): Transition<State>;
   /**
+   * Players connected, disconnected, joined or left while the round runs, or a paused game
+   * resumed: e.g. hand an absent player's turn to a bot. Without it the module learns of it
+   * at its next timer or input.
+   */
+  onPlayersChanged?(state: State, ctx: RoundContext<Content, Settings>): Transition<State>;
+  /**
    * Inputs from the host screen (e.g. Tombala's "draw now"), for games that take them; the
    * engine refuses host inputs for games without. Refusals are `reject` effects for
    * `HOST_INPUT_SENDER`.

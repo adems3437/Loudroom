@@ -18,7 +18,9 @@ export type ScriptStep =
   /** A player sends an input, `afterMs` after the previous step. */
   | { type: 'input'; playerId: string; input: unknown; afterMs?: number }
   /** The host screen sends an input (games with `onHostInput`). */
-  | { type: 'hostInput'; input: unknown; afterMs?: number };
+  | { type: 'hostInput'; input: unknown; afterMs?: number }
+  /** A player drops out or comes back (`onPlayersChanged`, when the game has it). */
+  | { type: 'presence'; playerId: string; connected: boolean; afterMs?: number };
 
 export interface RoundFixture {
   content: unknown;
@@ -74,9 +76,14 @@ function zeroStats(): PlayerStats {
 export function playRound(
   module: AnyGameModule,
   fixture: RoundFixture,
-  options: { untilFirstInput?: boolean } = {},
+  options: {
+    untilFirstInput?: boolean;
+    /** Draws every frame from this version of the state (the round goes on unchanged). */
+    viewState?: (state: unknown) => unknown;
+  } = {},
 ): PlayedRound & { state: unknown; context: () => RoundContext<unknown, unknown> } {
   let now = START_TIME;
+  let players = fixture.players;
   let phase: PhaseClock | null = null;
   let ended = false;
   const rejects: PlayedRound['rejects'] = [];
@@ -96,7 +103,7 @@ export function playRound(
     content: fixture.content,
     settings,
     scoreMultiplier: fixture.scoreMultiplier ?? 1,
-    players: fixture.players,
+    players,
     stats,
     phase,
     now,
@@ -124,13 +131,14 @@ export function playRound(
 
   const capture = (state: unknown) => {
     const ctx = context();
+    const shown = options.viewState ? options.viewState(state) : state;
     frames.push({
       phase: phase?.name ?? null,
       durationMs: phase?.hidden ? null : (phase?.durationMs ?? null),
       ended,
-      hostView: module.getHostView(state, ctx),
+      hostView: module.getHostView(shown, ctx),
       playerViews: Object.fromEntries(
-        fixture.players.map((player) => [player.id, module.getPlayerView(state, player.id, ctx)]),
+        fixture.players.map((player) => [player.id, module.getPlayerView(shown, player.id, ctx)]),
       ),
     });
   };
@@ -153,6 +161,16 @@ export function playRound(
       const next = module.onTimer(state, context());
       state = next.state;
       apply(next.effects);
+    } else if (step.type === 'presence') {
+      now += step.afterMs ?? 0;
+      players = players.map((player) =>
+        player.id === step.playerId ? { ...player, connected: step.connected } : player,
+      );
+      if (module.onPlayersChanged) {
+        const next = module.onPlayersChanged(state, context());
+        state = next.state;
+        apply(next.effects);
+      }
     } else if (step.type === 'hostInput') {
       if (options.untilFirstInput) break;
       if (!module.hostInputSchema || !module.onHostInput) {

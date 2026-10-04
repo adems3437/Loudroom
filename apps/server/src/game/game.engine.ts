@@ -162,7 +162,33 @@ export class GameEngine implements OnApplicationBootstrap {
         throw new CommandError('INVALID_STATE', 'The game is not paused');
       }
       this.resumeGame(draft, game);
+      // Who is here may have changed during the pause.
+      this.notifyPlayersChanged(draft, game);
     });
+  }
+
+  /**
+   * A player connected, disconnected, joined or left: the running round's module may react
+   * (e.g. a bot takes an absent player's turn).
+   */
+  async playersChanged(code: string): Promise<void> {
+    await this.step(code, (draft) => {
+      if (!draft.game) return false;
+      return this.notifyPlayersChanged(draft, draft.game);
+    }).catch((error: unknown) => {
+      if (!(error instanceof CommandError)) logger.error(error);
+    });
+  }
+
+  private notifyPlayersChanged(draft: Draft, game: GameRecord): boolean {
+    const round = currentRound(game);
+    if (draft.room.status !== 'PLAYING' || !round) return false;
+    const module = moduleFor(round);
+    if (!module.onPlayersChanged) return false;
+    const transition = module.onPlayersChanged(game.moduleState, this.context(game, round, draft));
+    game.moduleState = transition.state;
+    this.applyEffects(draft, game, module, round, transition.effects);
+    return true;
   }
 
   /** After the podium: same players back in the lobby, scores reset. */
