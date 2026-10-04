@@ -27,8 +27,10 @@ import {
   AMIRAL_TEAMS_PACK_ID,
   AMIRAL_TOURNAMENT_PACK_ID,
   KIZMA_PACK_ID,
+  OKEY_PACK_ID,
   SAMPLE_AMIRAL,
   SAMPLE_KIZMA,
+  SAMPLE_OKEY,
   seedBoardPacks,
 } from '../src/seed/board-packs.js';
 import {
@@ -269,12 +271,13 @@ describe('seedCategories', () => {
     }
   });
 
-  it('seeds Kızma Birader, Amiral Battı and their packs idempotently', async () => {
+  it('seeds Kızma Birader, Amiral Battı, Okey and their packs idempotently', async () => {
     await seedBoardPacks(prisma);
     await seedBoardPacks(prisma);
     for (const [gameType, item] of [
       ['kizmaBirader', SAMPLE_KIZMA],
       ['amiralBatti', SAMPLE_AMIRAL],
+      ['okey', SAMPLE_OKEY],
     ] as const) {
       const row = await prisma.contentItem.findUniqueOrThrow({ where: { id: item.id } });
       expect(row).toMatchObject({ gameType, status: 'PUBLISHED' });
@@ -289,6 +292,7 @@ describe('seedCategories', () => {
         'amiralBatti',
         { mode: 'tournament', fleet: 'small' },
       ],
+      [OKEY_PACK_ID, 'Okey', 'okey', {}],
     ] as const) {
       const pack = await prisma.gamePack.findUniqueOrThrow({
         where: { id: packId },

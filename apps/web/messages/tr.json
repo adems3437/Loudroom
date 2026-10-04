@@ -87,7 +87,8 @@
       "uno": "UNO",
       "pisti": "Pişti",
       "kizmaBirader": "Kızma Birader",
-      "amiralBatti": "Amiral Battı"
+      "amiralBatti": "Amiral Battı",
+      "okey": "Okey"
     },
     "overview": {
       "title": "Genel bakış",
@@ -1168,6 +1169,86 @@
         "finalistPoints": "Finalist puanı",
         "semifinalPoints": "Yarı finalist puanı",
         "otherPoints": "Diğerleri"
+      }
+    },
+    "okey": {
+      "name": "Okey",
+      "timeLeft": "Sıra süresi",
+      "notEnoughPlayers": "Okey için en az {min} bağlı oyuncu gerekiyor; puansız geçildi.",
+      "botName": "Bot {n}",
+      "botPlaying": "🤖 Bot oynuyor",
+      "hand": "{hand}. el / {hands}",
+      "handsLabel": "El sayısı",
+      "pointsLabel": "Başlangıç puanı",
+      "modeLabel": "Oyun",
+      "modeSolo": "Tekli",
+      "modeTeams": "Eşli",
+      "sideName": "{side}. taraf",
+      "start": "Başlat",
+      "setupWaiting": "Host oyunu ayarlıyor…",
+      "rotateHint": "Okey yatay oynanır: telefonunu yan çevir.",
+      "rotate": "Telefonunu yan çevir",
+      "deck": "Ortada {count}",
+      "indicator": "Gösterge",
+      "okey": "Okey",
+      "discarded": "Attığı",
+      "tiles": "{count} taş",
+      "points": "{points} puan",
+      "firstTurn": "{name} başlıyor",
+      "last": {
+        "draw": "{name} ortadan çekti",
+        "take": "{name} soldan aldı",
+        "discard": "{name} taş attı",
+        "show": "{name} göstergeyi gösterdi: diğerleri −1"
+      },
+      "tallyWon": "{name} bitirdi!",
+      "tallyDraw": "Ortada taş kalmadı: el berabere",
+      "kind": {
+        "okey": "Okey atarak bitirdi: ×2",
+        "pairs": "Çiftten bitirdi: ×2",
+        "both": "Çiftten ve okey atarak: ×4"
+      },
+      "finishTile": "Bitirdiği taş",
+      "endedBy": {
+        "hands": "Eller bitti.",
+        "zero": "Bir taraf sıfıra indi.",
+        "time": "Maç süresi doldu."
+      },
+      "place": "{place}.",
+      "wins": "{count} el aldı",
+      "yourPlace": "{place}. oldun",
+      "over": "Maç bitti.",
+      "watching": "Bu maçta izleyicisin.",
+      "fromLeft": "Soldan",
+      "discardHere": "At",
+      "finishHere": "Bitir",
+      "drawNow": "Sıra sende: ortadan çek ya da soldakini al",
+      "discardNow": "Bir taş at ya da bitir",
+      "waitingTurn": "Sıra: {name}",
+      "sortRuns": "Seri diz",
+      "sortPairs": "Çift diz",
+      "show": "Göstergeyi göster",
+      "discard": "At",
+      "finish": "Bitir",
+      "cannotFinish": "Bu taşlarla bitemezsin.",
+      "editor": {
+        "title": "Maçın adı",
+        "titlePlaceholder": "ör. Kahvehane Okeyi",
+        "titleHint": "Kurallar (el sayısı, başlangıç puanı, eşli oyun) paketteki bölüm ayarlarında; TV oyun başında yine sorar.",
+        "invalid": "Bu alanı kontrol et."
+      },
+      "settings": {
+        "hands": "El sayısı (varsayılan)",
+        "handsHint": "Oyun başında TV'de değiştirilebilir.",
+        "startPoints": "Başlangıç puanı (varsayılan)",
+        "startPointsHint": "Herkes bu puanla başlar; bitiren dışındakiler düşer. Oyun başında değiştirilebilir.",
+        "turnSeconds": "Sıra süresi (sn)",
+        "matchMinutes": "Maç süresi (dk)",
+        "matchMinutesHint": "Dolunca maç biter; süren el sayılmaz.",
+        "teams": "Eşli oyun (varsayılan)",
+        "teamsHint": "Karşılıklı oturanlar eş olur, puanları ortak.",
+        "bots": "Kopan oyuncu yerine bot",
+        "botsHint": "Bağlantısı kopanın sırasını bot oynar. Boş koltuklarda her zaman bot oturur."
       }
     }
   },

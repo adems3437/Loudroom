@@ -12,6 +12,7 @@ import {
 } from '@loudroom/game-image-location/client';
 import { KIZMA_GAME_TYPE, kizmaRenderer } from '@loudroom/game-kizma-birader/client';
 import { MEMORY_GAME_TYPE, memoryRenderer } from '@loudroom/game-memory/client';
+import { OKEY_GAME_TYPE, okeyRenderer } from '@loudroom/game-okey/client';
 import { PISTI_GAME_TYPE, pistiRenderer } from '@loudroom/game-pisti/client';
 import { QUIZ_GAME_TYPE, quizRenderer } from '@loudroom/game-quiz/client';
 import { REACTION_GAME_TYPE, reactionRenderer } from '@loudroom/game-reaction/client';
@@ -52,6 +53,7 @@ const RENDERERS: Record<string, AnyRenderer> = {
   [PISTI_GAME_TYPE]: erase(pistiRenderer),
   [KIZMA_GAME_TYPE]: erase(kizmaRenderer),
   [AMIRAL_GAME_TYPE]: erase(amiralRenderer),
+  [OKEY_GAME_TYPE]: erase(okeyRenderer),
 };
 
 export function findRenderer(gameType: string): AnyRenderer | undefined {

@@ -27,6 +27,7 @@ RUN mkdir -p /app/node_modules /app/apps/server/node_modules /app/apps/web/node_
     /app/packages/games/spy/node_modules /app/packages/games/uno/node_modules \
     /app/packages/games/pisti/node_modules /app/packages/table-kit/node_modules \
     /app/packages/games/kizma-birader/node_modules /app/packages/games/amiral-batti/node_modules \
+    /app/packages/games/okey/node_modules \
     /app/apps/web/.next /pnpm-store /media-data \
   && chown -R node:node /app /pnpm-store /media-data
 

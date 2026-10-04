@@ -36,6 +36,7 @@
     "@loudroom/game-image-location": "workspace:*",
     "@loudroom/game-kizma-birader": "workspace:*",
     "@loudroom/game-memory": "workspace:*",
+    "@loudroom/game-okey": "workspace:*",
     "@loudroom/game-pisti": "workspace:*",
     "@loudroom/game-quiz": "workspace:*",
     "@loudroom/game-reaction": "workspace:*",

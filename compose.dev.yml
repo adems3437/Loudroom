@@ -31,6 +31,7 @@ x-app: &app
     - table-kit-node-modules:/app/packages/table-kit/node_modules
     - game-kizma-birader-node-modules:/app/packages/games/kizma-birader/node_modules
     - game-amiral-batti-node-modules:/app/packages/games/amiral-batti/node_modules
+    - game-okey-node-modules:/app/packages/games/okey/node_modules
     - pnpm-store:/pnpm-store
     # Next's dev output stays in the container: in the iCloud folder it collected conflict
     # copies ("LOG 2") that broke Turbopack's cache, and the host's own `next` shares nothing.
@@ -149,5 +150,6 @@ volumes:
   table-kit-node-modules:
   game-kizma-birader-node-modules:
   game-amiral-batti-node-modules:
+  game-okey-node-modules:
   web-next:
   pnpm-store:

@@ -6,6 +6,7 @@ import { drawingModule } from '@loudroom/game-drawing/server';
 import { imageLocationModule } from '@loudroom/game-image-location/server';
 import { kizmaModule } from '@loudroom/game-kizma-birader/server';
 import { memoryModule } from '@loudroom/game-memory/server';
+import { okeyModule } from '@loudroom/game-okey/server';
 import { pistiModule } from '@loudroom/game-pisti/server';
 import { quizModule } from '@loudroom/game-quiz/server';
 import { reactionModule } from '@loudroom/game-reaction/server';
@@ -32,6 +33,7 @@ const MODULES: readonly AnyGameModule[] = [
   pistiModule,
   kizmaModule,
   amiralModule,
+  okeyModule,
 ];
 
 const byType = new Map(MODULES.map((module) => [module.id, module]));

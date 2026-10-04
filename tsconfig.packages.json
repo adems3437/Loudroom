@@ -54,6 +54,9 @@
     },
     {
       "path": "./packages/games/amiral-batti/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/okey/tsconfig.build.json"
     }
   ]
 }
