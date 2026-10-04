@@ -7,8 +7,10 @@ FROM node:24-slim
 COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
 
 # curl: container healthchecks. openssl + ca-certificates: Prisma's migration engine.
+# procps: `nest start --watch` finds the app process to stop with `ps`; without it the old
+# process keeps port 4000 and every restart fails with EADDRINUSE.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl ca-certificates openssl \
+  && apt-get install -y --no-install-recommends curl ca-certificates openssl procps \
   && rm -rf /var/lib/apt/lists/*
 
 RUN npm install --global pnpm@12.8.1 && npm cache clean --force

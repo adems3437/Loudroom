@@ -44,8 +44,15 @@
         "API_INTERNAL_URL",
         "MEDIA_MAX_VIDEO_BYTES",
         "FFMPEG_PATH",
-        "FFPROBE_PATH"
+        "FFPROBE_PATH",
+        "TSC_WATCHFILE",
+        "TSC_WATCHDIRECTORY"
       ]
+    },
+    "//#dev:packages": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["TSC_WATCHFILE", "TSC_WATCHDIRECTORY"]
     }
   }
 }

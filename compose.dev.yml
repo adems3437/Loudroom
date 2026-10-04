@@ -64,7 +64,8 @@ services:
       - -ec
       - |
         pnpm install --frozen-lockfile --store-dir /pnpm-store
-        pnpm exec turbo run build --filter='./packages/**' --ui=stream
+        # One tsc process for all packages: separate builds per package exhaust a 4 GB Docker VM.
+        pnpm exec tsc -b tsconfig.packages.json
         pnpm --filter @loudroom/server db:generate
         pnpm --filter @loudroom/server db:deploy
         pnpm --filter @loudroom/server db:seed
@@ -77,8 +78,15 @@ services:
 
   server:
     <<: *app
-    # Rebuilds shared on change and restarts Nest on change.
-    command: pnpm exec turbo run dev --filter=@loudroom/server... --ui=stream
+    # One `tsc -b --watch` rebuilds every package on change; Nest restarts on change. `--only`
+    # skips the per-package builds (setup already built them) and their memory peak.
+    command: pnpm exec turbo run dev:packages dev --filter=// --filter=@loudroom/server --only --ui=stream
+    environment:
+      <<: *app-env
+      # TypeScript watchers poll modification times. Event-based watching restarts Nest on
+      # metadata-only events (iCloud on the macOS host), dropping game timers mid-round.
+      TSC_WATCHFILE: DynamicPriorityPolling
+      TSC_WATCHDIRECTORY: DynamicPriorityPolling
     ports:
       - '${SERVER_PORT:-4000}:4000'
     depends_on:

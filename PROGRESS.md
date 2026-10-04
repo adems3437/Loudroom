@@ -4,18 +4,18 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                                               |
-| ----------------------------------------------- | --------------------------------------------------- |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)                          |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)                          |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)                          |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)                          |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)                          |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02)                          |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02)                          |
-| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02)                          |
-| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02)                          |
-| Phase 9B — Video, prod, yedekleme               | 🟡 Kodlandı; Mac'te üç doğrulama bekliyor (aşağıda) |
+| Faz                                             | Durum                      |
+| ----------------------------------------------- | -------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
+| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
+| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02) |
+| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04) |
 
 ---
 
@@ -140,13 +140,61 @@ F7–F12 Phase 9 planında onaylıydı.
 | Sıfırdan dev `docker compose up --build` | ❌ **Doğrulanamadı:** dev imajındaki `apt-get` (`deb.debian.org`) bu ortamda engelli                                                                                      |
 | GitHub Actions                           | ❌ **Henüz çalışmadı:** iş akışı `main`'e push ve PR'larda tetikleniyor; bu dal `main-xyqt1n`                                                                             |
 
-**Mac'te yapılacak üç doğrulama:**
+**Mac'te yapılacak üç doğrulama** (2026-10-04'te yapıldı, sonuçlar aşağıda):
 
 ```bash
 docker compose down -v && docker compose up -d --build --wait   # dev imajı ffmpeg ile
 pnpm test:e2e                                                    # WebKit dahil
 # main'e alındıktan sonra GitHub'da Actions sekmesinde CI'ın yeşil olduğu
 ```
+
+### Mac doğrulaması ve dev Docker düzeltmeleri (2026-10-04)
+
+Üç doğrulama Mac'te (8 GB RAM, Docker Desktop VM'i 3.8 GB) yapıldı. Sıfırdan dev stack'i
+çalıştırmak üç sorunu ortaya çıkardı; düzeltme planı kullanıcı onayıyla uygulandı.
+
+| Kontrol                                   | Sonuç                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| `docker compose down -v && up -d --build` | ✅ (düzeltmelerden sonra) setup migration + seed; server ve web sağlıklı |
+| `pnpm test:e2e` (Docker stack'ine karşı)  | ✅ 34/34, Chromium + WebKit, koşu boyunca 0 server yeniden başlaması     |
+| GitHub Actions (`main` push)              | ✅ CI yeşil (5 dk)                                                       |
+| typecheck / lint / test / build / format  | ✅ 24 / 24 / 23 (501 test) / 13 görev, format temiz                      |
+
+**Bulunan sorunlar ve düzeltmeler:**
+
+- **Server konteyneri bellek yetmeyince ölüyordu (exit 137):** Turbo her paket için ayrı bir
+  `tsc --watch` açıyordu (11 × ~330 MB) ve yanında Nest çalışıyordu; açılışta 3 GB'ı geçip 3.8
+  GB'lık VM'de bellek bitiyordu. Artık paketlerin `tsconfig.build.json` dosyaları `composite`
+  (oyunlar `game-sdk`'ye `references` veriyor) ve kökteki `tsconfig.packages.json` hepsini
+  topluyor. Setup paketleri tek `tsc -b` ile derliyor (tepe ~800 MB). Server konteyneri
+  `pnpm dev:packages` (tek `tsc -b --watch`, turbo kök görevi `//#dev:packages`) ile Nest'i
+  `--only` ile çalıştırıyor. Server tepe belleği >3.6 GB'tan ~1.5 GB'a indi. Host'taki
+  `pnpm dev` ve turbo `build` değişmedi.
+- **Nest yeniden başlarken port 4000 dolu kalıyordu (`EADDRINUSE`):** `nest start --watch`
+  eski süreci `ps` ile buluyor; dev imajında `ps` yoktu, uygulama süreci sahipsiz kalıyordu.
+  Server kodunda hot reload Docker'da bu yüzden hiç çalışmıyordu. Dev imajına `procps`
+  eklendi.
+- **Nest birkaç saniyede bir kendiliğinden yeniden başlıyordu:** Repo iCloud Desktop'ta;
+  derlemeden sonra iCloud dosyaların meta verisine dokunuyor, Docker Desktop bunu konteynere
+  "değişti" olayı olarak iletiyor, TypeScript de değişiklik zamanına bakmadan yeniden derliyor.
+  e2e'de oyun zamanlayıcıları sıfırlanıp 7 test düşüyordu. Server konteynerinde
+  `TSC_WATCHFILE`/`TSC_WATCHDIRECTORY=DynamicPriorityPolling` (turbo'da `passThroughEnv`);
+  hot reload ~18 sn'de çalışıyor, boşta CPU ~%1.5.
+
+**Varsayımlar ve bilinen sınırlar:**
+
+- `.tsbuildinfo` paketin `dist/` klasörüne yazılıyor (`tsBuildInfoFile`): `dist` silinince o da
+  gidiyor, turbo önbelleği onu da saklıyor.
+- Host'ta `pnpm build`, Docker'daki server ile paylaşılan `apps/server/dist`'i silip yeniden
+  yazıyor; ardından `docker compose restart server` gerekiyor (CLAUDE.md'de yazılı).
+- Web konteyneri (`next dev`, Turbopack) sayfalar derlendikçe 1–2 GB'a çıkabiliyor;
+  Turbopack'in varsayılan `'auto'` bellek boşaltması baskı altında geri veriyor. Bir ayar
+  yapılmadı.
+- Docker çalışırken host'ta tam paralel test/build, 8 GB'lık Mac'te Docker Desktop'ı bir kez
+  yeniden başlattı; doğrulamalar `--concurrency=4` ile çalıştırıldı.
+- Kullanıcının `.env` dosyası Phase 4 öncesinden kalmaydı; eksik 11 anahtar `.env.example`'dan
+  eklendi (`ADMIN_SEED_*` ve `REST_RATE_LIMIT_*` olmadan admin ve WebKit e2e testleri düşüyor).
+- Yeni paket yok; dev imajına Debian'ın `procps` paketi eklendi.
 
 ### Alınan kararlar (kullanıcı onaylı)
 

@@ -135,7 +135,9 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
 - Every added package gets a reason in PROGRESS.md. Pin exact versions.
 - New game = new package under `packages/games/` + one line in
   `apps/server/src/game/registry.ts` and `apps/web/src/games/registry.ts` + a `node_modules`
-  volume in `compose.dev.yml` and its mount point in `docker/dev.Dockerfile`. It must pass
+  volume in `compose.dev.yml` and its mount point in `docker/dev.Dockerfile` + a reference in
+  `tsconfig.packages.json` (its `tsconfig.build.json` is `composite` and references
+  `game-sdk`). It must pass
   `describeGameModuleContract` with `secretVariants` (hidden content) and/or `secretScripts`
   (one player's input hidden from others; an entry may carry other content too); players or
   the host allowed to know a secret go in `secretHolders` (e.g. the drawer, a TV showing live
@@ -203,6 +205,19 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
 - dnd-kit swallows clicks for 50 ms after a drag; e2e tests wait a moment after dragging.
 - Turbo runs every package's `dev` watcher as a persistent task; `turbo.json` sets
   `concurrency` above their count (the default 10 broke the dev server at 10 tasks).
+- The Docker dev server does not use those per-package watchers: one `tsc --watch` per
+  package (~330 MB each) exhausted the 4 GB Docker VM (exit 137). Setup builds all packages
+  with one `tsc -b tsconfig.packages.json`, and the server container runs `pnpm dev:packages`
+  (one `tsc -b --watch`, turbo root task `//#dev:packages`) next to Nest with `--only`.
+- The dev image needs `procps`: `nest start --watch` stops the app with `ps`; without it the
+  old process keeps port 4000 and every restart fails with `EADDRINUSE`.
+- The Docker server container sets `TSC_WATCHFILE`/`TSC_WATCHDIRECTORY` to
+  `DynamicPriorityPolling` (passed through in turbo.json). Docker Desktop forwards
+  metadata-only events (iCloud touching files after a build) as changes; event-based watching
+  recompiled and restarted Nest every few seconds, killing game timers in e2e runs.
+- The Docker dev server shares `apps/server/dist` and the package `dist`s with the host via
+  the bind mount. A host `pnpm build` deletes and rewrites them, which can leave Nest without
+  `dist/main`: run `docker compose restart server` before `pnpm test:e2e`.
 - Reloading the host page pauses a running game (host disconnect); e2e tests resume it.
 - The seed writes map images into `MEDIA_DIR` (resolved from the server's working directory,
   `/media-data` in Docker); `seedMapPack(prisma, { mediaDir })` lets tests use a temp dir.

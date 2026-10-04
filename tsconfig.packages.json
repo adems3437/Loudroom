@@ -1,0 +1,38 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/shared/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/game-sdk/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/bluff/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/closest-number/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/drawing/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/image-location/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/memory/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/quiz/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/reaction/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/sorting/tsconfig.build.json"
+    },
+    {
+      "path": "./packages/games/who-would/tsconfig.build.json"
+    }
+  ]
+}
