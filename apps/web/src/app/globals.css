@@ -3,6 +3,7 @@
 /* Game packages ship their own screens; Tailwind must see their class names. */
 @source '../../../../packages/game-sdk/src';
 @source '../../../../packages/games';
+@source '../../../../packages/table-kit/src';
 
 /*
  * Design tokens — the single place for colors, typography and spacing (SPEC §12).
@@ -22,6 +23,15 @@
   --color-success: #2ed27d;
   --color-warning: #ffad1f;
   --color-danger: #ff4d6d;
+
+  /* Card games (original designs, SPEC §7.12–7.16): UNO colours and playing card faces. */
+  --color-uno-red: #e5383b;
+  --color-uno-yellow: #f6bd16;
+  --color-uno-green: #2bb673;
+  --color-uno-blue: #2f80ed;
+  --color-card-face: #f8f5ec;
+  --color-card-ink: #1a1a2e;
+  --color-card-red: #d62839;
 
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-heading), var(--font-body), ui-sans-serif, system-ui, sans-serif;
