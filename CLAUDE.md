@@ -98,7 +98,8 @@ packages/games/*   one package per game: schema.ts, server.ts (module), import.t
                    editor.tsx (admin content form), settings-editor.tsx (pack round settings);
                    exports ./server and ./client separately. quiz, closest-number, sorting
                    (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff, drawing (round
-                   stream, canvas), reaction (hidden phase clock), memory
+                   stream, canvas), reaction (hidden phase clock), memory, tombala (host
+                   input), spy ("Casus Kim?")
 docker/            dev image, postgres init (creates loudroom_test); server.Dockerfile (build stage =
                    migrate image, slim runtime + static ffmpeg), web.Dockerfile (standalone),
                    nginx/ (nginx.conf, locations.conf, sites/http.conf, tls.conf.example),
@@ -164,6 +165,13 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
 - High-frequency data goes over `round:stream` (no ack, own rate bucket), never `round:input`.
   A module declares `stream` (schema, `accepts`, `cost`, limits); chunks never enter the
   module state. Renderers get a `stream` prop (`subscribe` replays the history, `send`).
+- The TV sends round input over `round:hostInput` (host only): a module declares
+  `hostInputSchema` + `onHostInput` and refuses with a `reject` effect for
+  `HOST_INPUT_SENDER`; its contract fixture then needs `invalidHostInputs`. Host renderers get
+  `sendHostInput`. Games without host input answer `INVALID_INPUT`.
+- A module's randomness belongs in `createRound`: `ctx.random` restarts from the round seed
+  on every call. Later draws derive their own seed (Tombala deals a late joiner's card from
+  `seedFromString(cardSeed:playerId)`).
 - Game modules are pure and synchronous; the engine does IO, timers, persistence and
   broadcasting. Engine steps run under the room lock (`RoomService.transact`).
 
@@ -215,6 +223,15 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
   `DynamicPriorityPolling` (passed through in turbo.json). Docker Desktop forwards
   metadata-only events (iCloud touching files after a build) as changes; event-based watching
   recompiled and restarted Nest every few seconds, killing game timers in e2e runs.
+- TypeScript watchers ignore `.next`, `.turbo`, `test-results` and `playwright-report`
+  (`watchOptions.excludeDirectories` in tsconfig.base.json): the Docker server polls the whole
+  bind mount, and Turbopack writing `.next` restarted Nest mid-game (games pause on restart).
+- Host and Docker `next dev` share `apps/web/.next/dev`. After switching between them a
+  Turbopack "Failed to restore data" 500 means a mixed cache: stop web, delete
+  `apps/web/.next/dev`, start it again.
+- Host screens render inside the stage's main area (about 720 px tall above the "next"
+  button): a host renderer that overflows covers the stage controls. Fit it, and keep
+  `overflow-hidden` on its root.
 - The Docker dev server shares `apps/server/dist` and the package `dist`s with the host via
   the bind mount. A host `pnpm build` deletes and rewrites them, which can leave Nest without
   `dist/main`: run `docker compose restart server` before `pnpm test:e2e`.

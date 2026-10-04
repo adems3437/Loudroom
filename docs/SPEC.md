@@ -127,6 +127,9 @@ interface GameModule<Content, Settings, State, Input, HostView, PlayerView> {
   // ScoreResult: { playerId, points, correct, responseTimeMs, answer, breakdown }
   onSkip?(state: State, ctx: RoundContext<Content, Settings>): Transition<State> | null;
   // host "atla" dediğinde; yoksa ya da null dönerse round puansız düşer
+  hostInputSchema?: ZodType<HostInput>;
+  onHostInput?(state: State, input: HostInput, ctx: RoundContext<Content, Settings>): Transition<State>;
+  // TV'den gelen girdi (Tombala'da "Çek"); reddi HOST_INPUT_SENDER için 'reject' efekti
   stream?: { schema: ZodType<Chunk>; accepts(state, playerId, ctx): boolean;
              cost(chunk): number; limits: { maxChunks: number; maxCost: number } };
   // round:stream kullanan oyunlar (Drawing); paketler modül durumuna girmez
@@ -170,6 +173,8 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
   - Drawing: `{ word, alternatives?: string[] (≤5) }`
   - Reaction: `{ title, variant: 'classic' | 'goNoGo' }`
   - Memory: `{ title, items: [{ id, label, emoji?, mediaId? }] (8–24) }` (her öğede emoji ya da görsel)
+  - Tombala: `{ title }` (çekiliş, işaretleme ve ödüller bölüm ayarlarında)
+  - Casus Kim?: `{ title, locations: [{ id, name, emoji? }] (8–30) }` (mekân seti; her round birini seçer, adlar benzersiz)
   - Diğer oyunlar kendi şemalarıyla.
 - **GamePack:** `id, name, description, status (DRAFT|PUBLISHED), settings, rounds[]` — host yalnızca yayındaki paketleri görür; yayınlarken her bölümün oynanabilir olduğu kontrol edilir.
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`
@@ -292,7 +297,7 @@ room:create  room:join  room:leave  room:kick  room:lock
 player:ready  player:update
 game:start  game:pause  game:resume  game:skip  game:end
 game:next  game:restart
-round:input  round:stream
+round:input  round:hostInput  round:stream
 time:sync
 ```
 Server → client:
@@ -302,6 +307,7 @@ game:state  round:start  round:phase  round:result  round:stream
 score:update  game:end  error
 ```
 - `round:stream` (istemci → server) **ack'siz** tek istisnadır: yüksek frekanslı paketler cevap beklemez, kendi hız kovası vardır, server reddettiğini sessizce düşürür. Server → istemci `round:stream`: `{ roundId, reset, chunks, full }`.
+- `round:hostInput`: TV'den round'a girdi (yalnızca host; oyunun `hostInputSchema`'sı ile doğrulanır, host girdisi olmayan oyunda `INVALID_INPUT`).
 - `game:next`: host sonuç / skor tablosu ekranından ilerler. `game:restart`: oyun bittikten sonra aynı oyuncularla lobby'ye döner.
 - Oyun durumu kaynağı `game:state`'tir (izleyiciye özel); `round:*`, `score:update`, `game:end` efektler (ses, titreşim) için bildirimdir.
 - Hepsinin payload şeması `packages/shared` içinde zod ile tanımlı.
