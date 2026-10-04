@@ -4,20 +4,180 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                      |
-| ----------------------------------------------- | -------------------------- |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
-| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
-| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02) |
-| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04) |
-| Phase 10 — Tombala + Casus Kim?                 | ✅ Tamamlandı (2026-10-04) |
-| Phase 11 — Kart/masa altyapısı + UNO + Pişti    | ✅ Tamamlandı (2026-10-04) |
+| Faz                                             | Durum                          |
+| ----------------------------------------------- | ------------------------------ |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)     |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)     |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)     |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)     |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)     |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02)     |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02)     |
+| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02)     |
+| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02)     |
+| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04)     |
+| Phase 10 — Tombala + Casus Kim?                 | ✅ Tamamlandı (2026-10-04)     |
+| Phase 11 — Kart/masa altyapısı + UNO + Pişti    | ✅ Tamamlandı (2026-10-04)     |
+| Phase 12 — Kızma Birader + Amiral Battı         | ⏸ Plan onay bekliyor (aşağıda) |
+
+---
+
+## Phase 12 — Kızma Birader + Amiral Battı (plan, onay bekliyor)
+
+Plan 2026-10-04'te çıkarıldı. J1–J16 kararları kullanıcının onayını bekliyor. Kullanıcı
+"öneriler tamam" derse uygulamaya geçilir.
+
+### 1. Ortak altyapı
+
+- **Sunucuya özel gizlilik testi (J2):** Kızma Birader'de gizli bir el yok, ama sıradaki
+  zarlar sunucudaki seed'den geliyor ve hiçbir yere sızmamalı. Sözleşme testine
+  `serverState(state)` eklenir: yalnızca sunucunun bildiğini değiştiren bir dönüşüm (zar
+  seed'i, destenin ya da torbanın sırası). Bununla çizilen her karede hiçbir görünüm
+  değişmemeli. UNO, Pişti ve Tombala fixture'larına da eklenir (deste ve torba sırası).
+- **table-kit:** Zar atışı (her atış için durumda tutulan bir sayaçla seed'li) ve
+  "eşzamanlı sıra" yardımcısı eklenir. Turnuvadaki paralel düellolar tek bir faz saatiyle
+  ilerler.
+- Motor değişikliği yok.
+
+### 2. Oyunlar
+
+- **Kızma Birader** (`kizmaBirader`, `@loudroom/game-kizma-birader`):
+  - İçerik yalnızca ad, kurallar bölüm ayarlarında.
+  - **Tahta (J3):** Özgün, dairesel bir tasarım. Yol bir çemberde, her oyuncunun bahçesi
+    dışarıda, eve giden 4 kare merkeze doğru. 4 kişilik tahta 40 kare (başlangıçlar 10
+    kare arayla); 6 kişilik varyant (ayar) 48 kare (8 arayla). 2–3 oyuncu 4'lük tahtada
+    oynar.
+  - **Kurallar (J4):**
+    - Bahçeden çıkış 6 ile. 6 gelince bir daha atılır.
+    - Tahtada piyonu olmayan oyuncu 6 için 3 kez atar.
+    - Rakip piyonunun üstüne gelmek onu bahçesine yollar. Kendi piyonunun üstüne
+      gelinmez.
+    - Eve tam sayıyla girilir; evde kendi piyonunun üstünden atlanmaz. Yemek zorunlu
+      değil.
+    - Piyon sayısı ayarı (1–4, varsayılan 4).
+  - **Telefon (J5):** "Zar at", sonra yalnızca oynanabilir piyonlar seçilebilir. Tek seçenek
+    varsa otomatik oynanır (ayar). Zarı sunucu atar.
+  - **Bitiş (J6):** Sırayla bitirenler sıralanır, sonuncu kalana kadar sürer. Maç süresi
+    sınırı (varsayılan 20 dk) dolarsa ilerlemeye göre sıralanır. Puanlar 1000 / 600 /
+    400 / 200.
+  - **Saat ve bot (J7):** Zar ve hamle için 15'er sn. Süre dolunca ve kopan oyuncu için
+    ~1,5 sn sonra bot oynar. Bot önceliği: yemek > bahçeden çıkış > eve giriş > en öndeki
+    piyonu ilerletmek.
+  - **TV:** Tahta ve piyonlar, büyük zar, sıradaki oyuncu ve saati, son hamle (yeme
+    anında vurgu), bitirenler.
+- **Amiral Battı** (`amiralBatti`, `@loudroom/game-amiral-batti`):
+  - İçerik yalnızca ad, kurallar bölüm ayarlarında.
+  - **Modlar (J8):** `teams` (varsayılan, iki takım) ve `tournament` (eşleşmeli düello
+    turnuvası). 2 oyuncuyla ikisi de bire bir düello.
+  - **Tahta ve filo (J9):**
+    - `classic`: 10×10, 5-4-3-3-2.
+    - `small`: 8×8, 4-3-2-2.
+    - `mini`: 6×6, 3-2-2.
+    - Gemiler düz; üst üste binemez, değebilir.
+  - **Yerleştirme (J10):**
+    - Telefonda ızgara: gemiyi seç, kareye dokun, döndür; "Rastgele diz" ve "Hazır".
+    - Süre 90 sn; yerleştirilmeyen filo rastgele dizilir.
+    - Takım modunda filoyu takımın ilk üyesi (kaptan) yerleştirir, takım arkadaşları
+      görür.
+  - **Atışlar (J11):**
+    - Taraflar sırayla atış yapar ("isabette tekrar at" ayarı, varsayılan kapalı).
+    - Batan gemi iki tarafa da gösterilir. Takım modunda üyeler sırayla atar.
+    - TV iki tarafın atış haritasını (isabet, ıska, batan) gemileri göstermeden gösterir.
+  - **Turnuva (J12):**
+    - Rastgele eşleşmeli eleme; tek sayıda oyuncuda bay geçen olur.
+    - Düellolar paralel ve "eşzamanlı sıra" ile ilerler: her adımda bütün düellolarda
+      sıradaki taraf atar. Adım herkes atınca ya da süre dolunca biter. Tek faz saati
+      yeter, duraklatma motorla çalışır.
+    - Tur, bütün düellolar bitince ilerler.
+    - Puanlar: şampiyon 1000, finalist 600, yarı finalistler 400, diğerleri 200.
+    - Takım modunda kazanan takım 1000, kaybeden 300.
+  - **Saat ve bot (J13):** Atış 20 sn. Süre dolunca ve kopan oyuncu için bot atar: önce
+    batmamış isabetlerin çevresi, yoksa satranç deseninde rastgele kare.
+  - **Gizlilik:** Filolar yalnızca sahibine (ve takım arkadaşlarına) gider. Atış
+    sonuçları atış anında durumda saklanır; görünümler filodan hesaplanmaz.
+  - **TV:** Takım modunda iki büyük harita. Turnuvada eşleşme ağacı ve her düellonun küçük
+    haritası.
+- **İzleyiciler (J14):** Takım modunda herkes oynar. Turnuvada herkes eşleşir (bay
+  dahil). Maç sırasında katılanlar izler.
+- Her iki oyun önceki fazların kalıbında: `schema.ts`, `server.ts`, `host.tsx`,
+  `player.tsx`, `editor.tsx`, `settings-editor.tsx`, `import.ts`, testler; registry'lere
+  birer satır; metinler `games.<id>` altında.
+
+### 3. Admin ve seed
+
+- **Editörler:** Yalnızca ad.
+- **Ayar formları:**
+  - Kızma Birader: tahta (4 / 6), piyon sayısı, tek seçenekte otomatik, süreler, maç
+    süresi, kopana bot, sıra puanları.
+  - Amiral Battı: mod, tahta ve filo, isabette tekrar, yerleştirme ve atış süreleri, kopana
+    bot, puanlar.
+- **İçe aktarma:** `baslik`.
+- **Seed (J15):** "Kızma Birader" paketi; "Amiral Battı: Takımlar" ve "Amiral Battı
+  Turnuvası" paketleri.
+
+### 4. Testler
+
+- **Unit:**
+  - Kızma Birader:
+    - Tahta geometrisi (4 ve 6 kişilik), 6 ile çıkış ve tekrar atış, üç deneme.
+    - Yeme ve kendi piyonunun engeli, eve tam giriş ve evde atlamama.
+    - Tek seçenekte otomatik, bitiş sırası, süre sınırında ilerleme sıralaması.
+    - Bot öncelikleri, zarın seed ile belirli olması.
+  - Amiral Battı:
+    - Filo doğrulaması (taşma, binme), rastgele dizme.
+    - Atış sonuçları ve batma; sırayla atış ve isabette tekrar ayarı.
+    - Takım rotasyonu ve kaptan yerleştirmesi.
+    - Turnuva eşleşmesi, bay ve eşzamanlı adımlar; bot avı.
+  - Sözleşme testleri: Kızma Birader `serverState` (zar); Amiral Battı `privateState`
+    (filo, düelloda) ve `serverState`; UNO / Pişti / Tombala'ya `serverState`.
+- **Integration:**
+  - Zar sırası hiçbir socket'e gitmiyor; bot kopan oyuncunun yerine atıp oynuyor.
+  - Filolar yalnızca sahiplerine gidiyor.
+  - Turnuvada paralel düellolar tek saatle ilerliyor; duraklatma ve devam.
+- **E2E (Chromium + WebKit):**
+  - Kızma Birader (host + 2 telefon, 1 piyon): zar atılır, piyon seçilir, 6'da tekrar
+    atılır; bir telefon kapanınca bot oynar; bitiş sırası ve podyum.
+  - Amiral Battı takımlar (host + 4 telefon, `mini`):
+    - Kaptanlar rastgele dizer ve hazır der; üyeler sırayla atar; batan gemi iki tarafta
+      görünür; takım kazanır.
+    - WebSocket çerçevelerinde rakip filo yok.
+  - Amiral Battı turnuva (host + 4 telefon, `mini`): iki paralel düello, final, şampiyon.
+
+### Onay bekleyen kararlar
+
+- **J1:** gameType'lar `kizmaBirader` ve `amiralBatti`; ekranda "Kızma Birader" ve "Amiral
+  Battı" (SPEC: "Kızma Birader" tescilli; UNO'daki gibi kişisel kullanım varsayılıyor).
+- **J2:** Sözleşme testine `serverState`; UNO, Pişti ve Tombala fixture'larına da eklenir.
+- **J3:** Dairesel özgün tahta; 4'lük 40, 6'lık 48 kare.
+- **J4:** Klasik kurallar: 6 ile çıkış, 6'da tekrar, 3 deneme, yeme, eve tam giriş; yemek
+  zorunlu değil; piyon sayısı ayarı.
+- **J5:** Zar sunucuda; telefonda "Zar at" ve piyon seçimi; tek seçenekte otomatik (ayar).
+- **J6:** Sonuncu kalana kadar; 20 dk sınırı; puanlar 1000 / 600 / 400 / 200.
+- **J7:** Zar ve hamle 15'er sn; süre dolunca ve kopana bot.
+- **J8:** Amiral Battı modları `teams` (varsayılan) ve `tournament`.
+- **J9:** Tahta ve filo seçenekleri `classic` / `small` / `mini`; gemiler değebilir.
+- **J10:** Yerleştirme telefonda, "Rastgele diz", 90 sn; takımda kaptan yerleştirir.
+- **J11:** Sırayla atış (isabette tekrar ayarı kapalı); batan gemi gösterilir; takımda
+  üyeler sırayla.
+- **J12:** Turnuva paralel düellolar, eşzamanlı adımlar, bay; puanlar şampiyon 1000 /
+  finalist 600 / yarı finalist 400 / diğer 200; takım modunda 1000 / 300.
+- **J13:** Atış 20 sn; bot avı.
+- **J14:** Takımda herkes oynar, turnuvada herkes eşleşir; geç katılan izler.
+- **J15:** Seed: "Kızma Birader", "Amiral Battı: Takımlar", "Amiral Battı Turnuvası".
+- **J16:** Yeni npm paketi yok; tahta ve gemiler SVG / CSS ile özgün.
+
+### Riskler
+
+- **Turnuva karmaşıklığı:** Paralel düellolar, eleme ağacı ve bay mantığı en riskli kısım.
+  Eşzamanlı adımlar ayrı saatler yerine tek saat kullandığı için duraklatma ve yeniden
+  başlama motorla aynen çalışıyor.
+- **Telefonda yerleştirme:** Dar ekranda 10×10 ızgara küçük; büyük ızgarada dokunma
+  hedefi ~30 px. "Rastgele diz" her zaman var.
+- **Uzun oyun:** Kızma Birader 4 piyonla 20–40 dk sürebilir; süre sınırı, piyon sayısı ayarı
+  ve otomatik tek hamle var.
+- **6 kişilik tahta:** Dairesel tasarım her oyuncu sayısına uyar ama klasik "artı" şeklinde
+  tahtaya benzemez.
+- **E2E süresi:** Tam oyunlar uzun; e2e küçük ayarlarla (1 piyon, mini filo) oynanıyor.
 
 ---
 
