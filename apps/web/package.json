@@ -21,6 +21,8 @@
     "@loudroom/game-reaction": "workspace:*",
     "@loudroom/game-sdk": "workspace:*",
     "@loudroom/game-sorting": "workspace:*",
+    "@loudroom/game-spy": "workspace:*",
+    "@loudroom/game-tombala": "workspace:*",
     "@loudroom/game-who-would": "workspace:*",
     "@loudroom/shared": "workspace:*",
     "motion": "13.4.6",

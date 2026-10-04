@@ -24,6 +24,8 @@ x-app: &app
     - game-drawing-node-modules:/app/packages/games/drawing/node_modules
     - game-reaction-node-modules:/app/packages/games/reaction/node_modules
     - game-memory-node-modules:/app/packages/games/memory/node_modules
+    - game-tombala-node-modules:/app/packages/games/tombala/node_modules
+    - game-spy-node-modules:/app/packages/games/spy/node_modules
     - pnpm-store:/pnpm-store
     # Uploaded media (SPEC §13: a Docker volume in the MVP).
     - media-data:/media-data
@@ -132,4 +134,6 @@ volumes:
   game-drawing-node-modules:
   game-reaction-node-modules:
   game-memory-node-modules:
+  game-tombala-node-modules:
+  game-spy-node-modules:
   pnpm-store:

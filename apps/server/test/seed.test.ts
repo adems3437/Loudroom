@@ -24,6 +24,13 @@ import {
   seedReflexPack,
 } from '../src/seed/reflex-pack.js';
 import {
+  SAMPLE_SPY,
+  SAMPLE_TOMBALA,
+  seedTombalaSpyPacks,
+  SPY_PACK_ID,
+  TOMBALA_PACK_ID,
+} from '../src/seed/tombala-spy-packs.js';
+import {
   MAP_PACK_ID,
   SAMPLE_BLUFF,
   SAMPLE_IMAGE_LOCATION,
@@ -193,6 +200,37 @@ describe('seedCategories', () => {
       ['reaction', 2],
       ['memory', 3],
     ]);
+  });
+
+  it('seeds Tombala, the spy place sets and their packs idempotently', async () => {
+    await seedTombalaSpyPacks(prisma);
+    await seedTombalaSpyPacks(prisma);
+    for (const [gameType, items] of [
+      ['tombala', SAMPLE_TOMBALA],
+      ['spy', SAMPLE_SPY],
+    ] as const) {
+      const rows = await prisma.contentItem.findMany({
+        where: { id: { in: items.map((item) => item.id) } },
+      });
+      expect(rows).toHaveLength(items.length);
+      for (const row of rows) {
+        expect(row).toMatchObject({ gameType, status: 'PUBLISHED' });
+        expect(findGameModule(gameType)?.contentSchema.safeParse(row.data).success).toBe(true);
+      }
+    }
+    for (const [id, name, gameType, count] of [
+      [TOMBALA_PACK_ID, 'Tombala Gecesi', 'tombala', 1],
+      [SPY_PACK_ID, 'Casus Kim?', 'spy', 3],
+    ] as const) {
+      const pack = await prisma.gamePack.findUniqueOrThrow({
+        where: { id },
+        include: { rounds: { orderBy: { order: 'asc' } } },
+      });
+      expect(pack).toMatchObject({ name, status: 'PUBLISHED' });
+      expect(pack.rounds.map((round) => [round.gameType, round.questionCount])).toEqual([
+        [gameType, count],
+      ]);
+    }
   });
 
   it('creates the development admin once and never overwrites its password', async () => {

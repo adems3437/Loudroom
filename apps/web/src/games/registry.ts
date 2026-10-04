@@ -13,6 +13,8 @@ import { MEMORY_GAME_TYPE, memoryRenderer } from '@loudroom/game-memory/client';
 import { QUIZ_GAME_TYPE, quizRenderer } from '@loudroom/game-quiz/client';
 import { REACTION_GAME_TYPE, reactionRenderer } from '@loudroom/game-reaction/client';
 import { SORTING_GAME_TYPE, sortingRenderer } from '@loudroom/game-sorting/client';
+import { SPY_GAME_TYPE, spyRenderer } from '@loudroom/game-spy/client';
+import { TOMBALA_GAME_TYPE, tombalaRenderer } from '@loudroom/game-tombala/client';
 import { WHO_WOULD_GAME_TYPE, whoWouldRenderer } from '@loudroom/game-who-would/client';
 
 type AnyRenderer = GameRenderer<unknown, unknown>;
@@ -40,6 +42,8 @@ const RENDERERS: Record<string, AnyRenderer> = {
   [DRAWING_GAME_TYPE]: erase(drawingRenderer),
   [REACTION_GAME_TYPE]: erase(reactionRenderer),
   [MEMORY_GAME_TYPE]: erase(memoryRenderer),
+  [TOMBALA_GAME_TYPE]: erase(tombalaRenderer),
+  [SPY_GAME_TYPE]: erase(spyRenderer),
 };
 
 export function findRenderer(gameType: string): AnyRenderer | undefined {

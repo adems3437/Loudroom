@@ -7,6 +7,8 @@ import { memoryModule } from '@loudroom/game-memory/server';
 import { quizModule } from '@loudroom/game-quiz/server';
 import { reactionModule } from '@loudroom/game-reaction/server';
 import { sortingModule } from '@loudroom/game-sorting/server';
+import { spyModule } from '@loudroom/game-spy/server';
+import { tombalaModule } from '@loudroom/game-tombala/server';
 import { whoWouldModule } from '@loudroom/game-who-would/server';
 
 /** Every playable game. Adding a game = its package + one line here (SPEC §5). */
@@ -20,6 +22,8 @@ const MODULES: readonly AnyGameModule[] = [
   drawingModule,
   reactionModule,
   memoryModule,
+  tombalaModule,
+  spyModule,
 ];
 
 const byType = new Map(MODULES.map((module) => [module.id, module]));

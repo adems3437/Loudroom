@@ -7,6 +7,7 @@ import { seedMapPack } from '../src/seed/map-pack.js';
 import { seedPartyPack } from '../src/seed/party-pack.js';
 import { seedReflexPack } from '../src/seed/reflex-pack.js';
 import { seedQuizPack } from '../src/seed/quiz-pack.js';
+import { seedTombalaSpyPacks } from '../src/seed/tombala-spy-packs.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL is not set');
@@ -19,6 +20,7 @@ try {
   await seedMapPack(prisma);
   await seedDrawingPack(prisma);
   await seedReflexPack(prisma);
+  await seedTombalaSpyPacks(prisma);
   const email = process.env.ADMIN_SEED_EMAIL;
   const password = process.env.ADMIN_SEED_PASSWORD;
   if (email && password) {
