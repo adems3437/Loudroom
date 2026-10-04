@@ -59,11 +59,22 @@ export function HostRound({
   paused: boolean;
 }) {
   const realtime = useRealtime();
-  const { serverNow } = realtime;
+  const { socket, serverNow } = realtime;
   const stream = useRoundStream(round.roundId, realtime);
   const t = useGameTranslator(round.gameType);
   const renderer = findRenderer(round.gameType);
   const view = renderer?.hostViewSchema.safeParse(round.view);
+  const sendHostInput = useCallback(
+    async (input: unknown) => {
+      if (!socket) return { ok: false as const, code: 'NO_RESPONSE' };
+      const result = await sendCommand(socket, ClientCommand.RoundHostInput, {
+        roundId: round.roundId,
+        input,
+      });
+      return result.ok ? { ok: true as const } : { ok: false as const, code: result.code };
+    },
+    [socket, round.roundId],
+  );
   if (!renderer || !view?.success) return <UnknownView />;
   const { Host } = renderer;
   return (
@@ -77,6 +88,7 @@ export function HostRound({
       Avatar={GameAvatar}
       stream={stream}
       paused={paused}
+      sendHostInput={sendHostInput}
     />
   );
 }

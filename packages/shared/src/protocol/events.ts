@@ -3,6 +3,7 @@ import {
   gameEndEventSchema,
   gameStartRequestSchema,
   gameStateSchema,
+  roundHostInputRequestSchema,
   roundInputRequestSchema,
   roundPhaseEventSchema,
   roundResultEventSchema,
@@ -52,6 +53,8 @@ export const ClientCommand = {
   /** Host starts over with the same players: back to the lobby, scores reset. */
   GameRestart: 'game:restart',
   RoundInput: 'round:input',
+  /** Host screen → current round (games with host inputs). */
+  RoundHostInput: 'round:hostInput',
 } as const;
 export type ClientCommand = (typeof ClientCommand)[keyof typeof ClientCommand];
 
@@ -76,6 +79,10 @@ export const clientCommands = {
   [ClientCommand.GameNext]: { request: emptyRequestSchema, result: emptyResultSchema },
   [ClientCommand.GameRestart]: { request: emptyRequestSchema, result: emptyResultSchema },
   [ClientCommand.RoundInput]: { request: roundInputRequestSchema, result: emptyResultSchema },
+  [ClientCommand.RoundHostInput]: {
+    request: roundHostInputRequestSchema,
+    result: emptyResultSchema,
+  },
 } as const satisfies Record<ClientCommand, { request: z.ZodType; result: z.ZodType }>;
 
 type Commands = typeof clientCommands;

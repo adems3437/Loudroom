@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AnyGameModule } from '../module.js';
+import { HOST_INPUT_SENDER, type AnyGameModule } from '../module.js';
 import { playRound, type Frame, type RoundFixture, type ScriptStep } from './harness.js';
 
 export interface ContractFixture extends RoundFixture {
@@ -36,6 +36,8 @@ export interface ContractFixture extends RoundFixture {
   secretHolders?: string[];
   /** Inputs the module must refuse, either by schema or with a reject effect. */
   invalidInputs: unknown[];
+  /** Host inputs the module must refuse (games with `onHostInput`; required for them). */
+  invalidHostInputs?: unknown[];
 }
 
 /** A secret script played with other content. */
@@ -49,7 +51,9 @@ function timing(script: ScriptStep[]) {
   return script.map((step) =>
     step.type === 'timer'
       ? step
-      : { type: step.type, playerId: step.playerId, afterMs: step.afterMs ?? 0 },
+      : step.type === 'hostInput'
+        ? { type: step.type, afterMs: step.afterMs ?? 0 }
+        : { type: step.type, playerId: step.playerId, afterMs: step.afterMs ?? 0 },
   );
 }
 
@@ -185,6 +189,27 @@ export function describeGameModuleContract(module: AnyGameModule, fixture: Contr
           context(),
         );
         expect(next.effects).toContainEqual(expect.objectContaining({ type: 'reject', playerId }));
+      }
+    });
+
+    it('declares its host inputs completely, or none', () => {
+      expect(module.hostInputSchema === undefined).toBe(module.onHostInput === undefined);
+      expect(fixture.invalidHostInputs === undefined).toBe(module.onHostInput === undefined);
+    });
+
+    it.runIf(module.onHostInput !== undefined)('refuses invalid host input', () => {
+      const { state, context } = playRound(module, fixture, { untilFirstInput: true });
+      const schema = module.hostInputSchema;
+      const onHostInput = module.onHostInput?.bind(module);
+      if (!schema || !onHostInput) throw new Error('host inputs declared without a handler');
+      expect(fixture.invalidHostInputs?.length).toBeGreaterThan(0);
+      for (const input of fixture.invalidHostInputs ?? []) {
+        const parsed = schema.safeParse(input);
+        if (!parsed.success) continue;
+        const next = onHostInput(state, parsed.data, context());
+        expect(next.effects).toContainEqual(
+          expect.objectContaining({ type: 'reject', playerId: HOST_INPUT_SENDER }),
+        );
       }
     });
 

@@ -102,6 +102,22 @@ export class GameGateway {
     );
   }
 
+  @SubscribeMessage(ClientCommand.RoundHostInput)
+  hostInput(
+    @ConnectedSocket() socket: AppSocket,
+    @MessageBody() payload: unknown,
+  ): Promise<Ack<CommandResult<typeof ClientCommand.RoundHostInput>>> {
+    return this.commands.run(
+      socket,
+      ClientCommand.RoundHostInput,
+      payload,
+      async ({ roundId, input }) => {
+        await this.engine.hostInput(requireHost(socket).roomCode, roundId, input);
+        return {};
+      },
+    );
+  }
+
   /**
    * `round:stream` (SPEC §5): not acknowledged — chunks a client may not send, or sends too
    * fast, are dropped without an answer.

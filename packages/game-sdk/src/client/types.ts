@@ -55,12 +55,14 @@ interface RendererBase<View> {
   stream: RoundStream;
 }
 
+export type SubmitOutcome = { ok: true } | { ok: false; code: string };
+
 export interface HostRendererProps<View> extends RendererBase<View> {
   /** The game is paused (host controls or a lost host): media must stop too. */
   paused: boolean;
+  /** Sends a host input (games with host inputs, e.g. Tombala's "draw now"). */
+  sendHostInput: (input: unknown) => Promise<SubmitOutcome>;
 }
-
-export type SubmitOutcome = { ok: true } | { ok: false; code: string };
 
 export interface PlayerRendererProps<View> extends RendererBase<View> {
   playerId: string;

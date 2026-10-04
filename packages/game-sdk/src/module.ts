@@ -86,6 +86,12 @@ export type InputRejectCode =
   /** A written answer failed the blocked-word check. */
   | 'TEXT_REJECTED';
 
+/**
+ * The `playerId` of `reject` effects for the host's inputs (`onHostInput`): host inputs come
+ * from the TV screen, not from a player.
+ */
+export const HOST_INPUT_SENDER = 'host';
+
 export type Effect =
   /**
    * Enter a phase; with a duration the engine calls `onTimer` when it runs out. `hidden`:
@@ -94,7 +100,7 @@ export type Effect =
   | { type: 'phase'; phase: string; durationMs: number | null; hidden?: boolean }
   /** The round is over: the engine calls `score` and shows the result. */
   | { type: 'endRound' }
-  /** Refuse a player's input; the code is returned in their command ack. */
+  /** Refuse an input (a host input: `HOST_INPUT_SENDER`); the code is returned in the ack. */
   | { type: 'reject'; playerId: string; code: InputRejectCode };
 
 export interface Transition<State> {
@@ -142,6 +148,7 @@ export interface GameModule<
   HostView,
   PlayerView,
   StreamChunk = never,
+  HostInput = never,
 > {
   id: string;
   name: string;
@@ -163,6 +170,17 @@ export interface GameModule<
     ctx: RoundContext<Content, Settings>,
   ): Transition<State>;
   onTimer(state: State, ctx: RoundContext<Content, Settings>): Transition<State>;
+  /**
+   * Inputs from the host screen (e.g. Tombala's "draw now"), for games that take them; the
+   * engine refuses host inputs for games without. Refusals are `reject` effects for
+   * `HOST_INPUT_SENDER`.
+   */
+  hostInputSchema?: z.ZodType<HostInput>;
+  onHostInput?(
+    state: State,
+    input: HostInput,
+    ctx: RoundContext<Content, Settings>,
+  ): Transition<State>;
   score(state: State, ctx: RoundContext<Content, Settings>): ScoreResult[];
   /**
    * The host skips while the round is running. Return a transition to handle it (e.g. end a
@@ -181,4 +199,4 @@ export interface GameModule<
 
 /** A module with its type parameters erased, as registries hold them. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyGameModule = GameModule<any, any, any, any, any, any, any>;
+export type AnyGameModule = GameModule<any, any, any, any, any, any, any, any>;

@@ -1,6 +1,11 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
-import type { AnyGameModule, Effect, InputRejectCode } from '@loudroom/game-sdk';
+import {
+  HOST_INPUT_SENDER,
+  type AnyGameModule,
+  type Effect,
+  type InputRejectCode,
+} from '@loudroom/game-sdk';
 import { ServerEvent, type GameStatus } from '@loudroom/shared';
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
 import { ProfanityFilter } from '../moderation/profanity-filter.js';
@@ -205,6 +210,39 @@ export class GameEngine implements OnApplicationBootstrap {
       // A rejected input changes nothing; throwing discards the step.
       if (rejected)
         throw new CommandError(rejected.code satisfies InputRejectCode, 'Input refused');
+      game.moduleState = transition.state;
+      this.applyEffects(draft, game, module, round, transition.effects);
+    });
+  }
+
+  /** The host screen's input to the current round, for games that take one. */
+  hostInput(code: string, roundId: string, raw: unknown): Promise<void> {
+    return this.step(code, (draft) => {
+      const game = requireGame(draft);
+      const round = currentRound(game);
+      if (draft.room.status !== 'PLAYING' || !round) {
+        throw new CommandError('ROUND_CLOSED', 'The round is not running');
+      }
+      if (round.roundId !== roundId) throw new CommandError('STALE_ROUND', 'That round is over');
+      const module = moduleFor(round);
+      if (!module.hostInputSchema || !module.onHostInput) {
+        throw new CommandError('INVALID_INPUT', 'This game takes no host input');
+      }
+      const input = module.hostInputSchema.safeParse(raw);
+      if (!input.success) throw new CommandError('INVALID_INPUT', 'Invalid host input');
+
+      const transition = module.onHostInput(
+        game.moduleState,
+        input.data,
+        this.context(game, round, draft),
+      );
+      const rejected = transition.effects?.find(
+        (effect): effect is Extract<Effect, { type: 'reject' }> =>
+          effect.type === 'reject' && effect.playerId === HOST_INPUT_SENDER,
+      );
+      if (rejected) {
+        throw new CommandError(rejected.code satisfies InputRejectCode, 'Host input refused');
+      }
       game.moduleState = transition.state;
       this.applyEffects(draft, game, module, round, transition.effects);
     });

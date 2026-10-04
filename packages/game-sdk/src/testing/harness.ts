@@ -16,7 +16,9 @@ export type ScriptStep =
   /** Let the current phase run out. */
   | { type: 'timer' }
   /** A player sends an input, `afterMs` after the previous step. */
-  | { type: 'input'; playerId: string; input: unknown; afterMs?: number };
+  | { type: 'input'; playerId: string; input: unknown; afterMs?: number }
+  /** The host screen sends an input (games with `onHostInput`). */
+  | { type: 'hostInput'; input: unknown; afterMs?: number };
 
 export interface RoundFixture {
   content: unknown;
@@ -149,6 +151,16 @@ export function playRound(
       if (current?.endsAt == null) throw new Error('script: timer step without a running phase');
       now = current.endsAt;
       const next = module.onTimer(state, context());
+      state = next.state;
+      apply(next.effects);
+    } else if (step.type === 'hostInput') {
+      if (options.untilFirstInput) break;
+      if (!module.hostInputSchema || !module.onHostInput) {
+        throw new Error('script: host input for a game without host inputs');
+      }
+      now += step.afterMs ?? 0;
+      const input: unknown = module.hostInputSchema.parse(step.input);
+      const next = module.onHostInput(state, input, context());
       state = next.state;
       apply(next.effects);
     } else {

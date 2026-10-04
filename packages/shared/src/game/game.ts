@@ -77,6 +77,13 @@ export const roundInputRequestSchema = z.strictObject({
   input: z.unknown(),
 });
 
+/** `round:hostInput`: the host screen's input to the current round (e.g. Tombala's draw). */
+export const roundHostInputRequestSchema = z.strictObject({
+  roundId: roundIdSchema,
+  /** Validated by the current game module's host input schema. */
+  input: z.unknown(),
+});
+
 /**
  * `round:stream` from a player: one chunk of high-frequency data (e.g. strokes). Not
  * acknowledged; the server checks it with the game's stream schema and drops what it refuses.
