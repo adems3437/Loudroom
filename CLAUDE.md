@@ -224,7 +224,8 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
   `docker compose up -d --build` once.
 - dnd-kit swallows clicks for 50 ms after a drag; e2e tests wait a moment after dragging.
 - Turbo runs every package's `dev` watcher as a persistent task; `turbo.json` sets
-  `concurrency` above their count (the default 10 broke the dev server at 10 tasks).
+  `concurrency` above their count (the default 10 broke the dev server at 10 tasks). CI and
+  host DoD runs pass `--concurrency=4`: 30 type-aware ESLint processes at once hung CI lint.
 - The Docker dev server does not use those per-package watchers: one `tsc --watch` per
   package (~330 MB each) exhausted the 4 GB Docker VM (exit 137). Setup builds all packages
   with one `tsc -b tsconfig.packages.json`, and the server container runs `pnpm dev:packages`

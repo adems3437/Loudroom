@@ -56,8 +56,10 @@ jobs:
         run: cp .env.example .env
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @loudroom/server db:generate
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
+      # turbo.json allows 30 parallel tasks (for the dev watchers); on the 4-core runner 30
+      # type-aware ESLint processes at once ran out of memory and lint hung.
+      - run: pnpm typecheck --concurrency=4
+      - run: pnpm lint --concurrency=4
+      - run: pnpm test --concurrency=4
+      - run: pnpm build --concurrency=4
       - run: pnpm format:check

@@ -142,6 +142,10 @@ Yok. Yeni workspace paketleri: `@loudroom/game-kizma-birader`, `@loudroom/game-a
 - **Amiral Battı'da bot zayıf değil ama basit:** olasılık haritası kullanmıyor.
 - **6'lık tahta:** Klasik haçın 6 kollu karşılığı yok; 6 kişilik varyant yuvarlak.
 - **Telefonda 10×10:** Kareler ~30 px; kendi filon küçük ızgarada, kaydırınca görünür.
+- **CI'da lint takıldı:** Phase 12 push'unda GitHub Actions'ta lint 27 dk'da bitmedi (önceki
+  koşuda 2 dk). turbo.json'daki `concurrency: 30` (dev izleyicileri için) CI'da 30 tip bilgili
+  ESLint sürecini 4 çekirdekli runner'da aynı anda çalıştırıyordu. Koşu iptal edildi; CI
+  adımları artık `--concurrency=4` ile çalışıyor.
 - **E2E sırasında repo dosyası değiştirmek:** Docker'daki server'ı yeniden başlatıyor (oyunu
   duraklatıyor); CLAUDE.md'de yazılı.
 - **Proje iCloud'dan taşındı:** Docker'daki server, boşta bile ~15 sn'de bir yeniden
