@@ -268,9 +268,10 @@ Genel: tüm skor formülleri modül ayarlarından yapılandırılabilir; eşitli
 - **İsimler ve görseller:** Oyun adları ürün sahibinin kararıyla aynen kullanılır. "UNO" ve "Kızma Birader" tescilli markalardır (yayına almadan önce hukuki değerlendirme gerekir). Kart, taş ve tahta tasarımları tamamen özgün olmalıdır; orijinal ürünlerin görselleri kullanılmaz.
 
 ### 7.12 Okey
-- 4 koltuk, klasik okey: 106 taş, gösterge ve okey taşı.
-- Istaka telefonda, taşlar sürükle-bırak ile dizilir (`@dnd-kit`); orta deste ve atılan taşlar TV'de.
-- Bitiş (per/seri ve çift) server'da doğrulanır; puanlama ayarlanabilir.
+- 4 koltuk, klasik okey: 106 taş, gösterge ve okey taşı (joker); sahte okey okeyin yerine geçer. 2–4 oyuncu oturur, boş koltuklara bot oturur (botlar platform puanı almaz); fazlası izleyici. Eşli mod (0+2 / 1+3).
+- Dağıtımdan önce TV'de kurulum: host el sayısını, başlangıç puanını ve eşli modu seçer (varsayılanlar paket ayarlarından; süre dolunca varsayılanlarla başlar).
+- Istaka telefonda, telefon yatay tutulur (2 × 15 yuva); taşlar sürükle-bırak ile dizilir (`@dnd-kit`), diziliş server'da saklanır. Orta deste, gösterge ve atılan taşlar TV'de.
+- Bitiş (per, seri — 12-13-1 geçerli, 13-1-2 değil — ya da 7 çift) server'da, ıstakadaki dizilişe bakmadan doğrulanır. Puanlama "20'den düşme": normal −2, okey atarak ya da çiftten −4, ikisi birden −8, gösterge −1; deste biterse el berabere.
 
 ### 7.13 Pişti
 - 2–4 oyuncu (4 kişide eşli oyun seçeneği), 52 kart; el telefonda, yerdeki kartlar TV'de.
@@ -381,7 +382,7 @@ rl:{scope}:{key}          # rate limit
 - Animasyonlu leaderboard (sıra değişince yukarı/aşağı kayma, Framer Motion `layout`), finalde podyum animasyonu.
 
 **Player (telefon):**
-- Mobile-first, portrait, başparmak bölgesinde ≥ 56 px dokunma alanları, minimum metin.
+- Mobile-first, portrait, başparmak bölgesinde ≥ 56 px dokunma alanları, minimum metin. İstisna: Okey'in ıstakası yatay telefonda oynanır (dikeyde "yan çevir" ekranı); yatay ve kısa ekranda üst bilgi tek satıra iner.
 - Gamepad hissi: büyük renkli butonlar, basışta anlık görsel + titreşim geri bildirimi.
 - Double-tap zoom ve pull-to-refresh engelli, klavye açılınca layout kaymaz.
 - Etkileşim tipleri: seçenek, metin, sayı, sürükle-bırak, çizim, görsel üzerinde nokta seçme.

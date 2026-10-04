@@ -4,181 +4,161 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                          |
-| ----------------------------------------------- | ------------------------------ |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01)     |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01)     |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01)     |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02)     |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02)     |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02)     |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02)     |
-| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02)     |
-| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02)     |
-| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04)     |
-| Phase 10 — Tombala + Casus Kim?                 | ✅ Tamamlandı (2026-10-04)     |
-| Phase 11 — Kart/masa altyapısı + UNO + Pişti    | ✅ Tamamlandı (2026-10-04)     |
-| Phase 12 — Kızma Birader + Amiral Battı         | ✅ Tamamlandı (2026-10-04)     |
-| Phase 13 — Okey                                 | ⏸ Plan onay bekliyor (aşağıda) |
+| Faz                                             | Durum                      |
+| ----------------------------------------------- | -------------------------- |
+| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
+| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
+| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
+| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
+| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02) |
+| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04) |
+| Phase 10 — Tombala + Casus Kim?                 | ✅ Tamamlandı (2026-10-04) |
+| Phase 11 — Kart/masa altyapısı + UNO + Pişti    | ✅ Tamamlandı (2026-10-04) |
+| Phase 12 — Kızma Birader + Amiral Battı         | ✅ Tamamlandı (2026-10-04) |
+| Phase 13 — Okey                                 | ✅ Tamamlandı (2026-10-04) |
 
 ---
 
-## Phase 13 — Okey (plan, onay bekliyor)
+## Phase 13 — Okey
 
-Plan 2026-10-04'te çıkarıldı. Kullanıcının cevabıyla güncellendi: boş koltuklara bot (K3),
-puanlama ve el sayısı oyun başlarken TV'de seçiliyor (K6), ıstaka yatay telefonda gerçek
-2 × 15 (K7). Kalan maddeler için onay bekleniyor.
+Plan 2026-10-04'te onaylandı (K1–K12; kullanıcının cevapları: boş koltuklara bot "olur",
+puanlama ve el sayısı "oyun başlarken sor", ıstaka "yan çevirerek"; ardından "tamam") ve aynı
+gün Mac'te, Docker dev stack'inde uygulandı.
 
-### 1. Oyun kuralları
+### Yapılanlar
 
-- **Taşlar (K2):** 106 taş: 4 renk (kırmızı, sarı, mavi, siyah) × 1–13 × 2, artı 2 sahte okey.
-  Destenin karılması seed'li, sırası yalnızca sunucuda.
-- **Gösterge ve okey (K2):** Dağıtımdan sonra bir taş gösterge olarak açılır. Okey, göstergeyle
-  aynı renkte bir üst sayıdır (13'ün üstü 1). Okey taşları joker. Sahte okeyler jokerin yerine
-  değil, okey taşının yerine geçer (onun renk ve sayısını taşır).
-- **Koltuklar (K3):**
-  - Masa her zaman 4 koltuk. 2–4 oyuncu oturur, boş koltuklara bot ("Bot 1" …) oturur;
-    fazla oyuncular izleyici.
-  - Botlar sıralamada yer alır ama platform puanı almaz; podyumda yalnızca oyuncular.
-  - Eşli mod (0+2 / 1+3); eş bir bot olabilir.
-- **Dağıtım ve sıra (K4):**
-  - Başlayan 15, diğerleri 14 taş alır. İlk elde başlayan rastgele, sonraki ellerde sıra
-    sağdakine geçer.
-  - Sırası gelen ya ortadan çeker ya da soldakinin son attığı taşı alır, sonra bir taş atar.
-  - Atılan taşlar her oyuncunun sağında yığılır; yalnızca üstteki görünür ve alınabilir.
-  - Başlayan ilk turunda çekmeden atar.
-- **Bitirme (K5):**
-  - 15 taşla bir taşı "Bitir"e bırakılır. Kalan 14 taş şu gruplara ayrılabilmelidir:
-    - per: aynı sayı, farklı renk, 3–4 taş
-    - seri: aynı renk, ardışık, en az 3 taş (12-13-1 geçerli, 13-1-2 değil)
-    - ya da 7 çift (aynı renk ve sayı)
-  - Geçerliliği sunucu kendisi arar, ıstakadaki dizilişe bakmaz. Okey jokerdir. Geçersiz
-    bitirme cezasız reddedilir.
-  - Deste biterse el berabere biter.
-- **Oyun başlarken seçim (K6):** Taşlar dağıtılmadan önce TV'de bir kurulum ekranı açılır.
-  Host (TV) şunları seçer, sonra "Başlat"a basar; varsayılanlar paket ayarlarından gelir:
-  - el sayısı (1 / 2 / 4 / 8),
-  - başlangıç puanı (10 / 20),
-  - eşli mod (açık / kapalı).
-    2 dk içinde seçilmezse varsayılanlarla başlar. Seçimler `round:hostInput` ile gider
-    (Tombala'daki gibi); telefonlarda "Host ayarları seçiyor…" yazar.
-- **Puanlama, 20'den düşme (K6):**
-  - Herkes seçilen başlangıç puanıyla başlar.
-  - Normal bitişte diğerleri −2, okey atarak ya da çiftten bitişte −4, ikisi birden −8.
-  - Başlangıç turunda göstergeyi gösteren için diğerleri −1.
-  - Eşli modda eşler aynı puanı paylaşır.
-  - Maç biri 0'a inince, seçilen el sayısı dolunca ya da maç süresi dolunca (30 dk; süren el
-    sayılmaz) biter.
-  - Sıralama kalan puana göre; eşitlikte daha çok el bitiren önde.
-  - Platform puanı 1000 / 600 / 400 / 200; eşlide kazanan takım 1000, diğeri 300.
-- **Saat ve bot (K8):**
-  - Sıra 30 sn. Süre dolunca ve kopan oyuncu için ~1,5 sn sonra bot oynar.
-  - Bot bitirebiliyorsa bitirir. Soldaki taş bir grubu tamamlıyor ya da uzatıyorsa onu alır,
-    yoksa desteden çeker. Sonra en az işe yarayan taşı atar; okeyi atmaz.
+- **Okey** (`okey`, `@loudroom/game-okey`):
+  - **Taşlar:** 106 taş (4 renk × 1–13 × 2, 2 sahte okey). Gösterge açılır; okey göstergenin
+    bir üstü (13 → 1) ve joker. Sahte okey okey taşının yerine geçer (onun renk ve sayısı).
+  - **Kurulum (K6):** Dağıtımdan önce TV'de el sayısı (1 / 2 / 4 / 8), başlangıç puanı
+    (10 / 20) ve tekli / eşli seçilir; `round:hostInput` `start` ile gider. 2 dk içinde
+    seçilmezse paket ayarlarıyla başlar. Telefonlarda "Host oyunu ayarlıyor…".
+  - **Koltuklar (K3):** Masa hep 4 koltuk; 2–4 oyuncu, boş koltuklara "Bot 1", "Bot 2" (koltuk
+    id'leri `bot:n`, yalnızca modülün durumunda). Fazla oyuncular izler. Eşli modda 0+2 / 1+3;
+    eş bot olabilir.
+  - **Sıra (K4):** Başlayan 15 taşla çekmeden atar; sonra her oyuncu ortadan çeker ya da
+    soldakinin son attığını alır, bir taş atar. Başlayan ilk elde rastgele, sonra sıradaki.
+  - **Bitirme (K5):** 15. taşı "Bitir"e bırakınca kalan 14'ü sunucu kendi arar: per (3–4 farklı
+    renk), seri (12-13-1 geçerli, 13-1-2 değil) ya da 7 çift; okey her boşluğa girer.
+    Dizilişe bakılmaz; geçersiz bitirme cezasız reddedilir. Deste biterse el berabere.
+  - **Puanlama (K6):** 20'den (ya da 10'dan) düşme: normal −2, okey atarak ya da çiftten −4,
+    ikisi birden −8; göstergeyi ilk turunda gösteren için diğerleri −1. Maç seçilen el sayısı
+    dolunca, bir taraf 0'a inince ya da 30 dk dolunca (süren el sayılmaz) biter. Sıralama kalan
+    puana, sonra alınan ele göre. Platform puanı 1000 / 600 / 400 / 200; eşlide 1000 / 300.
+    Botlar sıralamada yer alır ama puan almaz.
+  - **Bot (K8):** Göstergeyi gösterir; soldaki taş elindeki iki taşla bir per ya da seri
+    tamamlıyorsa (ya da okeyse) alır, yoksa çeker; bitirebiliyorsa bitirir (önce okeyi atarak dener); yoksa en az işe yarayan taşı atar,
+    okeyi atmaz. Sıra 30 sn; süre dolunca ve kopan oyuncu için bot oynar.
+  - **Telefon (K7):** Yatay tutulur; gerçek ıstaka gibi 2 × 15 yuva. Taşlar sürükle-bırakla
+    dizilir (`@dnd-kit/core`); diziliş sunucuda (`arrange`), yenileyince geri gelir. Ortadan ve
+    soldan çekmek için dokun ya da ıstakaya sürükle; atmak için "At"a, bitirmek için "Bitir"e
+    sürükle ya da seçip düğmeye bas. "Seri diz" / "Çift diz", "Göstergeyi göster". Okey taşları
+    ıstakada köşe yıldızıyla işaretli. Dikey tutulursa "Telefonunu yan çevir".
+  - **TV (K9):** Kurulum ekranı; masada dört koltuk (taş sayısı, puan, attığı taş, sıradaki ve
+    bot rozeti), ortada deste, gösterge ve okey, son hamle. El sonunda bitirenin eli gruplar
+    halinde, bitirdiği taş ve tarafların kaybettiği puanlar. Maç sonunda sıralama.
+  - **Taşlar (K10):** Özgün CSS; renkler `okey-red/-yellow/-blue/-black`, ıstaka `rack`,
+    masa `okey-felt` token'ları.
+- **Web:** `phone-landscape:` varyantı (yatay ve kısa ekran): oynama düzeni genişlik sınırını,
+  logo satırını ve geniş boşlukları bırakıyor; üst bilgi tek satır. Bütün oyunlarda geçerli.
+- **Admin ve seed (K11):** Editör (yalnızca ad), ayar formu (varsayılan el sayısı, başlangıç
+  puanı, eşli; sıra ve maç süresi; kopana bot), içe aktarma (`baslik`), metinler `games.okey`.
+  Seed: "Okey" içeriği ve yayında "Okey" paketi.
 
-### 2. Ekranlar
-
-- **Telefon, ıstaka (K7):**
-  - Okey'de telefon yatay tutulur (SPEC §12'deki dikey kuralına bu oyun için istisna).
-    Gerçek ıstaka gibi 2 sıra × 15 yuva; iPhone'da yatayda taşlar ~50×68 px.
-  - Dikey tutulursa "Telefonu yan çevir" ekranı çıkar (iOS'ta yön kilitlenemiyor).
-  - Yatay ve kısa ekranlarda (yükseklik < 500 px) telefonun üst bilgisi (logo, ad, puan)
-    tek ince satıra iner; bu bütün oyunlarda yatay tutunca geçerli olur.
-  - Taşlar sürükle-bırakla dizilir (`@dnd-kit/core`). Boş yuvalar grupları ayırır.
-  - Diziliş sunucuda saklanır (bırakınca `arrange` girdisi). Yenileme ya da telefon
-    değişince kaybolmaz; diğerlerine gitmez.
-  - "Seri diz" / "Çift diz" kısayolları var.
-  - Çekmek için desteye ya da soldaki taşa dokunulur ya da sürüklenir. Atmak için taş "At"
-    alanına, bitirmek için "Bitir" alanına sürüklenir ya da seçilip düğmeye basılır.
-  - Sıra başkasındayken ıstaka yine düzenlenebilir.
-- **TV (K9):**
-  - Masa: ortada deste sayısı ve gösterge, kenarlarda oyuncular (koltuk şeridi), her
-    oyuncunun attığı yığının üstü, sıradaki oyuncu ve saati, son hamle.
-  - El bitince bitirenin ıstakası gruplar halinde açılır ve puan tablosu gösterilir
-    (TALLY, 8 sn).
-- **Taş tasarımı (K10):** Özgün CSS taşlar; renkler `globals.css` token'larıyla
-  (`okey-red` / `-yellow` / `-blue` / `-black`). Sahte okeyde özel bir simge (★).
-
-### 3. Paket, admin ve seed
-
-- **Paket (K1):** gameType `okey`, paket `@loudroom/game-okey`, ekranda "Okey".
-- **Dosyalar:** Önceki fazların kalıbında `schema.ts`, `tiles.ts` (taş seti, gösterge,
-  bitirme arayıcı), `server.ts`, `bot.ts`, `rack.tsx`, `tile.tsx`, `host.tsx`, `player.tsx`,
-  `editor.tsx`, `settings-editor.tsx`, `import.ts`, testler.
-- **Bağlantılar:** Registry'lere birer satır, `compose.dev.yml` volume'u, Dockerfile bağlama
-  noktası ve `tsconfig.packages.json` referansı.
-- **Admin:**
-  - Editör yalnızca ad; içe aktarma `baslik`.
-  - Ayar formu: varsayılan başlangıç puanı, el sayısı ve eşli mod (oyun başında
-    değiştirilebilir), maç süresi, sıra süresi, kopana bot, bot gecikmesi, sıra puanları.
-- **Seed (K11):** "Okey" paketi (varsayılan ayarlar).
-- **Bağımlılık (K12):** Yeni npm paketi yok. `@dnd-kit/core` 6.3.1 workspace'te zaten var
-  (Sorting); okey paketine aynı sürümle eklenir.
-
-### 4. Testler
+### Testler
 
 - **Unit:**
-  - Taş seti (106), gösterge → okey (13 → 1), sahte okey.
-  - Bitirme arayıcı:
-    - per, seri, 12-13-1, 13-1-2 reddi, aynı renkli per reddi
-    - bir ve iki okeyle gruplar, 7 çift (okey çift eşi olarak)
-    - sahte okeyin okey değeri olarak kullanımı
-    - rastgele kurulmuş geçerli ellerin hepsini bulma
-  - Hamleler:
-    - çekme ve alma (yalnızca soldakinin üstteki taşı), atma
-    - başlayanın ilk turu, gösterge yalnızca ilk turda
-    - geçersiz bitirmenin reddi
-  - Puanlama: normal, okey atarak, çiftten, ikisi birden, gösterge, eşli.
-  - Akış: kurulum seçimleri (host girdisi, oyuncu girdisi reddi, süre dolunca
-    varsayılanlar); deste bitince berabere; el sayısı, 0 puan ve süre ile maç sonu; sıralama
-    ve eşitlik; boş koltuklara bot ve botların puan almaması.
-  - Bot: bitirir, işe yarayan taşı alır, okeyi atmaz; süre dolunca ve kopana bot.
-  - Sözleşme: `privateState` (ıstaka ve diziliş), `serverState` (deste sırası).
-- **Integration:**
-  - Istaka yalnızca sahibine, deste sırası hiçbir socket'e gitmiyor.
-  - Diziliş kaydediliyor ve yeniden bağlanınca geri geliyor.
-  - Kopan oyuncu için bot oynuyor.
-- **E2E (Chromium + WebKit; host + 2 yatay telefon, 2 bot koltuk):**
-  - TV'de kurulum: el sayısı 1, başlangıç puanı seçilir; dikey telefonda "yan çevir"
-    ekranı.
-  - Taş sürükleyerek yer değiştirme; yenileyince diziliş kalıyor.
-  - Desteden çekip sürükleyerek atma; soldakinin attığını alma; geçersiz "Bitir" reddi.
-  - Telefonlar kapanınca botlar eli bitiriyor (biri bitirir ya da deste biter); puan
-    tablosu ve podyum.
-  - WebSocket çerçevelerinde başkasının ıstakası ve deste sırası yok.
+  - Taşlar: 106 taş, gösterge → okey (13 → 1), sahte okey.
+  - Bitirme arayıcı: per ve seri, 12-13-1 / 13-1-2, aynı renkli per reddi, artan taş, bir ve
+    iki okeyle boşluk, sahte okeyin okey değeri, 7 çift (okey çift eşi); rastgele kurulmuş
+    150+ geçerli elin hepsi bulunuyor. Taşın grup tamamlaması (12-13-1 dahil). "Seri diz" /
+    "Çift diz" yerleşimi.
+  - Kurulum: botlar, TV seçimleri, süre dolunca varsayılanlar, kurulumda girdi reddi, 1 oyuncuda
+    atlama, 5. oyuncu izler.
+  - Hamleler: dağıtım (15 / 14, 48 ortada, 106 taşın hepsi bir yerde), çekme, soldan alma
+    (yuvaya), atma, sıra dışı hamle, diziliş (eksik, yabancı, çift taş reddi), ıstaka yalnızca
+    sahibine.
+  - Bitirme ve puan: normal, okey atarak, çiftten, ikisi birden; geçersiz bitirme cezasız;
+    gösterge bir kez; deste bitince berabere.
+  - Maç: sonraki el ve başlayan; el sayısı, sıfır ve süre ile bitiş; sıralama (botlar dahil) ve
+    puanlar; eşli taraflar.
+  - Bot: boş koltuğu oynar, bitirebiliyorsa bitirir, işe yarayan taşı alır, okeyi atmaz; kopana
+    bot ve geri verme; botlarla tekli ve eşli tam maçlar.
+  - Sözleşme: `privateState` (ıstaka), `serverState` (orta deste ve seed), host girdisi reddi.
+- **Integration:** TV kurulumu, iki oyuncu + iki bot; diziliş kaydedilip yeniden bağlanınca geri
+  geliyor; herkes çıkınca botlar maçı bitiriyor; ıstaka TV'ye ve öbür oyuncuya, orta deste ve
+  seed kimseye gitmiyor. Seed testi Okey paketini de kapsıyor.
+- **E2E (Chromium + WebKit; host + 2 yatay telefon, 2 bot):** TV'de kurulum (1 el, 10 puan);
+  dikey telefonda "yan çevir"; taşı sürükleyerek taşıma ve yenileyince kalması; soldan alma,
+  ıstakaya sürükleyerek çekme, geçersiz "Bitir" uyarısı, sürükleyerek atma; telefonlar
+  kapanınca botlar eli bitiriyor; el sonu, maç sonu (4 sıra) ve podyum; WebSocket
+  çerçevelerinde başkasının ıstakası, orta deste ve seed yok.
 
-### Onay bekleyen kararlar
+### Bitti tanımı — son çalıştırma (2026-10-04, Mac, Docker dev stack)
+
+| Kontrol                  | Sonuç                                                                                                                                                                                                                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`         | ✅ 40/40 görev                                                                                                                                                                                                                                                        |
+| `pnpm lint`              | ✅ 40/40 görev                                                                                                                                                                                                                                                        |
+| `pnpm test`              | ✅ 747 test: shared 45, game-sdk 45, table-kit 8, quiz 61, closest-number 64, sorting 27, who-would 20, image-location 23, bluff 22, drawing 27, reaction 26, memory 19, tombala 30, spy 27, uno 30, pisti 25, kizma-birader 27, amiral-batti 27, okey 47, server 147 |
+| `pnpm build`             | ✅ 21/21 görev                                                                                                                                                                                                                                                        |
+| `pnpm test:e2e` (Docker) | ✅ 50/50, Chromium + WebKit (23,3 dk), koşu boyunca 0 server yeniden başlaması                                                                                                                                                                                        |
+| `pnpm format:check`      | ✅                                                                                                                                                                                                                                                                    |
+
+### Alınan kararlar (kullanıcı onaylı)
 
 - **K1:** gameType `okey`, paket `@loudroom/game-okey`.
 - **K2:** 106 taş, gösterge, okey (joker) ve sahte okey (okeyin değeri).
-- **K3:** ✅ Masa 4 koltuk; boş koltuklara bot; fazlası izleyici; botlar platform puanı
-  almaz.
+- **K3:** Masa 4 koltuk; boş koltuklara bot; fazlası izleyici; botlar platform puanı almaz.
 - **K4:** Başlayan 15 taş, sıra sağa; ortadan çek ya da soldakinin attığını al, sonra at.
 - **K5:** Per, seri (12-13-1 geçerli), 7 çift; sunucu arar; geçersiz bitirme cezasız red;
   deste biterse berabere.
-- **K6:** ✅ El sayısı, başlangıç puanı ve eşli mod oyun başında TV'de seçilir. 20'den düşme:
-  −2 / −4 / −8, gösterge −1; puanlar 1000 / 600 / 400 / 200.
-- **K7:** ✅ Yatay telefonda 2 × 15 ıstaka, dikeyde "yan çevir"; sürükle-bırak; diziliş
+- **K6:** El sayısı, başlangıç puanı ve eşli mod oyun başında TV'de seçilir; 20'den düşme.
+- **K7:** Yatay telefonda 2 × 15 ıstaka, dikeyde "yan çevir"; sürükle-bırak; diziliş
   sunucuda; "Seri diz" / "Çift diz".
 - **K8:** Sıra 30 sn; süre dolunca ve kopana bot.
-- **K9:** TV'de masa; el sonunda bitirenin ıstakası ve puan tablosu.
+- **K9:** TV'de masa; el sonunda bitirenin eli ve puan tablosu.
 - **K10:** Özgün CSS taşlar, renk token'ları.
 - **K11:** Seed: "Okey" paketi.
 - **K12:** Yeni npm paketi yok; `@dnd-kit/core` mevcut sürümüyle.
 
-### Riskler
+### Varsayımlar ve küçük kararlar
 
-- **Bitirme arayıcı:** Kuralların en hassas kısmı (iki joker, 12-13-1, çift). Geniş unit
-  testleri ve rastgele kurulmuş geçerli ellerle doğrulanacak; 14 taşta geri izlemeli arama
-  hızlı.
-- **Yatay telefon:** Tarayıcı çubukları yatayda yüksekliği ~330 px'e indiriyor; ıstaka, masa
-  bilgisi ve düğmeler buna sığacak şekilde tasarlanacak. iOS Safari'de sürüklemeyle kaydırma
-  çakışmasın diye Sorting'deki dokunma ayarları kullanılacak.
-- **Botlu koltuklar:** Masada oyuncu olmayan katılımcılar ilk kez var; görünümler, sıralama
-  ve podyum yalnızca gerçek oyuncuları puanlamalı.
-- **Maç süresi:** Bir el 5–10 dk; varsayılan 4 el ~30 dk. Ayarlarla kısaltılabilir.
-- **E2E'de bitiş:** Kazanan bir el zorlanamaz; bitirme unit testlerle, e2e'de el sonu botların
-  oyunuyla (bitiş ya da deste sonu) doğrulanır.
+- **Deste bitince:** Sırası gelen oyuncu çekmeden önce orta boşsa el berabere biter (soldaki
+  taşı alma hakkı tanınmıyor).
+- **Gösterge:** Yalnızca kendi ilk turunda (ilk taşını atmadan önce), elde bir kez. Bot ve süresi
+  dolan oyuncunun bot hamlesi göstergeyi kendiliğinden gösterir.
+- **Süresi dolan oyuncu:** Bot hamlesi (çek ya da al, bitirebiliyorsa bitir, yoksa at).
+- **Bitiş türü:** 14 taş hem çift hem per/seri olabiliyorsa çift sayılır (daha çok puan).
+- **İlk ıstaka:** Dağıtılan taşlar "Seri diz" düzeninde gelir.
+- **Maç süresi:** Kurulum bitince başlar; sıra başında kontrol edilir.
+- **Botun soldan alması:** İlk sürümde bot taşı "işine yarıyorsa" (komşu taş sayısı) alıyordu;
+  alınan taş ortayı azaltmadığı için botlu bir el ortalama ~126 sıra sürüyordu (entegrasyon
+  testi 60 sn'de aralıklı olarak bitmiyordu). Artık yalnızca grup tamamlayan taşı alıyor: 60
+  botlu maçlık simülasyonda el ortalama ~41 sıra, en yavaş bot hamlesi 1,6 ms.
+- **Platform puanı:** İnsanların yer puanı botlar dahil sıralamaya göre (bot önde ise ikinci
+  olan 600 alır).
+- **Dizilişi değiştirmek:** Sıra beklemeden ve el sonu tablosunda da serbest.
+
+### Eklenen paketler
+
+Yok. Yeni workspace paketi `@loudroom/game-okey`; `@dnd-kit/core` 6.3.1 (Sorting'de zaten var)
+ıstakadaki sürükle-bırak için bu pakete de eklendi.
+
+### Bilinen sınırlar
+
+- **Bot basit:** Taşın değerini komşularıyla ölçüyor; okeyi tutuyor ama sağdakinin işine
+  yarayacak taşı atmaktan kaçınmıyor.
+- **Yön kilidi yok:** iOS tarayıcıda yön kilitlenemiyor; dikey tutulunca "yan çevir" ekranı.
+- **Dokunma hedefleri:** Yatay iPhone'da taşlar ~48 px (SPEC'teki 56 px'in altında);
+  sürüklerken seçilen yuva vurgulanıyor.
+- **E2E'de kazanan el:** Zorlanamıyor; bitirme unit testlerle, el sonu botların oyunuyla
+  doğrulanıyor.
+- **Koltuk sayısı:** Okey 4 kişilik; 5. oyuncudan itibaren izleyici.
 
 ---
 

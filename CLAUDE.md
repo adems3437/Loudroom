@@ -102,7 +102,8 @@ packages/games/*   one package per game: schema.ts, server.ts (module), import.t
                    exports ./server and ./client separately. quiz, closest-number, sorting
                    (@dnd-kit), who-would ("Kim Yapar?"), image-location, bluff, drawing (round
                    stream, canvas), reaction (hidden phase clock), memory, tombala (host
-                   input), spy ("Casus Kim?"), uno, pisti, kizma-birader, amiral-batti
+                   input), spy ("Casus Kim?"), uno, pisti, kizma-birader, amiral-batti,
+                   okey (setup on the TV, bots in empty seats, landscape rack)
 docker/            dev image, postgres init (creates loudroom_test); server.Dockerfile (build stage =
                    migrate image, slim runtime + static ffmpeg), web.Dockerfile (standalone),
                    nginx/ (nginx.conf, locations.conf, sites/http.conf, tls.conf.example),
@@ -180,6 +181,9 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
 - Parallel turns (Amiral Battı's tournament duels) run in lockstep steps on the one phase
   clock: every duel fires once per step; never keep per-duel absolute deadlines (a pause only
   shifts the engine's clock).
+- Okey fills empty seats with bots: seat ids `bot:n` live only in the module's state and views
+  (`bot` number in each seat); `score` covers only room players, so bots never get points.
+  Its host input `start` carries the TV's setup choices (hands, starting points, partners).
 - A module's randomness belongs in `createRound`: `ctx.random` restarts from the round seed
   on every call. Later draws derive their own seed (Tombala deals a late joiner's card from
   `seedFromString(cardSeed:playerId)`).
@@ -213,6 +217,8 @@ scripts/           prod.sh, prod-smoke.sh, backup.sh, restore.sh
   Desktop, evicted files read as empty, build output got "name 2.ext" conflict copies, and
   iCloud syncing `dist`/the generated Prisma client touched directories: the Docker server's
   polling watchers saw that and restarted Nest every ~15 s, pausing games in e2e runs.
+- `phone-landscape:` (globals.css `@custom-variant`) styles a phone held sideways (landscape,
+  height < 500 px): the play layout drops its width cap and the logo row there (Okey's rack).
 - Game packages build with `tsc` (JSX included); Next uses their `dist`. Tailwind scans their
   sources via `@source` in `globals.css`.
 - The admin API is same-origin: Next rewrites `/api/*` and `/media/*` to `API_INTERNAL_URL`
