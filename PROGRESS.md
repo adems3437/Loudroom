@@ -149,6 +149,13 @@ gün Mac'te, Docker dev stack'inde uygulandı.
 Yok. Yeni workspace paketi `@loudroom/game-okey`; `@dnd-kit/core` 6.3.1 (Sorting'de zaten var)
 ıstakadaki sürükle-bırak için bu pakete de eklendi.
 
+### Sonradan düzeltmeler (2026-10-07)
+
+- **Lobi taşması:** Paket sayısı artınca TV lobisinin sağ sütunu ekrandan taşıyordu; dört
+  oyuncudan ikisi, "Odayı kilitle" ve "Oyunu başlat" ekranın dışında kalıyordu. Sütun artık
+  `minmax(0, 1fr)`; paket şeridi kendi içinde kayıyor. Lobi ve oyun e2e'leri (10/10) yeşil.
+- **README:** Ekran görüntüleri (`docs/images/`), oyun tabloları, mimari şeması.
+
 ### Bilinen sınırlar
 
 - **Bot basit:** Taşın değerini komşularıyla ölçüyor; okeyi tutuyor ama sağdakinin işine
