@@ -99,7 +99,7 @@ function Lobby({ room }: { room: HostRoomState }) {
   };
 
   return (
-    <div className="grid h-full grid-cols-[560px_1fr] gap-16">
+    <div className="grid h-full grid-cols-[560px_minmax(0,1fr)] gap-16">
       <section className="bg-surface flex flex-col items-center justify-center gap-8 rounded-[48px] px-10 py-12 text-center">
         <h2 className="font-display text-[44px] font-bold">{t('joinHeading')}</h2>
         <QrCode value={room.joinUrl} size={380} label={t('qrLabel')} />
