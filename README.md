@@ -13,6 +13,8 @@ alınan kararlar [PROGRESS.md](PROGRESS.md) içinde.
 
 ## Oyunlar
 
+**Parti oyunları** (her bölüm kısa bir tur):
+
 | Oyun           | Kısaca                                                          |
 | -------------- | --------------------------------------------------------------- |
 | Quiz           | 2–6 seçenekli sorular; görselli ya da videolu soru; seri bonusu |
@@ -24,9 +26,19 @@ alınan kararlar [PROGRESS.md](PROGRESS.md) içinde.
 | Drawing        | Biri çizer, diğerleri tahmin eder (canlı çizim akışı)           |
 | Reaction       | Hedef görününce en hızlı dokunan kazanır                        |
 | Memory         | Ekranda gösterilenleri hatırla, telefondan cevapla              |
+| Tombala        | Kartın telefonda; çinko ve tombala sunucuda doğrulanır          |
+| Casus Kim?     | Herkes mekânı bilir, casus bilmez; tartış, oyla, casusu bul     |
 
-Tombala, Casus Kim?, UNO, Pişti, Kızma Birader, Amiral Battı ve Okey sonraki fazlarda
-(SPEC §15).
+**Kart ve masa oyunları** (bir maç tek uzun bölüm; elin ya da filon yalnızca telefonunda,
+masa TV'de; kopan oyuncunun yerine bot oynar):
+
+| Oyun          | Kısaca                                                                |
+| ------------- | --------------------------------------------------------------------- |
+| UNO           | 2–10 kişi; +2 / +4 yığma ayarı, "UNO!" ve "Yakala!"                   |
+| Pişti         | 2–4 kişi, 4 kişide eşli; pişti, Vale piştisi, hedef puan              |
+| Kızma Birader | Zar sunucuda; klasik haç tahtası (6 kişilik varyant yuvarlak)         |
+| Amiral Battı  | Filoyu telefonda diz; iki takım ya da paralel düellolu turnuva        |
+| Okey          | 106 taş, gösterge ve okey; ıstaka yatay telefonda, boş koltuklara bot |
 
 ## Özellikler
 
@@ -34,12 +46,17 @@ Tombala, Casus Kim?, UNO, Pişti, Kızma Birader, Amiral Battı ve Okey sonraki 
   cevap sonuç ekranından önce hiçbir istemciye gitmez; bu, testlerle doğrulanır.
 - **Yeniden bağlanma:** Sayfa yenilenince ya da bağlantı kopunca oyuncu aynı yerine döner;
   host koparsa oyun duraklar.
+- **Kart ve masa altyapısı:** Koltuklar ve izleyiciler, sıra saati, kopan oyuncu yerine bot,
+  seed'li deste ve zar; gizli el ve deste sırasının hiçbir istemciye sızmadığı testlerle
+  doğrulanır.
 - **Yönetim paneli:** İçerik, kategori, medya (görsel ve video), oyun paketleri, kullanıcılar
   (ADMIN / EDITOR), CSV/XLSX ile toplu içe aktarma, oyun geçmişi ve istatistikler.
 - **Güvenlik:** Rate limit, oda kodu deneme koruması, küfür filtresi, argon2 ile şifre,
   httpOnly + SameSite=Strict oturum çerezi ve CSRF koruması, yüklenen dosyalarda meta veri
   silme.
 - **KVKK:** Oyuncular hesapsız; oyun geçmişi ayarlanabilir süre sonunda silinir.
+- **Prod:** Nginx arkasında Docker Compose, yedekleme ve geri yükleme betikleri, GitHub
+  Actions CI ([docs/DEPLOY.md](docs/DEPLOY.md)).
 
 ## Teknolojiler
 
@@ -55,6 +72,10 @@ Tombala, Casus Kim?, UNO, Pişti, Kızma Birader, Amiral Battı ve Okey sonraki 
 
 Gerekenler: Node 24, pnpm 12, Docker. Video yüklemek için host modunda `ffmpeg`
 (`brew install ffmpeg`); Docker geliştirme ortamında hazır gelir.
+
+> Projeyi iCloud ile senkronlanan bir klasörde (ör. Masaüstü) tutma: iCloud derleme
+> çıktılarına dokundukça Docker'daki server sürekli yeniden başlıyor. `~/Developer` gibi bir
+> klasör kullan.
 
 ```bash
 cp .env.example .env            # bir kez
@@ -89,7 +110,13 @@ pnpm format:check               # Prettier
 pnpm db:migrate                 # migration oluştur / uygula
 pnpm db:seed                    # örnek içerik, paketler ve geliştirme admin'i (idempotent)
 pnpm admin:create --email sen@ornek.com --name "Ad"   # ilk yönetici; --reset ile şifre sıfırlama
+
+scripts/prod.sh up -d --build --wait   # prod stack (.env.prod ile); ayrıntılar docs/DEPLOY.md
+scripts/backup.sh                      # yedek al; geri yükleme: scripts/restore.sh <dump> <tar>
 ```
+
+Bilgisayarı 8 GB olan makinelerde `pnpm typecheck|lint|test|build` komutlarına
+`--concurrency=4` eklemek bellek sıkışmasını önler (CI de böyle çalışır).
 
 ## Klasör yapısı
 
@@ -100,9 +127,12 @@ apps/
 packages/
   shared/          zod şemaları, socket olay ve REST sözleşmeleri
   game-sdk/        oyun modülü sözleşmesi, ortak test paketi, ortak istemci bileşenleri
+  table-kit/       kart ve masa oyunları: koltuklar, sıra, bot, deste, zar, paralel sıralar
   games/*          her oyun ayrı paket: kurallar, TV ve telefon ekranları, içerik editörü
-docker/            geliştirme imajı, postgres init
+docker/            geliştirme ve prod imajları, Nginx, postgres init, yedekleme
+scripts/           prod, smoke test, yedekleme ve geri yükleme
 docs/SPEC.md       teknik şartname
+docs/DEPLOY.md     prod kurulumu
 ```
 
 Yeni bir oyun eklemek: `packages/games/` altında yeni bir paket ve server ile web
@@ -111,7 +141,6 @@ testi dahil). Ayrıntılar [CLAUDE.md](CLAUDE.md) ve SPEC §5'te.
 
 ## Durum
 
-Phase 1–8 ve 9A tamamlandı: altyapı, oda ve lobby, oyun motoru, yönetim paneli, dokuz oyun,
-içe aktarma, oyun geçmişi ve istatistikler. Phase 9B (videolu sorular, prod kurulumu,
-yedekleme, CI) kodlandı; son doğrulamalar bekliyor. Prod kurulumu için
-[docs/DEPLOY.md](docs/DEPLOY.md). Faz listesi ve ayrıntılar [PROGRESS.md](PROGRESS.md) içinde.
+SPEC'teki 13 fazın hepsi tamamlandı: altyapı, oda ve lobby, oyun motoru, yönetim paneli, 16
+oyun, içe aktarma, oyun geçmişi ve istatistikler, videolu sorular, prod kurulumu, yedekleme
+ve CI. Her fazın kararları, testleri ve bilinen sınırları [PROGRESS.md](PROGRESS.md) içinde.
