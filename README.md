@@ -165,11 +165,6 @@ docker compose up -d --wait     # postgres, redis, server :4000, web :3000
 - Telefonla denemek için `.env` içindeki `PUBLIC_URL`'i bilgisayarın LAN adresine ayarla.
 - Geliştirme yönetici hesabı `.env` içindeki `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD`.
 
-> [!TIP]
-> Projeyi iCloud ile senkronlanan bir klasörde (ör. Masaüstü) tutma: iCloud derleme
-> çıktılarına dokundukça Docker'daki server sürekli yeniden başlıyor. `~/Developer` gibi bir
-> klasör kullan.
-
 <details>
 <summary><b>Docker olmadan, bilgisayarda çalıştırmak</b></summary>
 
