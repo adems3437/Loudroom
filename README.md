@@ -241,3 +241,13 @@ geçti.
 
 Ürünün ve mimarinin tek doğru kaynağı [docs/SPEC.md](docs/SPEC.md); her fazın kararları,
 testleri ve bilinen sınırları [PROGRESS.md](PROGRESS.md) içinde.
+
+## 📜 Lisans
+
+Loudroom, [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-or-later) ile lisanslıdır.
+Kodu kullanabilir, değiştirebilir ve dağıtabilirsin. Değiştirilmiş bir kopyayı ağ üzerinden
+servis olarak çalıştırıyorsan, kullanıcılarına o kopyanın kaynak kodunu da aynı lisansla sunmak
+zorundasın. Ana sayfadaki "Kaynak kodu" linki bunun içindir: kendi kopyanda `SOURCE_CODE_URL`'i
+kendi yayımladığın kaynağa ayarla.
+
+Copyright © 2026 Adem

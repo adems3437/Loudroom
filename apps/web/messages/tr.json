@@ -11,7 +11,9 @@
     "host": "Oda aç",
     "hostHint": "TV veya bilgisayar ekranından",
     "play": "Oyuna katıl",
-    "playHint": "Telefonundan"
+    "playHint": "Telefonundan",
+    "source": "Kaynak kodu",
+    "license": "Loudroom açık kaynaklıdır (AGPL-3.0)."
   },
   "admin": {
     "title": "Yönetim paneli",

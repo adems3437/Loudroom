@@ -32,6 +32,8 @@ cp .env.prod.example .env.prod
 - `POSTGRES_PASSWORD`: `openssl rand -hex 32` (hex olsun: veritabanı adresinin içinde geçiyor).
 - `IP_HASH_SECRET`: `openssl rand -hex 32`. 32 karakterden kısa ya da örnek değer olursa server
   açılmaz.
+- `SOURCE_CODE_URL`: Ana sayfadaki "Kaynak kodu" linki. Loudroom AGPL-3.0 lisanslıdır: kodu
+  değiştirip çalıştırıyorsan bunu değiştirilmiş kaynağı yayımladığın adrese ayarla.
 
 Ardından:
 

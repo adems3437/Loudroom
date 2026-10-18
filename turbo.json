@@ -46,7 +46,8 @@
         "FFMPEG_PATH",
         "FFPROBE_PATH",
         "TSC_WATCHFILE",
-        "TSC_WATCHDIRECTORY"
+        "TSC_WATCHDIRECTORY",
+        "SOURCE_CODE_URL"
       ]
     },
     "//#dev:packages": {

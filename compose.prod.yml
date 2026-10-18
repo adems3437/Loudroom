@@ -97,6 +97,7 @@ services:
     environment:
       # Empty: browsers reach Socket.IO on the page's own origin, through Nginx.
       SOCKET_PORT: ''
+      SOURCE_CODE_URL: ${SOURCE_CODE_URL:-https://github.com/adems3437/Loudroom}
     depends_on:
       server:
         condition: service_healthy
