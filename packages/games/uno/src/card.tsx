@@ -39,7 +39,22 @@ export function cardSymbol(card: UnoCard): string {
   }
 }
 
-/** An original card face: colour, a tilted oval, the symbol in the middle and the corner. */
+/** The four colours as a 2×2 grid of squares (wild cards, the card back). */
+function ColorTiles({ className }: { className: string }) {
+  return (
+    <span className={`grid grid-cols-2 overflow-hidden ${className}`}>
+      <span className="bg-uno-red" />
+      <span className="bg-uno-blue" />
+      <span className="bg-uno-yellow" />
+      <span className="bg-uno-green" />
+    </span>
+  );
+}
+
+/**
+ * An original card face: colour, an upright rounded square holding the symbol, and the
+ * symbol again in two corners. Wild cards show the four colours behind a dark square.
+ */
 export function UnoCardFace({ card, size }: { card: UnoCard; size: CardSize }) {
   const symbol = cardSymbol(card);
   return (
@@ -50,37 +65,32 @@ export function UnoCardFace({ card, size }: { card: UnoCard; size: CardSize }) {
       data-color={card.color ?? 'wild'}
       data-kind={card.kind}
     >
-      {!card.color && (
-        <span className="absolute inset-[18%] grid -rotate-12 grid-cols-2 overflow-hidden rounded-[50%]">
-          <span className="bg-uno-red" />
-          <span className="bg-uno-blue" />
-          <span className="bg-uno-yellow" />
-          <span className="bg-uno-green" />
-        </span>
-      )}
-      {card.color && (
-        <span className="bg-card-face/90 absolute inset-x-[12%] inset-y-[22%] -rotate-12 rounded-[50%]" />
-      )}
+      {!card.color && <ColorTiles className="absolute inset-0" />}
       <span
-        className={`relative leading-none ${card.color ? 'text-card-ink' : 'text-card-face'} [text-shadow:0_2px_0_rgb(0_0_0/0.15)]`}
+        className={`relative grid aspect-square w-[64%] place-items-center rounded-[24%] leading-none ${
+          card.color ? 'bg-card-face/90 text-card-ink' : 'bg-card-ink text-card-face'
+        }`}
       >
         {symbol}
       </span>
-      <span className="text-card-face absolute top-[6%] left-[10%] text-[0.4em] leading-none">
+      <span className="text-card-face absolute top-[5%] left-[9%] text-[0.36em] leading-none [text-shadow:0_1px_0_rgb(0_0_0/0.25)]">
+        {symbol}
+      </span>
+      <span className="text-card-face absolute right-[9%] bottom-[5%] rotate-180 text-[0.36em] leading-none [text-shadow:0_1px_0_rgb(0_0_0/0.25)]">
         {symbol}
       </span>
     </span>
   );
 }
 
-/** The back of a card (draw pile, other players' hands). */
+/** The back of a card (draw pile, other players' hands): the four colours as a diamond. */
 export function UnoCardBack({ size }: { size: CardSize }) {
   return (
     <span
       className={`border-card-face bg-card-ink relative grid shrink-0 place-items-center shadow-lg ${SIZE[size]}`}
     >
-      <span className="bg-uno-red absolute inset-[18%] -rotate-12 rounded-[50%]" />
-      <span className="bg-uno-yellow relative size-[30%] rotate-45 rounded-md" />
+      <span className="border-card-face/25 absolute inset-[7%] rounded-[inherit] border" />
+      <ColorTiles className="relative aspect-square w-[46%] rotate-45 gap-[6%] rounded-[14%]" />
     </span>
   );
 }

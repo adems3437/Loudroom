@@ -32,6 +32,9 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
   değişti; `gameType` kimlikleri, paket adları (`@loudroom/game-uno`, `game-kizma-birader`) ve
   kod içi adlar aynı kaldı (veritabanı ve kayıtlı paketler etkilenmez). Aşağıdaki faz kayıtları
   o günkü adlarla bırakıldı.
+- **Kart tasarımı:** Renk Kartları'nın eğik ovalli ön yüzü ve kırmızı ovalli arka yüzü UNO'ya
+  benziyordu. Ön yüz artık dik, yuvarlatılmış bir kare ve iki köşede sembol; joker dört renk
+  karenin önünde koyu bir kare; arka yüz dört renkli bir elmas.
 - Mevcut bir veritabanında seed yeniden çalışınca örnek paket ve içerik adları güncellenir.
 
 ---
