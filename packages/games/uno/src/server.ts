@@ -323,7 +323,7 @@ export const unoModule: GameModule<
   UnoPlayerView
 > = {
   id: UNO_GAME_TYPE,
-  name: 'UNO',
+  name: 'Renk Kartları',
   version: 1,
   contentSchema: unoContentSchema,
   settingsSchema: unoSettingsSchema,

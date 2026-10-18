@@ -71,7 +71,7 @@ describe('board games through the engine', () => {
     const { packId } = await createPack(prisma, [
       {
         gameType: 'kizmaBirader',
-        contents: [{ title: 'Kızma Birader' }],
+        contents: [{ title: 'Ludo' }],
         settings: { botDelayMs: 1_000 },
       },
     ]);

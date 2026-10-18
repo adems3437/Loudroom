@@ -86,9 +86,9 @@
       "memory": "Hafıza",
       "tombala": "Tombala",
       "spy": "Casus Kim?",
-      "uno": "UNO",
+      "uno": "Renk Kartları",
       "pisti": "Pişti",
-      "kizmaBirader": "Kızma Birader",
+      "kizmaBirader": "Ludo",
       "amiralBatti": "Amiral Battı",
       "okey": "Okey"
     },
@@ -942,11 +942,11 @@
       }
     },
     "uno": {
-      "name": "UNO",
+      "name": "Renk Kartları",
       "timeLeft": "Sıra süresi",
-      "notEnoughPlayers": "UNO için en az {min} bağlı oyuncu gerekiyor; puansız geçildi.",
+      "notEnoughPlayers": "Renk Kartları için en az {min} bağlı oyuncu gerekiyor; puansız geçildi.",
       "botPlaying": "🤖 Bot oynuyor",
-      "unoBadge": "UNO!",
+      "unoBadge": "Son kart!",
       "deckCount": "Destede {count} kart",
       "direction": "Yön",
       "turnOf": "Sıra: {name}",
@@ -962,7 +962,7 @@
         "play": "{name} kart attı",
         "draw": "{name} {count, plural, one {bir kart} other {# kart}} çekti",
         "pass": "{name} pas geçti",
-        "uno": "{name}: UNO!",
+        "uno": "{name}: Son kart!",
         "caught": "{by}, {name} oyuncusunu yakaladı: 2 ceza kartı!"
       },
       "won": "{name} kazandı!",
@@ -976,14 +976,14 @@
       "draw": "Kart çek",
       "drawPending": "{count} kart çek",
       "pass": "Pas geç",
-      "sayUno": "UNO!",
+      "sayUno": "Son kart!",
       "catch": "Yakala!",
-      "nothingToCatch": "Yakalanacak kimse yok: herkes UNO demiş.",
+      "nothingToCatch": "Yakalanacak kimse yok: herkes \"Son kart!\" demiş.",
       "cannotPlay": "Bu kart şu an oynanamaz.",
       "notYourTurn": "Sıra sende değil.",
       "editor": {
         "title": "Maçın adı",
-        "titlePlaceholder": "ör. Cuma akşamı UNO",
+        "titlePlaceholder": "ör. Cuma akşamı Renk Kartları",
         "titleHint": "Kurallar (başlangıç kartı, süreler, yığma) paketteki bölüm ayarlarında.",
         "invalid": "Bu alanı kontrol et."
       },
@@ -1057,9 +1057,9 @@
       }
     },
     "kizmaBirader": {
-      "name": "Kızma Birader",
+      "name": "Ludo",
       "timeLeft": "Sıra süresi",
-      "notEnoughPlayers": "Kızma Birader için en az {min} bağlı oyuncu gerekiyor; puansız geçildi.",
+      "notEnoughPlayers": "Ludo için en az {min} bağlı oyuncu gerekiyor; puansız geçildi.",
       "botPlaying": "🤖 Bot oynuyor",
       "turnOf": "Sıra: {name}",
       "yourTurn": "Sıra sende!",
@@ -1086,7 +1086,7 @@
       "watching": "Bu maçta izleyicisin.",
       "editor": {
         "title": "Maçın adı",
-        "titlePlaceholder": "ör. Pazar Kızma Birader",
+        "titlePlaceholder": "ör. Pazar Ludo",
         "titleHint": "Kurallar (tahta, piyon sayısı, süreler) paketteki bölüm ayarlarında.",
         "invalid": "Bu alanı kontrol et."
       },

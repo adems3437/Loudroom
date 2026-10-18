@@ -178,7 +178,7 @@ Oyun tipleri çok farklı içerik yapısına sahip olduğundan tek bir sabit `Qu
   - Memory: `{ title, items: [{ id, label, emoji?, mediaId? }] (8–24) }` (her öğede emoji ya da görsel)
   - Tombala: `{ title }` (çekiliş, işaretleme ve ödüller bölüm ayarlarında)
   - Casus Kim?: `{ title, locations: [{ id, name, emoji? }] (8–30) }` (mekân seti; her round birini seçer, adlar benzersiz)
-  - UNO, Pişti, Kızma Birader, Amiral Battı: `{ title }` (kurallar bölüm ayarlarında)
+  - Renk Kartları (`uno`), Pişti, Ludo (`kizmaBirader`), Amiral Battı: `{ title }` (kurallar bölüm ayarlarında)
   - Diğer oyunlar kendi şemalarıyla.
 - **GamePack:** `id, name, description, status (DRAFT|PUBLISHED), settings, rounds[]` — host yalnızca yayındaki paketleri görür; yayınlarken her bölümün oynanabilir olduğu kontrol edilir.
 - **GamePackRound:** `order, gameType, contentSelection (sabit id listesi VEYA kategori/zorluk/adet ile rastgele), questionCount, timeLimit, scoreMultiplier, showScoreboardAfter, settings`
@@ -265,7 +265,7 @@ Genel: tüm skor formülleri modül ayarlarından yapılandırılabilir; eşitli
 - **Koltuk sistemi:** Oyunun koltuk sayısından fazla oyuncu varsa fazlası izleyici olur ya da takım kurulur (oyuna göre).
 - **Sıra zaman aşımı:** Süresi dolan oyuncu için otomatik hamle veya sıra atlama (ayar); kopan oyuncunun yerine bot geçebilir.
 - Gizli bilgi (el, ıstaka, gemi yerleşimi) yalnızca sahibinin telefonuna gider; masa/tahta TV'de. Her hamle server'da doğrulanır.
-- **İsimler ve görseller:** Oyun adları ürün sahibinin kararıyla aynen kullanılır. "UNO" ve "Kızma Birader" tescilli markalardır (yayına almadan önce hukuki değerlendirme gerekir). Kart, taş ve tahta tasarımları tamamen özgün olmalıdır; orijinal ürünlerin görselleri kullanılmaz.
+- **İsimler ve görseller:** Tescilli marka adları kullanılmaz: UNO yerine "Renk Kartları" (oyundaki "UNO!" çağrısı "Son kart!"), Kızma Birader yerine genel adıyla "Ludo". Kodda `gameType` kimlikleri (`uno`, `kizmaBirader`) değişmedi; bunlar kullanıcıya görünmez. Kart, taş ve tahta tasarımları tamamen özgün olmalıdır; orijinal ürünlerin görselleri kullanılmaz.
 
 ### 7.12 Okey
 - 4 koltuk, klasik okey: 106 taş, gösterge ve okey taşı (joker); sahte okey okeyin yerine geçer. 2–4 oyuncu oturur, boş koltuklara bot oturur (botlar platform puanı almaz); fazlası izleyici. Eşli mod (0+2 / 1+3).
@@ -277,12 +277,12 @@ Genel: tüm skor formülleri modül ayarlarından yapılandırılabilir; eşitli
 - 2–4 oyuncu (4 kişide eşli oyun seçeneği), 52 kart; el telefonda, yerdeki kartlar TV'de.
 - Pişti ve kart puanları klasik kurallarla; oyun belirlenen puana ya da el sayısına göre biter.
 
-### 7.14 UNO
+### 7.14 Renk Kartları
 - 2–10 oyuncu; renk ve sayı eşleştirme, özel kartlar (atla, yön değiştir, +2, renk seç, +4).
-- Son kart kalınca telefondan "UNO!" denir; unutan oyuncu yakalanırsa ceza kartı çeker.
+- Son kart kalınca telefondan "Son kart!" denir; unutan oyuncu yakalanırsa ceza kartı çeker.
 - El telefonda, deste ve yer TV'de.
 
-### 7.15 Kızma Birader
+### 7.15 Ludo
 - 2–4 koltuk (6 kişilik varyant ayarı); zar ve piyon seçimi telefonda, tahta TV'de.
 - Klasik kurallar: 6 ile çıkış, 6 gelince tekrar atış, rakip piyonu yeme; bitiriş sırasına göre sıralama.
 

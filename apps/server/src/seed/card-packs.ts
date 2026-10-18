@@ -13,7 +13,7 @@ export const PISTI_PACK_ID = '7bccbaaa-92bd-4474-8448-0c19c6bec2f1';
 
 export const SAMPLE_UNO: { id: string; content: UnoContent } = {
   id: '82a2e26f-29b5-42f6-8917-2dedc712546e',
-  content: { title: 'Klasik UNO' },
+  content: { title: 'Klasik Renk Kartları' },
 };
 export const SAMPLE_PISTI: { id: string; content: PistiContent } = {
   id: '0ff21f83-19d1-471d-b27b-f862646de072',
@@ -60,7 +60,7 @@ async function upsertPack(
   });
 }
 
-/** "Klasik UNO" and "Pişti" with their published packs. */
+/** "Klasik Renk Kartları" and "Pişti" with their published packs. */
 export async function seedCardPacks(prisma: PrismaClient): Promise<void> {
   await upsertContent(
     prisma,
@@ -77,7 +77,10 @@ export async function seedCardPacks(prisma: PrismaClient): Promise<void> {
   await upsertPack(
     prisma,
     UNO_PACK_ID,
-    { name: 'UNO', description: 'Elin telefonunda, yer ekranda. Son kartta UNO demeyi unutma!' },
+    {
+      name: 'Renk Kartları',
+      description: 'Elin telefonunda, yer ekranda. Son kartta "Son kart!" demeyi unutma!',
+    },
     UNO_GAME_TYPE,
     SAMPLE_UNO.id,
   );

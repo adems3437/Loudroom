@@ -20,7 +20,7 @@ export const OKEY_PACK_ID = 'a21f540e-d953-4deb-85ee-1bd96a5c449f';
 
 export const SAMPLE_KIZMA: { id: string; content: KizmaContent } = {
   id: 'd33eb2a4-7e33-429e-ace1-f7f32d74b80b',
-  content: { title: 'Kızma Birader' },
+  content: { title: 'Ludo' },
 };
 export const SAMPLE_AMIRAL: { id: string; content: AmiralContent } = {
   id: 'c0f6a339-3e9c-45c2-92f4-f418138edf80',
@@ -73,7 +73,7 @@ async function upsertPack(
   });
 }
 
-/** Kızma Birader, Amiral Battı (teams, tournament) and Okey with their published packs. */
+/** Ludo, Amiral Battı (teams, tournament) and Okey with their published packs. */
 export async function seedBoardPacks(prisma: PrismaClient): Promise<void> {
   await upsertContent(
     prisma,
@@ -90,7 +90,10 @@ export async function seedBoardPacks(prisma: PrismaClient): Promise<void> {
   await upsertPack(
     prisma,
     KIZMA_PACK_ID,
-    { name: 'Kızma Birader', description: 'Zarını telefonundan at, piyonunu seç. Yenince kızma!' },
+    {
+      name: 'Ludo',
+      description: 'Zarını telefonundan at, piyonunu seç; dört piyonu ilk eve sokan kazanır.',
+    },
     KIZMA_GAME_TYPE,
     SAMPLE_KIZMA.id,
     {},

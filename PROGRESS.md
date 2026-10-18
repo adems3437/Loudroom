@@ -4,22 +4,35 @@ Projenin ilerleme kaydı. Kapsamın tek doğru kaynağı [docs/SPEC.md](docs/SPE
 
 ## Durum
 
-| Faz                                             | Durum                      |
-| ----------------------------------------------- | -------------------------- |
-| Phase 1 — Altyapı                               | ✅ Tamamlandı (2026-10-01) |
-| Phase 2 — Oda ve Lobby                          | ✅ Tamamlandı (2026-10-01) |
-| Phase 3 — Game Engine + Quiz MVP                | ✅ Tamamlandı (2026-10-01) |
-| Phase 4 — Admin Panel (temel)                   | ✅ Tamamlandı (2026-10-02) |
-| Phase 5 — Closest Number + Sorting + Kim Yapar? | ✅ Tamamlandı (2026-10-02) |
-| Phase 6 — Image Location + Bluff                | ✅ Tamamlandı (2026-10-02) |
-| Phase 7 — Drawing (stream kanalı)               | ✅ Tamamlandı (2026-10-02) |
-| Phase 8 — Reaction + Memory                     | ✅ Tamamlandı (2026-10-02) |
-| Phase 9A — İçe aktarma, geçmiş ve istatistikler | ✅ Tamamlandı (2026-10-02) |
-| Phase 9B — Video, prod, yedekleme               | ✅ Tamamlandı (2026-10-04) |
-| Phase 10 — Tombala + Casus Kim?                 | ✅ Tamamlandı (2026-10-04) |
-| Phase 11 — Kart/masa altyapısı + UNO + Pişti    | ✅ Tamamlandı (2026-10-04) |
-| Phase 12 — Kızma Birader + Amiral Battı         | ✅ Tamamlandı (2026-10-04) |
-| Phase 13 — Okey                                 | ✅ Tamamlandı (2026-10-04) |
+| Faz                                                    | Durum                      |
+| ------------------------------------------------------ | -------------------------- |
+| Phase 1 — Altyapı                                      | ✅ Tamamlandı (2026-10-01) |
+| Phase 2 — Oda ve Lobby                                 | ✅ Tamamlandı (2026-10-01) |
+| Phase 3 — Game Engine + Quiz MVP                       | ✅ Tamamlandı (2026-10-01) |
+| Phase 4 — Admin Panel (temel)                          | ✅ Tamamlandı (2026-10-02) |
+| Phase 5 — Closest Number + Sorting + Kim Yapar?        | ✅ Tamamlandı (2026-10-02) |
+| Phase 6 — Image Location + Bluff                       | ✅ Tamamlandı (2026-10-02) |
+| Phase 7 — Drawing (stream kanalı)                      | ✅ Tamamlandı (2026-10-02) |
+| Phase 8 — Reaction + Memory                            | ✅ Tamamlandı (2026-10-02) |
+| Phase 9A — İçe aktarma, geçmiş ve istatistikler        | ✅ Tamamlandı (2026-10-02) |
+| Phase 9B — Video, prod, yedekleme                      | ✅ Tamamlandı (2026-10-04) |
+| Phase 10 — Tombala + Casus Kim?                        | ✅ Tamamlandı (2026-10-04) |
+| Phase 11 — Kart/masa altyapısı + Renk Kartları + Pişti | ✅ Tamamlandı (2026-10-04) |
+| Phase 12 — Ludo + Amiral Battı                         | ✅ Tamamlandı (2026-10-04) |
+| Phase 13 — Okey                                        | ✅ Tamamlandı (2026-10-04) |
+
+---
+
+## Sonradan: oyun adları ve lisans (2026-10-18)
+
+- **Lisans:** AGPL-3.0-or-later (`LICENSE`). Değiştirilmiş bir kopyayı servis olarak
+  çalıştıran kaynağını paylaşmak zorunda; ana sayfada kaynak kodu linki var (`SOURCE_CODE_URL`).
+- **Tescilli adlar kaldırıldı:** UNO → "Renk Kartları" ("UNO!" çağrısı → "Son kart!"),
+  Kızma Birader → "Ludo". Yalnızca kullanıcıya görünen metinler, seed adları, README ve SPEC
+  değişti; `gameType` kimlikleri, paket adları (`@loudroom/game-uno`, `game-kizma-birader`) ve
+  kod içi adlar aynı kaldı (veritabanı ve kayıtlı paketler etkilenmez). Aşağıdaki faz kayıtları
+  o günkü adlarla bırakıldı.
+- Mevcut bir veritabanında seed yeniden çalışınca örnek paket ve içerik adları güncellenir.
 
 ---
 

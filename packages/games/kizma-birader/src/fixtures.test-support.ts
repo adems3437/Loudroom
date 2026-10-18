@@ -10,7 +10,7 @@ export const players: GamePlayer[] = [
   { id: 'p3', nickname: 'Zeynep', avatar: 'cloud', color: '#ffd23f', connected: true },
 ];
 
-export const content: KizmaContent = { title: 'Kızma Birader' };
+export const content: KizmaContent = { title: 'Ludo' };
 
 /** A one-pawn match: p1 rolls by hand, then every turn times out (the bot plays). */
 export function botMatch(): ScriptStep[] {

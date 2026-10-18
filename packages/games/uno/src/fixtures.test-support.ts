@@ -10,7 +10,7 @@ export const players: GamePlayer[] = [
   { id: 'p3', nickname: 'Zeynep', avatar: 'cloud', color: '#ffd23f', connected: true },
 ];
 
-export const content: UnoContent = { title: 'Klasik UNO' };
+export const content: UnoContent = { title: 'Klasik Renk Kartları' };
 
 /** Ids of the cards of a kind (and colour / value), in deck order. */
 export function cards(kind: UnoKind, color: UnoColor | null = null, value: number | null = null) {

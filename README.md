@@ -64,9 +64,9 @@ kopan oyuncunun yerine bot oynar.
 
 | Oyun                 | Kısaca                                                                |
 | -------------------- | --------------------------------------------------------------------- |
-| 🃏 **UNO**           | 2–10 kişi; +2 / +4 yığma ayarı, "UNO!" ve "Yakala!"                   |
+| 🃏 **Renk Kartları** | 2–10 kişi; +2 / +4 yığma ayarı, "Son kart!" ve "Yakala!"              |
 | ♠️ **Pişti**         | 2–4 kişi, 4 kişide eşli; pişti, Vale piştisi, hedef puan              |
-| 🎲 **Kızma Birader** | Zar sunucuda; klasik haç tahtası (6 kişilik varyant yuvarlak)         |
+| 🎲 **Ludo**          | Zar sunucuda; klasik haç tahtası (6 kişilik varyant yuvarlak)         |
 | 🚢 **Amiral Battı**  | Filoyu telefonda diz; iki takım ya da paralel düellolu turnuva        |
 | 🀄 **Okey**          | 106 taş, gösterge ve okey; ıstaka yatay telefonda, boş koltuklara bot |
 
@@ -82,12 +82,12 @@ kopan oyuncunun yerine bot oynar.
     <td align="center"><sub>Casus Kim?</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/images/uno.jpg" alt="UNO: deste, yerdeki kart ve oyuncular"></td>
-    <td><img src="docs/images/kizma-birader.jpg" alt="Kızma Birader: klasik haç tahtası"></td>
+    <td><img src="docs/images/renk-kartlari.jpg" alt="Renk Kartları: deste, yerdeki kart ve oyuncular"></td>
+    <td><img src="docs/images/ludo.jpg" alt="Ludo: klasik haç tahtası"></td>
   </tr>
   <tr>
-    <td align="center"><sub>UNO</sub></td>
-    <td align="center"><sub>Kızma Birader</sub></td>
+    <td align="center"><sub>Renk Kartları</sub></td>
+    <td align="center"><sub>Ludo</sub></td>
   </tr>
   <tr>
     <td><img src="docs/images/amiral-batti.jpg" alt="Amiral Battı: iki takımın atış haritaları"></td>

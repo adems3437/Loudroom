@@ -245,7 +245,7 @@ export const kizmaModule: GameModule<
   KizmaPlayerView
 > = {
   id: KIZMA_GAME_TYPE,
-  name: 'Kızma Birader',
+  name: 'Ludo',
   version: 1,
   contentSchema: kizmaContentSchema,
   settingsSchema: kizmaSettingsSchema,

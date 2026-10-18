@@ -63,7 +63,7 @@ describe('card games through the engine', () => {
     const { packId } = await createPack(prisma, [
       {
         gameType: 'uno',
-        contents: [{ title: 'Klasik UNO' }],
+        contents: [{ title: 'Klasik Renk Kartları' }],
         settings: { botDelayMs: 3_000, turnMs: 60_000 },
       },
     ]);
@@ -104,7 +104,11 @@ describe('card games through the engine', () => {
 
   it('sends a hand only to its owner, and the draw pile to nobody', async () => {
     const { packId } = await createPack(prisma, [
-      { gameType: 'uno', contents: [{ title: 'Klasik UNO' }], settings: { turnMs: 60_000 } },
+      {
+        gameType: 'uno',
+        contents: [{ title: 'Klasik Renk Kartları' }],
+        settings: { turnMs: 60_000 },
+      },
     ]);
     const table = await setTable(testApp, 3, sockets);
     const records = [table.host, ...table.players.map((p) => p.socket)].map(recordAll);

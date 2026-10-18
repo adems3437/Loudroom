@@ -250,11 +250,11 @@ describe('seedCategories', () => {
     }
   });
 
-  it('seeds UNO, Pişti and their packs idempotently', async () => {
+  it('seeds Renk Kartları, Pişti and their packs idempotently', async () => {
     await seedCardPacks(prisma);
     await seedCardPacks(prisma);
     for (const [gameType, item, packId, name] of [
-      ['uno', SAMPLE_UNO, UNO_PACK_ID, 'UNO'],
+      ['uno', SAMPLE_UNO, UNO_PACK_ID, 'Renk Kartları'],
       ['pisti', SAMPLE_PISTI, PISTI_PACK_ID, 'Pişti'],
     ] as const) {
       const row = await prisma.contentItem.findUniqueOrThrow({ where: { id: item.id } });
@@ -271,7 +271,7 @@ describe('seedCategories', () => {
     }
   });
 
-  it('seeds Kızma Birader, Amiral Battı, Okey and their packs idempotently', async () => {
+  it('seeds Ludo, Amiral Battı, Okey and their packs idempotently', async () => {
     await seedBoardPacks(prisma);
     await seedBoardPacks(prisma);
     for (const [gameType, item] of [
@@ -284,7 +284,7 @@ describe('seedCategories', () => {
       expect(findGameModule(gameType)?.contentSchema.safeParse(row.data).success).toBe(true);
     }
     for (const [packId, name, gameType, settings] of [
-      [KIZMA_PACK_ID, 'Kızma Birader', 'kizmaBirader', {}],
+      [KIZMA_PACK_ID, 'Ludo', 'kizmaBirader', {}],
       [AMIRAL_TEAMS_PACK_ID, 'Amiral Battı: Takımlar', 'amiralBatti', { mode: 'teams' }],
       [
         AMIRAL_TOURNAMENT_PACK_ID,
